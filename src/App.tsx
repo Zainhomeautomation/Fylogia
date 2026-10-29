@@ -1,3 +1,5 @@
+import { withCurrentCategories, articleMatchesLibrary } from "./source-utils";
+import { topicMatchesText } from "./interest-taxonomy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Home,
@@ -20,6 +22,7 @@ import {
 } from "lucide-react";
 import {
   defaults,
+  sources,
   categories,
   regions,
   type Article,
@@ -38,7 +41,6 @@ import { loadCustom } from "./feeds";
 import { useOfflineLibrary } from "./useOfflineLibrary";
 import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
-import { articleMatchesLibrary } from "./source-utils";
 import { useSectionRoute } from "./useSectionRoute";
 const navigation = [
   { id: "home", label: "For You", icon: Home },
@@ -243,8 +245,14 @@ export default function App() {
     ],
     [edition, custom, prefs.customSources, online, offline.items],
   );
+  const sourceLabels = useMemo(
+    () => new Map([...sources, ...prefs.customSources].map((s) => [s.id, s])),
+    [prefs.customSources],
+  );
   const articles = useMemo(() => {
-    let result = view === "saved" ? saved : view === "history" ? history : all;
+    let result = (
+      view === "saved" ? saved : view === "history" ? history : all
+    ).map((a) => withCurrentCategories(a, sourceLabels));
     if (view === "home")
       result = result.filter((a) => articleMatchesLibrary(a, prefs));
     if (readableOnly) result = result.filter((a) => a.full);
@@ -259,15 +267,17 @@ export default function App() {
     if (view === "home") {
       const score = (a: Article) =>
         prefs.topics.reduce(
-          (n, t) =>
-            n + (a.title.toLowerCase().includes(t.toLowerCase()) ? 3 : 0),
+          (n, t) => n + (topicMatchesText(t, a.title) ? 3 : 0),
           0,
         ) +
         (a.image ? 1 : 0) +
         (a.full ? 2 : 0);
+      const scores = new Map(
+        result.map((article) => [article.id, score(article)]),
+      );
       result = [...result].sort(
         (a, b) =>
-          score(b) - score(a) ||
+          scores.get(b.id)! - scores.get(a.id)! ||
           (b.published || "").localeCompare(a.published || ""),
       );
       const seen = new Set<string>();
@@ -290,6 +300,7 @@ export default function App() {
     prefs.sourceIds,
     prefs.region,
     prefs.topics,
+    sourceLabels,
     filter,
     query,
     readableOnly,

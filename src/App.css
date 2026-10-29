@@ -2469,3 +2469,19 @@ h2 {
 .pdf-pages {
   justify-content: center;
 }
+.interest-group {
+  margin: 20px 0;
+}
+.interest-group h3 {
+  font:
+    600 12px/1.5 "DM Sans",
+    sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+.interest-group .choice,
+.onboard-panel input[type="search"] {
+  min-height: 44px;
+}

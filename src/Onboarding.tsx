@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ArrowRight, Check, ArrowLeft, BookOpen } from "lucide-react";
 import { Sources } from "./Sources";
 import {
-  categories,
+  interestGroups,
   regions,
   sources,
   subcategories,
@@ -24,6 +24,7 @@ export function Onboarding({
 }) {
   const [draft, setDraft] = useState(initial);
   const [step, setStep] = useState(0);
+  const [interestSearch, setInterestSearch] = useState("");
   const toggle = (key: "interests" | "topics" | "sourceIds", item: string) =>
     setDraft((p) => ({
       ...p,
@@ -41,7 +42,7 @@ export function Onboarding({
     ),
   ];
   function next() {
-    if (step === 0)
+    if (step === 0 && !initial.complete)
       setDraft((p) => ({
         ...p,
         sourceIds: [...new Set([...p.sourceIds, ...picks.map((s) => s.id)])],
@@ -81,22 +82,57 @@ export function Onboarding({
             <>
               <h2>What draws you in?</h2>
               <p>Choose a few interests. You can change these anytime.</p>
-              <div className="interest-grid">
-                {categories.map((c) => (
-                  <button
-                    key={c}
-                    className={
-                      "choice " +
-                      (draft.interests.includes(c) ? "selected" : "")
-                    }
-                    aria-pressed={draft.interests.includes(c)}
-                    onClick={() => toggle("interests", c)}
+              <label className="field">
+                Find an interest
+                <input
+                  type="search"
+                  value={interestSearch}
+                  placeholder="Search interests or topics"
+                  onChange={(e) => setInterestSearch(e.target.value)}
+                />
+              </label>
+              {interestGroups.map((group) => {
+                const matching = group.categories.filter((c) =>
+                  (c + " " + (subcategories[c] || []).join(" "))
+                    .toLowerCase()
+                    .includes(interestSearch.trim().toLowerCase()),
+                );
+                return matching.length ? (
+                  <section
+                    className="interest-group"
+                    key={group.name}
+                    aria-label={group.name}
                   >
-                    {c}
-                    {draft.interests.includes(c) && <Check size={15} />}
-                  </button>
-                ))}
-              </div>
+                    <h3>{group.name}</h3>
+                    <div className="interest-grid">
+                      {matching.map((c) => (
+                        <button
+                          key={c}
+                          className={
+                            "choice " +
+                            (draft.interests.includes(c) ? "selected" : "")
+                          }
+                          aria-pressed={draft.interests.includes(c)}
+                          onClick={() => toggle("interests", c)}
+                        >
+                          {c}
+                          {draft.interests.includes(c) && <Check size={15} />}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null;
+              })}
+              {interestSearch &&
+                !interestGroups.some((g) =>
+                  g.categories.some((c) =>
+                    (c + " " + (subcategories[c] || []).join(" "))
+                      .toLowerCase()
+                      .includes(interestSearch.trim().toLowerCase()),
+                  ),
+                ) && (
+                  <p role="status">No matching interests. Try another topic.</p>
+                )}
               <label className="field">
                 Regional news & politics
                 <select
@@ -117,21 +153,22 @@ export function Onboarding({
                   These topics help prioritize relevant headlines.
                 </p>
                 <div className="topics">
-                  {draft.interests
-                    .flatMap((c) => subcategories[c] || [])
-                    .map((t) => (
-                      <button
-                        className={
-                          "choice " +
-                          (draft.topics.includes(t) ? "selected" : "")
-                        }
-                        aria-pressed={draft.topics.includes(t)}
-                        key={t}
-                        onClick={() => toggle("topics", t)}
-                      >
-                        {t}
-                      </button>
-                    ))}
+                  {[
+                    ...new Set(
+                      draft.interests.flatMap((c) => subcategories[c] || []),
+                    ),
+                  ].map((t) => (
+                    <button
+                      className={
+                        "choice " + (draft.topics.includes(t) ? "selected" : "")
+                      }
+                      aria-pressed={draft.topics.includes(t)}
+                      key={t}
+                      onClick={() => toggle("topics", t)}
+                    >
+                      {t}
+                    </button>
+                  ))}
                 </div>
               </details>
             </>

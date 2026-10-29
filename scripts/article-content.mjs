@@ -100,6 +100,12 @@ export function cleanLicensedFeed(
   { sourceId, url, author, subtitle = "" },
 ) {
   const policies = {
+    "open-source-initiative": {
+      host: "opensource.org",
+      name: "Open Source Initiative",
+      license: "https://creativecommons.org/licenses/by/4.0/",
+      label: "CC BY 4.0",
+    },
     "mit-ai": {
       host: "news.mit.edu",
       name: "MIT News",
@@ -133,6 +139,26 @@ export function cleanLicensedFeed(
   };
   const policy = policies[sourceId];
   if (!policy || !author) return "";
+  // The website policy covers OSI-authored text, not arbitrary guest work or
+  // third-party software licenses. Staff authors verified on the team page.
+  if (
+    sourceId === "open-source-initiative" &&
+    ![
+      "Duane O'Brien",
+      "Simon Phipps",
+      "Phyllis Dobbs",
+      "Nick Vidal",
+      "Jordan Maris",
+      "Katie Steen-James",
+      "Gabriel Toscano",
+      "Open Source Initiative",
+    ].some(
+      (name) =>
+        name.toLowerCase() ===
+        author.replace(/[’‘]/g, "'").trim().toLowerCase(),
+    )
+  )
+    return "";
   try {
     if (new URL(url).hostname !== policy.host) return "";
   } catch {

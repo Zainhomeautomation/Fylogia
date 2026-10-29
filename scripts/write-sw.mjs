@@ -43,7 +43,7 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 self.addEventListener('fetch',event=>{
  const request=event.request,url=new URL(request.url);if(request.method!=='GET')return;
  if(request.destination==='image'){
-  event.respondWith((async()=>{const images=await caches.open(IMAGES);const downloaded=await images.match(request.url,{ignoreVary:true});if(downloaded)return downloaded;const shell=await caches.open(CACHE);const bundled=await shell.match(request,{ignoreSearch:true,ignoreVary:true});return bundled||fetch(request)})());return;
+  event.respondWith((async()=>{try{const images=await caches.open(IMAGES);const downloaded=await images.match(request.url,{ignoreVary:true});if(downloaded)return downloaded;const shell=await caches.open(CACHE);const bundled=await shell.match(request,{ignoreSearch:true,ignoreVary:true});if(bundled)return bundled}catch{}try{return await fetch(request)}catch{return new Response(null,{status:503,statusText:'Image unavailable',headers:{'Cache-Control':'no-store'}})}})());return;
  }
  if(url.origin!==self.location.origin||!url.pathname.startsWith(BASE)||url.pathname.includes('/editions/'))return;
  if(url.pathname===BASE+'data/edition.json'){
