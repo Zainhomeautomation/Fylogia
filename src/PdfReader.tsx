@@ -174,13 +174,18 @@ export default function PdfReader({
         if (signal.aborted) return;
         const pdfPage = await pdf.getPage(target + i);
         if (signal.aborted) return;
+        const natural = pdfPage.getViewport({ scale: 1 });
+        const fittedWidth = Math.min(
+          pageWidth,
+          ((size.height - 40) * natural.width) / natural.height,
+        );
         const viewport = pdfPage.getViewport({
-          scale: pageWidth / pdfPage.getViewport({ scale: 1 }).width,
+          scale: fittedWidth / natural.width,
         });
         const canvas = document.createElement("canvas");
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        canvas.style.cssText = `width:${pageWidth}px;height:${canvas.height}px;flex-shrink:0`;
+        canvas.style.cssText = `width:${fittedWidth}px;height:${canvas.height}px;flex-shrink:0`;
         const task = pdfPage.render({ canvas, viewport });
         const cancel = () => task.cancel();
         signal.addEventListener("abort", cancel, { once: true });

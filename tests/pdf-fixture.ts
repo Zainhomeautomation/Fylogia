@@ -1,5 +1,5 @@
 // A tiny, deterministic original-page PDF for layout/gesture tests.
-export function magazineFixture(pages = 5) {
+export function magazineFixture(pages = 5, mixed = false) {
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     `<< /Type /Pages /Kids [${Array.from({ length: pages }, (_, i) => `${4 + i * 2} 0 R`).join(" ")}] /Count ${pages} >>`,
@@ -8,7 +8,7 @@ export function magazineFixture(pages = 5) {
   for (let i = 0; i < pages; i++) {
     const content = `0.8 0.9 0.8 rg 20 20 572 752 re f 0 0 0 rg BT /F1 28 Tf 45 700 Td (Fylogia test page ${i + 1}) Tj ET`;
     objects.push(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + i * 2} 0 R >>`,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${mixed && i === 0 ? "1200 600" : "612 792"}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + i * 2} 0 R >>`,
       `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
     );
   }

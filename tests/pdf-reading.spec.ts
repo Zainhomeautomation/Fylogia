@@ -226,4 +226,38 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
     ),
   ).toBe("4");
   await context.setOffline(false);
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page
+    .locator("input[type=file]")
+    .setInputFiles({
+      name: "Mixed orientation.pdf",
+      mimeType: "application/pdf",
+      buffer: magazineFixture(3, true),
+    });
+  await page
+    .getByRole("button", { name: "Open Mixed orientation", exact: true })
+    .click();
+  await expect(page.locator(".pdf-page canvas[aria-busy=false]")).toBeVisible();
+  const corner = page.getByRole("button", {
+    name: "Drag or tap to turn forward",
+    exact: true,
+  });
+  const edge = (await corner.boundingBox())!,
+    area = (await surface.boundingBox())!;
+  await page.mouse.move(edge.x + 24, edge.y + 22);
+  await page.mouse.down();
+  await page.mouse.move(edge.x + 24 - area.width * 0.2, edge.y + 12, {
+    steps: 8,
+  });
+  await expect(page.locator(".curl-underlay canvas")).toBeVisible();
+  expect(
+    await page
+      .locator(".curl-underlay canvas")
+      .evaluate((n: HTMLCanvasElement) => n.height),
+  ).toBeLessThanOrEqual(area.height - 39);
+  await page.mouse.up();
+  await expect(page.locator(".reader-footer")).toContainText("Page 1 of 3");
 });
