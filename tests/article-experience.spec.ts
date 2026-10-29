@@ -149,6 +149,36 @@ test("preview has prominent original-publisher action without technical licensin
   });
   await expect(link).toHaveAttribute("href", article.url);
   await expect(link).toHaveAttribute("target", "_blank");
+  for (const theme of ["navy", "dark", "light"]) {
+    await page.evaluate(
+      (theme) => (document.documentElement.dataset.theme = theme),
+      theme,
+    );
+    const contrast = await link.evaluate((el) => {
+      const style = getComputedStyle(el);
+      const luminance = (color: string) => {
+        const rgb = color
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number)
+          .map((n) => n / 255)
+          .map((n) =>
+            n <= 0.04045 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4),
+          );
+        return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+      };
+      const foreground = luminance(style.color),
+        background = luminance(style.backgroundColor);
+      return (
+        (Math.max(foreground, background) + 0.05) /
+        (Math.min(foreground, background) + 0.05)
+      );
+    });
+    expect(contrast, theme + " preview action contrast").toBeGreaterThanOrEqual(
+      4.5,
+    );
+  }
+
   await expect(link).toHaveAttribute("rel", "noopener noreferrer");
   await expect(page.getByRole("dialog")).not.toContainText(
     "Internal permission",

@@ -2198,6 +2198,8 @@ h2 {
 
 /* Compact preview and readable article media share the existing paper surface. */
 .preview-note .continue-reading {
+  color: var(--bg);
+  min-height: 44px;
   display: flex;
   width: fit-content;
   margin-top: 14px;
