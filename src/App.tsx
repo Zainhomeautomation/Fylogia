@@ -67,6 +67,7 @@ export default function App() {
   const [edition, setEdition] = useState<Edition>(EMPTY),
     [filter, setFilter] = useState("All stories"),
     [query, setQuery] = useState(""),
+    [readableOnly, setReadableOnly] = useState(false),
     [reader, setReader] = useState<Article>(),
     [busy, setBusy] = useState(true),
     [notice, setNotice] = useState(""),
@@ -180,6 +181,7 @@ export default function App() {
     setBackupPassword("");
     setView(id);
     setFilter("All stories");
+    setReadableOnly(false);
     setQuery("");
     setMenu(false);
     setSelecting(false);
@@ -238,6 +240,7 @@ export default function App() {
             a.region === prefs.region ||
             (a.region === "Worldwide" && !a.categories.includes("World News"))),
       );
+    if (readableOnly) result = result.filter((a) => a.full);
     if (filter !== "All stories")
       result = result.filter((a) => a.categories.includes(filter));
     if (query.trim())
@@ -282,6 +285,7 @@ export default function App() {
     prefs.topics,
     filter,
     query,
+    readableOnly,
   ]);
   function downloadBackup(text: string, name: string) {
     const blob = new Blob([text], { type: "application/json" });
@@ -561,6 +565,13 @@ export default function App() {
                 ))}
               </div>
             </div>
+            <button
+              className="secondary readable-filter"
+              aria-pressed={readableOnly}
+              onClick={() => setReadableOnly(!readableOnly)}
+            >
+              Full articles only
+            </button>
             <label className="search-field">
               <Search size={17} />
               <input

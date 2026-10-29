@@ -141,6 +141,22 @@ export function Reader({
       "i",
       "h2",
       "h3",
+      "h4",
+      "h5",
+      "h6",
+      "pre",
+      "code",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "sup",
+      "sub",
+      "dl",
+      "dt",
+      "dd",
       "ul",
       "ol",
       "li",
@@ -150,7 +166,7 @@ export function Reader({
       "img",
       "a",
     ],
-    ALLOWED_ATTR: ["src", "alt", "href", "title"],
+    ALLOWED_ATTR: ["src", "alt", "href", "title", "colspan", "rowspan"],
     FORBID_ATTR: ["style", "srcset"],
   }).replace(/<img /g, '<img referrerpolicy="no-referrer" ');
   // Promote the credited lead figure rather than showing the same photo twice.
@@ -430,6 +446,27 @@ export function Reader({
             {article.source} · {dateLabel(article.published)}
           </div>
           <h1>{article.title}</h1>
+          {article.full && (
+            <p className="reading-detail">
+              Full article · Publisher-provided text ·{" "}
+              {Math.max(
+                1,
+                Math.ceil(plain(article.content).split(/\s+/).length / 220),
+              )}{" "}
+              min read
+            </p>
+          )}
+          {!article.full && (
+            <p className="preview-note">
+              Publisher preview ·{" "}
+              {article.previewReason ||
+                "Full-content republication permission is not verified for this source."}{" "}
+              <a href={article.url} target="_blank" rel="noopener noreferrer">
+                Read the complete story at {article.source}{" "}
+                <ArrowUpRight size={14} />
+              </a>
+            </p>
+          )}
           {article.image && (
             <figure>
               <img
@@ -437,7 +474,8 @@ export function Reader({
                 alt=""
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  e.currentTarget.style.display = "none";
+                  const figure = e.currentTarget.closest("figure");
+                  if (figure) figure.style.display = "none";
                   measure();
                 }}
               />
@@ -446,13 +484,6 @@ export function Reader({
                   `Image supplied in the ${article.source} feed. Rights remain with the credited owner.`}
               </figcaption>
             </figure>
-          )}
-          {!article.full && (
-            <p className="preview-note">
-              Publisher preview · Full-content republication permission is not
-              verified for this source. Open the original for the complete
-              story.
-            </p>
           )}
           <div
             className="article-body"

@@ -21,11 +21,31 @@ test("paper turns, facing pages, intact text and reduced motion", async ({
   await page.locator(".story-open").first().click();
   const body = page.locator(".reader-content .article-body").first();
   const text = await body.innerText();
+  // Observe the transient surface in-page: a long licensed release article can
+  // finish its animation before the test process gets its next browser reply.
+  await page.evaluate(() => {
+    (window as any).__paperWasHidden = false;
+    const observer = new MutationObserver((records) => {
+      for (const record of records)
+        for (const node of record.addedNodes) {
+          if (
+            node instanceof HTMLElement &&
+            node.classList.contains("turn-leaf")
+          ) {
+            (window as any).__paperWasHidden =
+              node.getAttribute("aria-hidden") === "true" && node.inert;
+            observer.disconnect();
+          }
+        }
+    });
+    observer.observe(document.querySelector(".reader-viewport")!, {
+      childList: true,
+    });
+  });
   await page.getByRole("button", { name: "Next page", exact: true }).click();
-  await expect(page.locator(".turn-leaf")).toHaveAttribute(
-    "aria-hidden",
-    "true",
-  );
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__paperWasHidden))
+    .toBe(true);
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
   const readingAnchor = await body.evaluateHandle((element) => {
     const bounds = element.closest(".reader-viewport")!.getBoundingClientRect();

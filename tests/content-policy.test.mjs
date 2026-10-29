@@ -82,3 +82,81 @@ test("feed excerpts preserve block and line-break word boundaries and decode ent
     "Walks The vital moment & more. Rice Here are two things.",
   );
 });
+
+test("MIT and Home Assistant keep all supplied prose with source-specific notices", async () => {
+  const { cleanLicensedFeed } = await import("../scripts/article-content.mjs");
+  const html =
+    "<h2>Context</h2><p>" +
+    "Publisher prose. ".repeat(30) +
+    '</p><pre>code\nlast line</pre><p>Final paragraph.</p><img src="https://example.com/third-party.jpg">';
+  const mit = cleanLicensedFeed(html, {
+    sourceId: "mit-ai",
+    url: "https://news.mit.edu/2026/story",
+    author: "MIT Author",
+    subtitle: "Original subtitle",
+  });
+  assert.match(mit, /Original subtitle/);
+  assert.match(mit, /MIT Author/);
+  assert.match(mit, /Final paragraph/);
+  assert.match(mit, /Reprinted with permission of/);
+  assert.match(mit, /<pre>code/);
+  assert.doesNotMatch(mit, /<img/);
+  const ha = cleanLicensedFeed(html, {
+    sourceId: "homeassistant",
+    url: "https://www.home-assistant.io/blog/story/",
+    author: "Home Assistant contributors",
+  });
+  assert.match(ha, /by-nc-sa\/4.0/);
+  assert.match(ha, /Final paragraph/);
+  for (const options of [
+    {
+      sourceId: "bbc-tech",
+      url: "https://www.bbc.com/story",
+      author: "Author",
+    },
+    { sourceId: "mit-ai", url: "https://evil.example/story", author: "Author" },
+    { sourceId: "mit-ai", url: "https://news.mit.edu/story", author: "" },
+  ])
+    assert.equal(cleanLicensedFeed(html, options), "");
+  assert.equal(
+    cleanLicensedFeed(html + "<p>Originally published by Partner.</p>", {
+      sourceId: "mit-ai",
+      url: "https://news.mit.edu/story",
+      author: "Author",
+    }),
+    "",
+  );
+});
+
+test("item-specific license exceptions override newly enabled feed policies", async () => {
+  const { cleanLicensedFeed } = await import("../scripts/article-content.mjs");
+  const options = {
+    sourceId: "homeassistant",
+    url: "https://www.home-assistant.io/blog/story/",
+    author: "Contributors",
+  };
+  const prose = "<p>" + "Publisher paragraph. ".repeat(30) + "</p>";
+  assert.equal(
+    cleanLicensedFeed(
+      prose + "<figure><figcaption>CC BY-NC-ND</figcaption></figure>",
+      options,
+    ),
+    "",
+  );
+  assert.equal(
+    cleanLicensedFeed(
+      prose +
+        '<a href="https://creativecommons.org/licenses/by-nd/4.0/">License</a>',
+      options,
+    ),
+    "",
+  );
+  assert.match(
+    cleanLicensedFeed(
+      prose +
+        '<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">License</a>',
+      options,
+    ),
+    /Publisher paragraph/,
+  );
+});

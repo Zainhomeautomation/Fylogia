@@ -1,0 +1,43 @@
+# Feed content review — 29 October 2026
+
+All 26 existing feeds were fetched successfully and their RSS/Atom fields examined. This is the implementation content review, not the final production audit. A content field alone is not evidence of a full article or permission. No article pages, paywalls or login-restricted material are fetched by the ingestion pipeline. Counts below describe all entries in each inspected feed; production imports at most 18 entries per source.
+
+| Source                                                                         | Feed entries | Entries with body field | Production decision                                                     | Full items in snapshot |
+| ------------------------------------------------------------------------------ | -----------: | ----------------------: | ----------------------------------------------------------------------- | ---------------------: |
+| [Global Voices](https://globalvoices.org/feed/)                                |           15 |                      15 | CC BY 3.0 text, item-specific exceptions rejected                       |                     12 |
+| [NASA Science](https://science.nasa.gov/feed/)                                 |           10 |                      10 | NASA informational reuse; feed-body extraction                          |                      4 |
+| [NASA](https://www.nasa.gov/feed/)                                             |           10 |                      10 | NASA informational reuse; feed-body extraction                          |                     10 |
+| [BBC · World](https://feeds.bbci.co.uk/news/world/rss.xml)                     |           27 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Technology](https://feeds.bbci.co.uk/news/technology/rss.xml)           |           20 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Business](https://feeds.bbci.co.uk/news/business/rss.xml)               |           40 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Health](https://feeds.bbci.co.uk/news/health/rss.xml)                   |           57 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Science](https://feeds.bbci.co.uk/news/science_and_environment/rss.xml) |           42 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Sport](https://feeds.bbci.co.uk/sport/rss.xml)                          |           62 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Culture](https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml)  |           23 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Middle East](https://feeds.bbci.co.uk/news/world/middle_east/rss.xml)   |           24 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Europe](https://feeds.bbci.co.uk/news/world/europe/rss.xml)             |           22 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · US & Canada](https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml) |           28 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [BBC · Asia](https://feeds.bbci.co.uk/news/world/asia/rss.xml)                 |           17 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [The Hindu · India](https://www.thehindu.com/news/national/feeder/default.rss) |           60 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [Apple Newsroom](https://www.apple.com/newsroom/rss-feed.rss)                  |           20 |                      20 | Preview: no verified full-text republication permission                 |                      0 |
+| [Home Assistant](https://www.home-assistant.io/atom.xml)                       |           20 |                      20 | CC BY-NC-SA 4.0 text; attribution, license and changes disclosed        |                     11 |
+| [3DPrint.com](https://3dprint.com/feed/)                                       |           10 |                      10 | Preview: no verified full-text republication permission                 |                      0 |
+| [MIT News · AI](https://news.mit.edu/rss/topic/artificial-intelligence2)       |           50 |                      50 | RSS syndication authorized, required byline/subheadline/citation/footer |                     18 |
+| [Ars Technica](https://feeds.arstechnica.com/arstechnica/index)                |           20 |                      20 | Preview: no verified full-text republication permission                 |                      0 |
+| [Simple Flying](https://simpleflying.com/feed/)                                |           10 |                      10 | Preview: no verified full-text republication permission                 |                      0 |
+| [The Guardian · Travel](https://www.theguardian.com/travel/rss)                |           22 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [Autoblog](https://www.autoblog.com/rss.xml)                                   |           50 |                      50 | Preview: no verified full-text republication permission                 |                      0 |
+| [The Guardian · Food](https://www.theguardian.com/food/rss)                    |           31 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+| [PC Gamer](https://www.pcgamer.com/rss/)                                       |           50 |                      50 | Preview: no verified full-text republication permission                 |                      0 |
+| [PetaPixel](https://petapixel.com/feed/)                                       |           20 |                       0 | Preview: no verified full-text republication permission                 |                      0 |
+
+## Permission evidence and boundaries
+
+- [NASA informational media guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/): source credit and third-party rights remain applicable. Existing conservative offline image policy is retained.
+- [Global Voices republication policy](https://globalvoices.org/about/global-voices-attribution-policy/): retain author/original link at the top and license; reject syndication/alternative-license exceptions, omit third-party media.
+- [MIT News republication policy](https://news.mit.edu/mit-news-office/terms-of-use): syndication from RSS explicitly permitted. Headline remains in the reader; original subheadline, byline and linked MIT News citation lead the body. The required reprint footer is retained. Third-party images are omitted from these copies.
+- [Home Assistant license](https://github.com/home-assistant/home-assistant.io/blob/current/LICENSE.md) and [licensing announcement](https://www.home-assistant.io/blog/2017/01/21/home-assistant-governance/): CC BY-NC-SA 4.0. Fylogia is free, without advertising or paid access; article text remains under this license with attribution and modification notice. Publisher media is omitted conservatively. Reassess before any commercial use.
+
+Apple's content field is very short; Ars Technica, Simple Flying, PC Gamer and Autoblog may include bodies or excerpts but these are not treated as permission. MIT, 3DPrint.com and Home Assistant have substantial bodies; only MIT and Home Assistant have been newly enabled after verifying the policies above. All other preview decisions mean permission was not established, not a legal conclusion that permission could never be obtained.
+
+Snapshot: 26/26 healthy feeds; 55 full and 347 preview items (402 total). Counts change on refresh. Saved older previews and offline copies are not destructively rewritten; download a current full copy to replace an older preview.
