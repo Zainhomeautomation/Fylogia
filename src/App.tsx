@@ -197,7 +197,12 @@ export default function App() {
                 ],
               },
       );
-      setNotice("");
+      setNotice((previous) =>
+        previous ===
+        "Could not refresh. Your cached edition and saved articles remain available."
+          ? ""
+          : previous,
+      );
     } catch {
       if (!controller.signal.aborted || timedOut)
         setNotice(

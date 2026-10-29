@@ -24,6 +24,7 @@ async function retrieveEdition(
     const response = await fetch(url, {
       cache: "no-cache",
       mode: "same-origin",
+      keepalive: true,
       priority: "high",
     });
     if (!response.ok) throw new Error("News unavailable");
@@ -37,6 +38,7 @@ async function retrieveEdition(
       const capability = await fetch(full, {
         method: "HEAD",
         mode: "same-origin",
+        keepalive: true,
         cache: "no-cache",
       });
       if (capability.headers.get("X-Fylogia-Index") === "1") {
