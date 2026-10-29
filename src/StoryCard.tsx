@@ -51,6 +51,11 @@ export function StoryCard({
           </span>
         )}
       </div>
+      {(article.duplicateCount || 0) > 1 && (
+        <span className="duplicate-label">
+          One story · {article.duplicateCount} feed entries combined
+        </span>
+      )}
       <button className="story-open" onClick={onOpen}>
         {article.image ? (
           <img

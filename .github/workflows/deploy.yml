@@ -6,7 +6,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "17 */3 * * *"
+    - cron: "17 */4 * * *"
 permissions:
   contents: read
 concurrency:
@@ -37,6 +37,7 @@ jobs:
         with:
           name: browser-test-failures
           path: test-results
+          retention-days: 3
   refresh-news:
     if: github.repository == 'Zainhomeautomation/Fylogia' && github.event_name == 'schedule'
     runs-on: ubuntu-latest
@@ -65,4 +66,4 @@ jobs:
 
 # Deployment is Cloudflare Pages' GitHub integration, never GitHub Pages.
 # Production branch: main; build: npm run build:pages; output: dist; Node: 24.
-# Three-hour refreshes use about 248 builds/month, below the free 500-build cap.
+# Four-hour refreshes use at most 186 builds in a 31-day month, leaving room under the free 500-build cap.

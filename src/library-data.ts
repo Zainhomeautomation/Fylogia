@@ -102,6 +102,12 @@ function articles(v: unknown): Article[] {
       categories: a.categories,
       url: a.url,
       full: a.full,
+      ...(strings(a.alsoIn) ? { alsoIn: a.alsoIn } : {}),
+      ...(Number.isInteger(a.duplicateCount) &&
+      a.duplicateCount > 1 &&
+      a.duplicateCount < 5000
+        ? { duplicateCount: a.duplicateCount }
+        : {}),
       ...(typeof a.author === "string" && a.author.length <= 2000
         ? { author: a.author }
         : {}),

@@ -1,3 +1,4 @@
+import { expandedSources } from "./expanded-sources.ts";
 export const categories = [
   "Technology",
   "Apple",
@@ -61,6 +62,10 @@ export interface Source {
   region: string;
   full?: boolean;
   custom?: boolean;
+  validatedAt?: string;
+  permissionUrl?: string;
+  licenseLabel?: string;
+  fullBodyField?: "description";
 }
 export const sources: Source[] = [
   {
@@ -276,8 +281,11 @@ export const sources: Source[] = [
     categories: ["Photography"],
     region: "Worldwide",
   },
+  ...expandedSources,
 ];
 export interface Article {
+  alsoIn?: string[];
+  duplicateCount?: number;
   author?: string;
   contentOrigin?: "publisher-feed" | "publisher-preview";
   previewReason?: string;
@@ -296,6 +304,14 @@ export interface Article {
   full: boolean;
 }
 export interface FeedStatus {
+  latestPublished?: string;
+  freshness?: "fresh" | "aging" | "stale" | "unknown";
+  lastSuccess?: string;
+  consecutiveFailures?: number;
+  etag?: string;
+  lastModified?: string;
+  notModified?: boolean;
+  retainedCount?: number;
   fullCount?: number;
   id: string;
   ok: boolean;
@@ -304,6 +320,7 @@ export interface FeedStatus {
   error?: string;
 }
 export interface Edition {
+  duplicatesRemoved?: number;
   generatedAt: string;
   articles: Article[];
   statuses: FeedStatus[];

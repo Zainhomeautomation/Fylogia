@@ -247,7 +247,8 @@ export default function App() {
     if (view === "home")
       result = result.filter(
         (a) =>
-          prefs.sourceIds.includes(a.sourceId) &&
+          (prefs.sourceIds.includes(a.sourceId) ||
+            a.alsoIn?.some((id) => prefs.sourceIds.includes(id))) &&
           (prefs.region === "Worldwide" ||
             a.region === prefs.region ||
             (a.region === "Worldwide" && !a.categories.includes("World News"))),
@@ -721,7 +722,7 @@ export default function App() {
               <p className="edition-note">
                 Edition refreshed{" "}
                 {new Date(edition.generatedAt).toLocaleString("en")}. Publisher
-                feeds refresh hourly; scheduled runs can be delayed.{" "}
+                feeds refresh every four hours; scheduled runs can be delayed.{" "}
                 {edition.statuses.filter((s) => s.ok).length} of{" "}
                 {edition.statuses.length} feeds available.
               </p>

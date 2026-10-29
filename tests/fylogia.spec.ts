@@ -178,6 +178,7 @@ test("all category and regional controls, source follow, search and no horizonta
   await expect(page.locator(".filter-tabs button.selected")).toHaveText("Cars");
   await expect(page.locator(".story").first()).toBeVisible();
   await nav(page, "My Sources");
+  await page.getByLabel("Search sources", { exact: true }).fill("NASA");
   const row = page
     .locator(".source-row")
     .filter({ has: page.getByText("NASA", { exact: true }) });
@@ -383,9 +384,9 @@ test("custom RSS file, library export/import and sanitized article content", asy
     mimeType: "application/xml",
     buffer: Buffer.from(xml),
   });
-  await expect(page.getByRole("status")).toContainText(
-    "Added NASA custom import with 1 articles.",
-  );
+  await expect(
+    page.getByRole("status").filter({ hasText: "Added NASA custom import" }),
+  ).toHaveText("Added NASA custom import with 1 articles.");
   await nav(page, "Settings");
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export library" }).click();

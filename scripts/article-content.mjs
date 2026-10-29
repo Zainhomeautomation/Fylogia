@@ -100,6 +100,24 @@ export function cleanLicensedFeed(
       license: "https://news.mit.edu/terms-of-use",
       label: "MIT News republication policy",
     },
+    eff: {
+      host: "www.eff.org",
+      name: "Electronic Frontier Foundation",
+      license: "https://creativecommons.org/licenses/by/4.0/",
+      label: "CC BY 4.0",
+    },
+    "fedora-magazine": {
+      host: "fedoramagazine.org",
+      name: "Fedora Magazine",
+      license: "https://creativecommons.org/licenses/by-sa/4.0/",
+      label: "CC BY-SA 4.0",
+    },
+    "mozilla-hacks": {
+      host: "hacks.mozilla.org",
+      name: "Mozilla Hacks",
+      license: "https://creativecommons.org/licenses/by-sa/3.0/",
+      label: "CC BY-SA 3.0",
+    },
     homeassistant: {
       host: "www.home-assistant.io",
       name: "Home Assistant",
@@ -128,8 +146,9 @@ export function cleanLicensedFeed(
     if (
       /creativecommons\.org\/licenses\//i.test(href) &&
       !(
-        sourceId === "homeassistant" &&
-        /creativecommons\.org\/licenses\/by-nc-sa\/4\.0/i.test(href)
+        policy.license.startsWith("https://creativecommons.org/") &&
+        href.replace(/^http:/, "https:").replace(/\/$/, "") ===
+          policy.license.replace(/\/$/, "")
       )
     )
       return "";
@@ -167,6 +186,8 @@ export function cleanLicensedFeed(
   const footer =
     sourceId === "mit-ai"
       ? '<p>Reprinted with permission of <a href="https://news.mit.edu/">MIT News</a>. Text preserved; formatting adapted and media omitted.</p>'
-      : "<p>Home Assistant text reused noncommercially under CC BY-NC-SA 4.0; formatting adapted and media omitted. This article text remains under that license.</p>";
+      : sourceId === "homeassistant"
+        ? "<p>Home Assistant text reused noncommercially under CC BY-NC-SA 4.0; formatting adapted and media omitted. This article text remains under that license.</p>"
+        : `<p>${policy.name} text retained under ${policy.label}. Formatting adapted; third-party media omitted. This article text remains under that license.</p>`;
   return credit + deck + document.body.innerHTML + footer;
 }

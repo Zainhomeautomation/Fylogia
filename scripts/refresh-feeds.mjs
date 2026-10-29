@@ -1,197 +1,144 @@
-import {
-  cleanFeedArticle,
-  cleanLicensedFeed,
-  cleanGlobalVoices,
-  feedText,
-} from "./article-content.mjs";
-import { parseHTML } from "linkedom";
-import { XMLParser } from "fast-xml-parser";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-// Catalog is shared with the UI. Node's native TypeScript support strips interfaces.
 import { sources } from "../src/catalog.ts";
-const parser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-  processEntities: true,
-  htmlEntities: true,
-});
-const arr = (x) => (!x ? [] : Array.isArray(x) ? x : [x]);
-const str = (x) => (typeof x === "string" ? x : String(x?.["#text"] ?? ""));
-const text = (x) => feedText(str(x));
-const safe = (u) => {
-  try {
-    const url = new URL(String(u).replace(/&(?:amp|#0*38|#x0*26);/gi, "&"));
-    return url.protocol === "https:"
-      ? url.href
-      : url.protocol === "http:"
-        ? url.href.replace("http:", "https:")
-        : "";
-  } catch {
-    return "";
-  }
-};
+import {
+  parseFeedDocument,
+  latestPublication,
+  feedFreshness,
+  deduplicateArticles,
+} from "../src/source-utils.ts";
+import { feedArticle } from "./feed-content.mjs";
 let previous = { articles: [], statuses: [] };
 try {
   previous = JSON.parse(await readFile("public/data/edition.json", "utf8"));
 } catch {}
 const now = new Date().toISOString();
-const results = await Promise.all(
-  sources.map(async (source) => {
-    try {
-      const response = await fetch(source.url, {
-        signal: AbortSignal.timeout(25000),
-        headers: {
-          "User-Agent":
-            "Fylogia RSS Reader (+https://github.com/Zainhomeautomation/Fylogia)",
-        },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const xml = await response.text();
-      if (xml.length > 8_000_000) throw new Error("Feed exceeds size limit");
-      const data = parser.parse(xml);
-      const items = arr(
-        data.rss?.channel?.item ?? data.feed?.entry ?? data["rdf:RDF"]?.item,
-      );
-      const articles = items
-        .slice(0, 18)
-        .map((item) => {
-          const links = arr(item.link);
-          const url = safe(
-            str(item.link) ||
-              links.find((x) => !x["@_rel"] || x["@_rel"] === "alternate")?.[
-                "@_href"
-              ],
-          );
-          const raw = str(
-            item["content:encoded"] ||
-              item.content ||
-              item.description ||
-              item.summary,
-          );
-          const image = safe(
-            arr(item["media:content"]).find((x) => x["@_url"])?.["@_url"] ||
-              arr(item["media:thumbnail"])[0]?.["@_url"] ||
-              arr(item.enclosure).find((x) =>
-                String(x["@_type"]).startsWith("image"),
-              )?.["@_url"] ||
-              raw.match(/<img[^>]+src=["']([^"']+)/i)?.[1],
-          );
-          const author =
-            text(item["dc:creator"] || item.author?.name) ||
-            (source.id === "homeassistant"
-              ? "Home Assistant contributors"
-              : "");
-          const bodySupplied = !!(item["content:encoded"] || item.content);
-          const cleaned =
-            source.full && !!(item["content:encoded"] || item.content)
-              ? source.id === "global-voices"
-                ? cleanGlobalVoices(raw, url, text(item["dc:creator"]))
-                : ["mit-ai", "homeassistant"].includes(source.id)
-                  ? cleanLicensedFeed(raw, {
-                      sourceId: source.id,
-                      url,
-                      author,
-                      subtitle:
-                        source.id === "mit-ai" ? text(item.description) : "",
-                    })
-                  : cleanFeedArticle(raw, text(item.title))
-              : "";
-          const paragraphs = cleaned
-            ? parseHTML(
-                "<html><body>" + cleaned + "</body></html>",
-              ).document.querySelectorAll("p")
-            : [];
-          const opening = [...paragraphs]
-            .slice(
-              ["global-voices", "mit-ai", "homeassistant"].includes(source.id)
-                ? 1
-                : 0,
-            )
-            .map((p) => text(p.innerHTML))
-            .find((p) => p.length > 40);
-          const excerpt = (
-            opening || text(item.description || item.summary || cleaned || raw)
-          ).slice(0, 600);
-          const date = new Date(
-            str(
-              item.pubDate || item.published || item.updated || item["dc:date"],
-            ),
-          );
-          return {
-            id: url,
-            sourceId: source.id,
-            offlineImagesAllowed:
-              source.id === "nasa" &&
-              !/APOD|copyright|©|&copy;|&#169;/i.test(text(item.title) + raw),
-            source: source.name,
-            author,
-            contentOrigin: cleaned ? "publisher-feed" : "publisher-preview",
-            previewReason: cleaned
-              ? undefined
-              : !source.full
-                ? "Full-text republication permission has not been verified for this source."
-                : !bodySupplied
-                  ? "This feed supplies an excerpt rather than a full article body."
-                  : "This item could not be verified for complete in-app republication.",
-            title: text(item.title),
-            url,
-            published: Number.isNaN(date.getTime()) ? "" : date.toISOString(),
-            categories: source.categories,
-            region: source.region,
-            image: ["global-voices", "mit-ai", "homeassistant"].includes(
-              source.id,
-            )
-              ? ""
-              : image,
-            excerpt,
-            content:
-              cleaned ||
-              `<p>${excerpt.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</p>`,
-            full: !!cleaned,
-          };
-        })
-        .filter((x) => x.url && x.title);
-      if (!articles.length) throw new Error("No usable entries");
-      console.log(`${source.name}: ${articles.length} entries`);
+async function refresh(source) {
+  const old = previous.statuses.find((s) => s.id === source.id);
+  const cached = previous.articles.filter(
+    (a) => a.sourceId === source.id || a.alsoIn?.includes(source.id),
+  );
+  try {
+    const headers = {
+      "User-Agent": "Fylogia RSS Reader (+https://fylogia.com/)",
+    };
+    if (cached.length && old?.etag) headers["If-None-Match"] = old.etag;
+    if (cached.length && old?.lastModified)
+      headers["If-Modified-Since"] = old.lastModified;
+    const response = await fetch(source.url, {
+      signal: AbortSignal.timeout(12000),
+      headers,
+    });
+    if (response.status === 304 && cached.length)
       return {
-        articles,
+        articles: cached,
         status: {
+          ...old,
           id: source.id,
           ok: true,
-          count: articles.length,
-          fullCount: articles.filter((a) => a.full).length,
           checked: now,
+          lastSuccess: now,
+          consecutiveFailures: 0,
+          notModified: true,
+          freshness: feedFreshness(old.latestPublished || ""),
         },
       };
-    } catch (error) {
-      console.warn(`${source.name}: ${error.message}`);
-      return {
-        articles: previous.articles.filter((x) => x.sourceId === source.id),
-        status: {
-          id: source.id,
-          ok: false,
-          count: 0,
-          checked: now,
-          error: error.message,
-        },
-      };
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const declared = Number(response.headers.get("content-length"));
+    if (declared > 8_000_000) throw new Error("Feed exceeds size limit");
+    const xml = await response.text();
+    const parsed = parseFeedDocument(xml);
+    const latest = latestPublication(parsed.items);
+    const articles = parsed.items
+      .slice(0, source.validatedAt ? 8 : 18)
+      .map((item) => feedArticle(item, source))
+      .filter((a) => a.url && a.title);
+    if (!articles.length) throw new Error("No readable entries");
+    console.log(`${source.name}: ${articles.length} entries`);
+    return {
+      articles,
+      status: {
+        id: source.id,
+        ok: true,
+        count: articles.length,
+        fullCount: articles.filter((a) => a.full).length,
+        checked: now,
+        lastSuccess: now,
+        latestPublished: latest,
+        freshness: feedFreshness(latest),
+        consecutiveFailures: 0,
+        etag: response.headers.get("etag") || undefined,
+        lastModified: response.headers.get("last-modified") || undefined,
+      },
+    };
+  } catch (error) {
+    console.warn(`${source.name}: ${error.message}`);
+    return {
+      articles: cached,
+      status: {
+        id: source.id,
+        ok: false,
+        count: 0,
+        fullCount: 0,
+        retainedCount: cached.length,
+        checked: now,
+        lastSuccess: old?.lastSuccess || (old?.ok ? old.checked : undefined),
+        latestPublished: old?.latestPublished || "",
+        freshness: feedFreshness(old?.latestPublished || ""),
+        consecutiveFailures: (old?.consecutiveFailures || 0) + 1,
+        error: error.message,
+      },
+    };
+  }
+}
+// Limit both overall concurrency and per-host pressure. No browser proxy,
+// authentication or paid backend is used to bypass publisher restrictions.
+const results = new Array(sources.length);
+let cursor = 0;
+const hosts = new Map();
+async function worker() {
+  while (cursor < sources.length) {
+    const index = cursor++;
+    const source = sources[index];
+    const host = new URL(source.url).hostname;
+    while ((hosts.get(host) || 0) >= 2)
+      await new Promise((r) => setTimeout(r, 50));
+    hosts.set(host, (hosts.get(host) || 0) + 1);
+    try {
+      results[index] = await refresh(source);
+      // A single bounded retry handles transient DNS, connection and 5xx errors.
+      // Access denials are respected rather than retried or proxied.
+      if (
+        !results[index].status.ok &&
+        !/^HTTP (4\d\d)/.test(results[index].status.error || "")
+      ) {
+        await new Promise((r) => setTimeout(r, 500));
+        results[index] = await refresh(source);
+      }
+    } finally {
+      hosts.set(host, hosts.get(host) - 1);
     }
-  }),
+  }
+}
+await Promise.all(Array.from({ length: 6 }, worker));
+const merged = deduplicateArticles(
+  results.map((r) => ({ id: r.status.id, articles: r.articles })),
 );
-const articles = [
-  ...new Map(results.flatMap((r) => r.articles).map((a) => [a.id, a])).values(),
-].sort((a, b) => (b.published || "").localeCompare(a.published || ""));
-if (!results.some((r) => r.status.ok) || !articles.length)
-  throw new Error("No content available; refusing an empty edition");
+merged.articles.sort((a, b) =>
+  (b.published || "").localeCompare(a.published || ""),
+);
+if (!results.some((r) => r.status.ok) || !merged.articles.length)
+  throw new Error("No content available; refusing empty edition");
+const output = {
+  generatedAt: now,
+  articles: merged.articles,
+  statuses: results.map((r) => r.status),
+  duplicatesRemoved: merged.duplicatesRemoved,
+};
+const json = JSON.stringify(output);
+if (Buffer.byteLength(json) > 20 * 1024 * 1024)
+  throw new Error("Edition exceeds 20 MiB safety budget");
 await mkdir("public/data", { recursive: true });
-await writeFile(
-  "public/data/edition.json",
-  JSON.stringify({
-    generatedAt: now,
-    articles,
-    statuses: results.map((r) => r.status),
-  }),
-);
+await writeFile("public/data/edition.json", json);
 console.log(
-  `Published ${articles.length} real articles; ${results.filter((r) => r.status.ok).length}/${sources.length} feeds healthy`,
+  `Published ${merged.articles.length} articles; ${results.filter((r) => r.status.ok).length}/${sources.length} feeds healthy; ${merged.duplicatesRemoved} duplicate entries merged`,
 );
