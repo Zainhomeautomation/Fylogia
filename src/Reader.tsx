@@ -1,3 +1,4 @@
+import { PageTurnControls } from "./PageTurnControls";
 import { useReaderReturn } from "./useReaderReturn";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePageTurn } from "./usePageTurn";
@@ -74,7 +75,12 @@ export function Reader({
     onProgress(position.current);
     setPageState(nextPage);
   };
-  usePageTurn(viewport, page, prefs.reading === "pages" && navigation.current);
+  const curl = usePageTurn(
+    viewport,
+    page,
+    prefs.reading === "pages",
+    navigation.current,
+  );
   const position = useRef(initialProgress);
   // Keep a real text location across column reflow; the stored ratio remains
   // compatible with existing bookmarks and exports.
@@ -488,6 +494,13 @@ export function Reader({
             </button>
           </div>
         </div>
+        {prefs.reading === "pages" && count > 1 && (
+          <PageTurnControls
+            curl={curl}
+            previous={page > 0 ? () => setPage((p) => p - 1) : undefined}
+            next={page < count - 1 ? () => setPage((p) => p + 1) : undefined}
+          />
+        )}
       </div>
       <footer className="reader-footer">
         {prefs.reading === "pages" ? (

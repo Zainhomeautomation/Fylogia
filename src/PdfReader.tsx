@@ -1,3 +1,4 @@
+import { PageTurnControls } from "./PageTurnControls";
 import { useReaderReturn } from "./useReaderReturn";
 import { useEffect, useRef, useState } from "react";
 import { usePageTurn } from "./usePageTurn";
@@ -90,7 +91,7 @@ export default function PdfReader({
     [bookmarked, setBookmarked] = useState(false);
   const surface = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
-  usePageTurn(surface, page);
+  const curl = usePageTurn(surface, page);
   const spread = width >= 740 ? 2 : 1;
   // Keep existing magazine page bookmarks across the rebrand.
   const key = "folio.v1.pdf." + title;
@@ -259,6 +260,21 @@ export default function PdfReader({
           </>
         ) : (
           <p role="status">Loading original publication…</p>
+        )}
+        {pdf && pdf.numPages > spread && (
+          <PageTurnControls
+            curl={curl}
+            previous={
+              page > 1
+                ? () => setPage((p) => Math.max(1, p - spread))
+                : undefined
+            }
+            next={
+              page + spread <= pdf.numPages
+                ? () => setPage((p) => p + spread)
+                : undefined
+            }
+          />
         )}
       </div>
       <footer className="reader-footer">

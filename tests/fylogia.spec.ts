@@ -247,6 +247,21 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
   await expect(
     page.getByRole("button", { name: "Bookmark page" }),
   ).toHaveAttribute("aria-pressed", "true");
+  const corner = page.getByRole("button", {
+    name: "Drag or tap to turn forward",
+  });
+  const edge = (await corner.boundingBox())!;
+  const surface = page.locator(".pdf-spread");
+  const dragWidth =
+    (await surface.boundingBox())!.width /
+    Number(await surface.getAttribute("data-spread"));
+  await page.mouse.move(edge.x + 24, edge.y + 24);
+  await page.mouse.down();
+  await page.mouse.move(edge.x + 24 - dragWidth * 0.5, edge.y, { steps: 8 });
+  await expect(page.locator(".curl-strip")).toHaveCount(12);
+  await page.mouse.up();
+  await expect(page.locator(".turn-leaf")).toHaveCount(0);
+  await page.getByRole("button", { name: "Bookmark page" }).click();
   const text = await page.locator(".reader-footer [role=status]").innerText();
   await page.getByRole("button", { name: "Back to previous section" }).click();
   await page.getByRole("button", { name: /NASA Spinoff 2025/ }).click();
