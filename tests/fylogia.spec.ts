@@ -16,6 +16,10 @@ async function setup(page: Page) {
   await expect(page.locator(".story").first()).toBeVisible();
 }
 async function nav(page: Page, label: string) {
+  // IndexedDB restoration may finish after the document load event.
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toBeAttached();
   if (await page.getByRole("button", { name: "Open navigation" }).isVisible())
     await page.getByRole("button", { name: "Open navigation" }).click();
   await page

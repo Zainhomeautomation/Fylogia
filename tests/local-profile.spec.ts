@@ -2,6 +2,10 @@ import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
 async function nav(page: Page, name: string) {
+  // IndexedDB restoration may finish after the document load event.
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toBeAttached();
   if (await page.getByRole("button", { name: "Open navigation" }).isVisible())
     await page.getByRole("button", { name: "Open navigation" }).click();
   await page
