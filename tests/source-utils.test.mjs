@@ -1,8 +1,8 @@
+import { parseFeedDocument } from "../src/feed-parser.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { sources, categories, regions } from "../src/catalog.ts";
 import {
-  parseFeedDocument,
   publicUrl,
   feedFreshness,
   latestPublication,

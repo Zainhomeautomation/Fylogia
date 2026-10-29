@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import type { Article, Preferences } from "./catalog";
 import { dateLabel } from "./storage";
-import { plain } from "./feeds";
+import { plain } from "./article-html";
 export function Reader({
   article,
   prefs,
@@ -297,7 +297,7 @@ export function Reader({
       observer.disconnect();
       cancelAnimationFrame(measurementFrame.current);
     };
-  }, [reading, prefs.fontSize]);
+  }, [reading, prefs.fontSize, html]);
   useEffect(() => {
     if (reading !== "pages" || measuring.current) return;
     position.current = count > 1 ? page / (count - 1) : openingProgress;

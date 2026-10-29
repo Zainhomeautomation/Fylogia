@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 async function nav(page: Page, name: string) {
+  await expect(page.locator(".mobile-header")).toBeAttached();
   if (
     await page
       .getByRole("button", { name: "Open navigation", exact: true })

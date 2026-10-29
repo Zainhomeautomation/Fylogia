@@ -27,3 +27,9 @@ These are desktop Safari results. They do not prove iOS installation, Airplane M
 ## Reader interaction regression coverage
 
 The shared article/PDF page-corner controls separate taps from drags. Touch motion within 12 CSS pixels remains a tap; horizontal dragging starts the curl after that threshold, and vertical movement cancels it. Tests exercise Chromium's native touch input with finger jitter, WebKit taps, rapid consecutive turns, keyboard navigation, reserved controls outside the text viewport, compact toolbars, immersive reveal, and exact modal isolation restoration. These complement the existing curl cancellation, reduced-motion, PDF, offline, bookmark and resize suites.
+
+## Additional current-environment checks
+
+A fresh XcodeBuildMCP inventory again found no usable simulator because full Xcode and `simctl` are missing. The Swift command-line compiler and macOS SDK are available. Apple's native Vision framework decoded a QR image produced by Fylogia's QR encoder and recovered the exact public dummy pairing URL. This is a native macOS software decoder test, not a camera or physical-device test.
+
+Further native Safari PDF zoom/offline interaction checks were interrupted when the Mac auto-locked. Native UI automation explicitly refused access while locked. No lock bypass or Safari automation permission change was attempted. Previous successful native Safari reader checks are scoped above; the complete automated Chromium/WebKit suites cover offline, zoom, pagination and responsive regressions independently.

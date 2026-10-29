@@ -66,9 +66,30 @@ export const getPersistenceStatus = () => status;
 export const getLibraryValue = <T>(key: string, initial: T): T =>
   key in data ? (data[key as LibraryKey] as T) : initial;
 export const snapshotLibrary = () => ({ version: 1, ...structuredClone(data) });
+// Non-security fingerprint: bind cloud provenance to the exact serialized value.
+// Older clients know the origin key but need not know this additive sidecar.
+function storageDigest(value: string) {
+  let a = 2166136261,
+    b = 2654435769;
+  for (let i = 0; i < value.length; i++) {
+    const c = value.charCodeAt(i);
+    a = Math.imul(a ^ c, 16777619);
+    b = Math.imul(b ^ c, 2246822519);
+  }
+  return (
+    value.length + ":" + (a >>> 0).toString(36) + ":" + (b >>> 0).toString(36)
+  );
+}
 function localWrite(row: Row) {
   try {
+    const serialized = JSON.stringify(row.value);
     try {
+      if (row.origin === "cloud")
+        localStorage.setItem(
+          "folio.local.digest." + row.key,
+          storageDigest(serialized),
+        );
+      else localStorage.removeItem("folio.local.digest." + row.key);
       localStorage.setItem(
         "folio.local.origin." + row.key,
         row.origin || "local",
@@ -76,7 +97,7 @@ function localWrite(row: Row) {
     } catch {
       /* Provenance must not prevent saving the original primary value. */
     }
-    localStorage.setItem(PREFIX + row.key, JSON.stringify(row.value));
+    localStorage.setItem(PREFIX + row.key, serialized);
     localStorage.setItem("folio.local.savedAt." + row.key, String(row.savedAt));
     return true;
   } catch {
@@ -302,7 +323,9 @@ export function initializeLocalLibrary() {
         // Ignore stale queued storage events instead of writing old values back.
         if (localStorage.getItem(PREFIX + key) !== event.newValue) return;
         const origin =
-          localStorage.getItem("folio.local.origin." + key) === "cloud"
+          localStorage.getItem("folio.local.origin." + key) === "cloud" &&
+          localStorage.getItem("folio.local.digest." + key) ===
+            storageDigest(event.newValue)
             ? "cloud"
             : undefined;
         const value = normalizeLibraryValue(key, JSON.parse(event.newValue));

@@ -157,7 +157,9 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
   await page.unroute("**/data/edition.json*");
   const onlineEdition = page.waitForResponse(
     (response) =>
-      response.url().includes("/data/edition.json") && response.ok(),
+      response.request().method() === "GET" &&
+      response.url().includes("/data/edition.json") &&
+      response.ok(),
   );
   await context.setOffline(false);
   const response = await onlineEdition;

@@ -14,7 +14,6 @@ import {
   type Article,
   type FeedStatus,
 } from "./catalog";
-import { loadCustom, parseFeedFile } from "./feeds";
 import { safeUrl } from "./storage";
 export function Sources({
   prefs,
@@ -95,6 +94,7 @@ export function Sources({
     setMessage("");
     try {
       const source = createSource();
+      const { loadCustom } = await import("./feeds");
       const articles = await loadCustom(source, prefs.converter);
       commit(source, articles);
     } catch (e) {
@@ -108,6 +108,7 @@ export function Sources({
     setBusy(true);
     try {
       const source = createSource();
+      const { parseFeedFile } = await import("./feeds");
       commit(source, parseFeedFile(await file.text(), source));
     } catch (e) {
       setMessage((e as Error).message);

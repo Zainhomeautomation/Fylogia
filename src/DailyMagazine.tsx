@@ -59,7 +59,11 @@ export function DailyMagazine({
     () =>
       new Map(
         articles
-          .filter((a) => edition.stories.some((s) => s.id === a.id))
+          .filter(
+            (a) =>
+              (a.content || a.excerpt) &&
+              edition.stories.some((s) => s.id === a.id),
+          )
           .map((a) => [a.id, a]),
       ),
   );
