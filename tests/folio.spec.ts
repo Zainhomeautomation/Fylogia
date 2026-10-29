@@ -259,13 +259,11 @@ test("custom RSS file, library export/import and sanitized article content", asy
   const escape = (s: string) =>
     s.replaceAll("&", "&amp;").replaceAll("<", "&lt;");
   const xml = `<rss version="2.0"><channel><title>NASA</title><item><title>${escape(article.title)}</title><link>${escape(article.url + "?folio-import=1")}</link><description>${escape(article.excerpt)}</description></item></channel></rss>`;
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "nasa.xml",
-      mimeType: "application/xml",
-      buffer: Buffer.from(xml),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "nasa.xml",
+    mimeType: "application/xml",
+    buffer: Buffer.from(xml),
+  });
   await expect(page.getByRole("status")).toContainText(
     "Added NASA custom import with 1 articles.",
   );
@@ -289,13 +287,11 @@ test("custom RSS file, library export/import and sanitized article content", asy
         '<script>window.folioUnsafe=true</script><img src="x" onerror="window.folioUnsafe=true"><a href="javascript:alert(1)">Unsafe test link</a>',
     },
   ];
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "library.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(exported)),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "library.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(exported)),
+  });
   await expect(page.getByRole("status")).toContainText(
     "Library imported successfully.",
   );
@@ -334,13 +330,11 @@ test("private PDF import survives reload and opens original page layout", async 
     .join(
       "\n",
     )}\ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "Folio local PDF test.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from(pdf),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "Folio local PDF test.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(pdf),
+  });
   await expect(
     page.getByRole("button", { name: /Folio local PDF test/ }),
   ).toBeVisible();
