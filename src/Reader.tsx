@@ -1,9 +1,17 @@
 import { PageTurnControls } from "./PageTurnControls";
-import { useReaderReturn } from "./useReaderReturn";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useReaderReturn, isolateReaderLayer } from "./useReaderReturn";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { usePageTurn } from "./usePageTurn";
 import DOMPurify from "dompurify";
 import {
+  Ellipsis,
   ArrowLeft,
   House,
   X,
@@ -58,6 +66,11 @@ export function Reader({
     content = useRef<HTMLDivElement>(null),
     close = useRef<HTMLButtonElement>(null);
   const [immersive, setImmersive] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [chromeVisible, setChromeVisible] = useState(true);
+  const optionsButton = useRef<HTMLButtonElement>(null),
+    optionsPanel = useRef<HTMLDivElement>(null);
+  const pageValue = useRef(0);
   const [page, setPageState] = useState(0),
     [count, setCount] = useState(1),
     [width, setWidth] = useState(0),
@@ -65,16 +78,24 @@ export function Reader({
     [summary, setSummary] = useState(""),
     [summaryBusy, setSummaryBusy] = useState(false);
   const navigation = useRef(true);
-  const setPage: typeof setPageState = (next) => {
-    const nextPage = typeof next === "function" ? next(page) : next;
-    navigation.current = true;
-    anchor.current = null;
-    position.current = count > 1 ? nextPage / (count - 1) : 0;
-    // Persist deliberate navigation before a close or an asynchronous image
-    // measurement can overtake the next effect.
-    onProgress(position.current);
-    setPageState(nextPage);
-  };
+  const setPage = useCallback(
+    (next: number | ((previous: number) => number)) => {
+      const nextPage =
+        typeof next === "function" ? next(pageValue.current) : next;
+      pageValue.current = nextPage;
+      navigation.current = true;
+      anchor.current = null;
+      position.current = count > 1 ? nextPage / (count - 1) : 0;
+      onProgress(position.current);
+      setOptionsOpen(false);
+      if (immersive) setChromeVisible(false);
+      setPageState(nextPage);
+    },
+    [count, onProgress, immersive],
+  );
+  useLayoutEffect(() => {
+    pageValue.current = page;
+  }, [page]);
   const curl = usePageTurn(
     viewport,
     page,
@@ -141,59 +162,62 @@ export function Reader({
   }, [page, width, spread, count, prefs.reading]);
   const start = useRef<{ x: number; y: number } | null>(null),
     restored = useRef(false);
-  let html = DOMPurify.sanitize(article.content, {
-    ALLOWED_TAGS: [
-      "p",
-      "br",
-      "strong",
-      "em",
-      "b",
-      "i",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "pre",
-      "code",
-      "table",
-      "thead",
-      "tbody",
-      "tr",
-      "th",
-      "td",
-      "sup",
-      "sub",
-      "dl",
-      "dt",
-      "dd",
-      "ul",
-      "ol",
-      "li",
-      "blockquote",
-      "figure",
-      "figcaption",
-      "img",
-      "a",
-    ],
-    ALLOWED_ATTR: ["src", "alt", "href", "title", "colspan", "rowspan"],
-    FORBID_ATTR: ["style", "srcset"],
-  }).replace(/<img /g, '<img referrerpolicy="no-referrer" ');
-  // Promote the credited lead figure rather than showing the same photo twice.
-  let leadCaption = "";
-  if (article.image) {
-    const document = new DOMParser().parseFromString(html, "text/html");
-    const figure = [...document.querySelectorAll("figure")].find(
-      (figure) =>
-        figure.querySelectorAll("img").length === 1 &&
-        figure.querySelector("img")?.getAttribute("src") === article.image,
-    );
-    if (figure) {
-      leadCaption = figure.querySelector("figcaption")?.textContent || "";
-      figure.remove();
-      html = document.body.innerHTML;
+  const { html, leadCaption } = useMemo(() => {
+    let html = DOMPurify.sanitize(article.content, {
+      ALLOWED_TAGS: [
+        "p",
+        "br",
+        "strong",
+        "em",
+        "b",
+        "i",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "pre",
+        "code",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "sup",
+        "sub",
+        "dl",
+        "dt",
+        "dd",
+        "ul",
+        "ol",
+        "li",
+        "blockquote",
+        "figure",
+        "figcaption",
+        "img",
+        "a",
+      ],
+      ALLOWED_ATTR: ["src", "alt", "href", "title", "colspan", "rowspan"],
+      FORBID_ATTR: ["style", "srcset"],
+    }).replace(/<img /g, '<img referrerpolicy="no-referrer" ');
+    // Promote the credited lead figure rather than showing the same photo twice.
+    let leadCaption = "";
+    if (article.image) {
+      const document = new DOMParser().parseFromString(html, "text/html");
+      const figure = [...document.querySelectorAll("figure")].find(
+        (figure) =>
+          figure.querySelectorAll("img").length === 1 &&
+          figure.querySelector("img")?.getAttribute("src") === article.image,
+      );
+      if (figure) {
+        leadCaption = figure.querySelector("figcaption")?.textContent || "";
+        figure.remove();
+        html = document.body.innerHTML;
+      }
     }
-  }
+    return { html, leadCaption };
+  }, [article.content, article.image]);
   const measuring = useRef(false);
   const measurementFrame = useRef(0);
   const measure = () => {
@@ -276,7 +300,10 @@ export function Reader({
     function key(e: KeyboardEvent) {
       if (e.key === "Escape") {
         if (summary) setSummary("");
-        else onClose();
+        else if (optionsOpen) {
+          setOptionsOpen(false);
+          optionsButton.current?.focus();
+        } else onClose();
       }
       if (e.key === "ArrowRight") setPage((p) => Math.min(count - 1, p + 1));
       if (e.key === "ArrowLeft") setPage((p) => Math.max(0, p - 1));
@@ -287,7 +314,10 @@ export function Reader({
               ? ".summary-panel button"
               : ".reader button:not(:disabled), .reader a[href]",
           ),
-        ).filter((element) => !element.closest("[inert]"));
+        ).filter(
+          (element) =>
+            !element.closest("[inert]") && element.getClientRects().length > 0,
+        );
         const first = controls[0],
           last = controls.at(-1);
         if (e.shiftKey && document.activeElement === first) {
@@ -301,14 +331,24 @@ export function Reader({
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [count, onClose, summary, setPage]);
+  }, [count, onClose, summary, setPage, optionsOpen]);
   useEffect(() => {
     if (!summary) return;
-    const previous = document.activeElement as HTMLElement;
+    const panel = document.querySelector<HTMLElement>(".summary-panel");
+    const restore = panel
+      ? isolateReaderLayer(
+          panel,
+          panel.closest<HTMLElement>(".reader") || undefined,
+        )
+      : () => {};
     document.querySelector<HTMLButtonElement>(".summary-panel button")?.focus();
-    return () => previous?.focus();
+    return () => {
+      restore();
+      optionsButton.current?.focus();
+    };
   }, [summary]);
   async function summarize() {
+    setOptionsOpen(false);
     setSummaryBusy(true);
     try {
       const api = (globalThis as any).Summarizer;
@@ -338,7 +378,7 @@ export function Reader({
   }
   return (
     <div
-      className={`reader ${!article.full ? "preview-reader" : ""} ${immersive ? "immersive" : ""}`}
+      className={`reader ${!article.full ? "preview-reader" : ""} ${immersive ? "immersive" : ""} ${immersive && !chromeVisible ? "chrome-hidden" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label={article.title}
@@ -370,11 +410,45 @@ export function Reader({
             immersive ? "Exit immersive reading" : "Enter immersive reading"
           }
           aria-pressed={immersive}
-          onClick={() => setImmersive(!immersive)}
+          onClick={() => {
+            setImmersive(!immersive);
+            setChromeVisible(immersive);
+            setOptionsOpen(false);
+          }}
         >
           {immersive ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </button>
-        <div className="reader-actions">
+        <div className="reader-primary-save">
+          <button
+            className={"icon-button " + (saved ? "is-saved" : "")}
+            aria-label={saved ? "Unsave article" : "Save article"}
+            onClick={onSave}
+          >
+            <Bookmark size={20} fill={saved ? "currentColor" : "none"} />
+          </button>
+        </div>
+        <button
+          ref={optionsButton}
+          className="icon-button reader-options-toggle"
+          aria-label="Reading options"
+          title="Reading options"
+          aria-expanded={optionsOpen}
+          aria-controls="article-reading-options"
+          onClick={() => {
+            setOptionsOpen(!optionsOpen);
+            setChromeVisible(true);
+          }}
+        >
+          <Ellipsis size={22} />
+        </button>
+        <div
+          ref={optionsPanel}
+          id="article-reading-options"
+          role="group"
+          aria-label="Reading options"
+          hidden={!optionsOpen}
+          className="reader-actions reader-options-panel"
+        >
           <button
             className="icon-button"
             aria-label="Summarize article"
@@ -382,6 +456,7 @@ export function Reader({
             onClick={summarize}
           >
             <Sparkles size={19} />
+            <span>Summarize</span>
           </button>
           <button
             className="icon-button"
@@ -418,19 +493,21 @@ export function Reader({
             ) : (
               <Columns2 size={20} />
             )}
-          </button>
-          <button
-            className={"icon-button " + (saved ? "is-saved" : "")}
-            aria-label={saved ? "Unsave article" : "Save article"}
-            onClick={onSave}
-          >
-            <Bookmark size={20} fill={saved ? "currentColor" : "none"} />
+            <span>{prefs.reading === "pages" ? "Scroll" : "Pages"}</span>
           </button>
         </div>
       </header>
       {onDownload && (
         <div className="reader-download-strip">
-          <span>{offlineLabel || "Keep this story for offline reading."}</span>
+          <span title={offlineLabel}>
+            {downloaded
+              ? "Available offline"
+              : downloading
+                ? "Downloading…"
+                : navigator.onLine
+                  ? "Keep for offline"
+                  : "Offline · Download unavailable"}
+          </span>
           <button
             className="text-button"
             disabled={downloaded || downloading || !navigator.onLine}
@@ -452,6 +529,16 @@ export function Reader({
           (prefs.reading === "scroll" ? "scrolling" : "paginated")
         }
         data-spread={spread}
+        onClick={(event) => {
+          if (optionsOpen && !(event.target as HTMLElement).closest("button,a"))
+            setOptionsOpen(false);
+          if (
+            immersive &&
+            !(event.target as HTMLElement).closest("button,a") &&
+            window.getSelection()?.isCollapsed
+          )
+            setChromeVisible((v) => !v);
+        }}
         onScroll={(event) => {
           if (prefs.reading !== "scroll") return;
           const element = event.currentTarget;
@@ -582,14 +669,14 @@ export function Reader({
             </button>
           </div>
         </div>
-        {prefs.reading === "pages" && count > 1 && (
-          <PageTurnControls
-            curl={curl}
-            previous={page > 0 ? () => setPage((p) => p - 1) : undefined}
-            next={page < count - 1 ? () => setPage((p) => p + 1) : undefined}
-          />
-        )}
       </div>
+      {prefs.reading === "pages" && count > 1 && (
+        <PageTurnControls
+          curl={curl}
+          previous={page > 0 ? () => setPage((p) => p - 1) : undefined}
+          next={page < count - 1 ? () => setPage((p) => p + 1) : undefined}
+        />
+      )}
       <footer className="reader-footer">
         {prefs.reading === "pages" ? (
           <>

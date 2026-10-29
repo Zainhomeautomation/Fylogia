@@ -17,7 +17,15 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
   await page.locator(".story-open").first().click();
   await expect(page.getByLabel("Page turning guide")).toBeVisible();
   const status = page.locator(".reader-footer [role=status]");
-  const before = await status.innerText();
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
+  const pageNumber = async () =>
+    Number((await status.innerText()).match(/(?:Page|Spread) (\d+) of/)?.[1]);
+  const before = await pageNumber();
   async function drag(
     fraction: number,
     cancel: false | "pointercancel" | "lostpointercapture" = false,
@@ -65,13 +73,13 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
     await expect(page.locator(".curl-underlay")).toHaveCount(0);
   }
   await drag(0.15);
-  await expect(status).toHaveText(before);
+  await expect.poll(pageNumber).toBe(before);
   await drag(0.55, "pointercancel");
-  await expect(status).toHaveText(before);
+  await expect.poll(pageNumber).toBe(before);
   await drag(0.55, "lostpointercapture");
-  await expect(status).toHaveText(before);
+  await expect.poll(pageNumber).toBe(before);
   await drag(0.55);
-  await expect(status).not.toHaveText(before);
+  await expect.poll(pageNumber).toBe(before + 1);
   await expect(page.getByLabel("Page turning guide")).toHaveCount(0);
   expect(
     await page.evaluate(() =>
@@ -87,11 +95,11 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
     .click();
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
   await context.setOffline(true);
-  const offline = await status.innerText();
+  const offline = await pageNumber();
   await page
     .getByRole("button", { name: "Drag or tap to turn backward" })
     .click();
-  await expect(status).not.toHaveText(offline);
+  await expect.poll(pageNumber).toBe(offline - 1);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page
     .getByRole("button", { name: "Drag or tap to turn forward" })
