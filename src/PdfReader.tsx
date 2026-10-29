@@ -171,7 +171,7 @@ export default function PdfReader({
       if (target < 1 || target > pdf.numPages) return;
       const wrapper = document.createElement("div");
       wrapper.style.cssText =
-        "display:flex;gap:12px;justify-content:center;align-items:flex-start;padding:20px 12px";
+        "display:flex;gap:12px;justify-content:center;align-items:center;padding:20px 12px";
       for (let i = 0; i < Math.min(spread, pdf.numPages - target + 1); i++) {
         if (signal.aborted) return;
         const pdfPage = await pdf.getPage(target + i);
@@ -305,7 +305,15 @@ export default function PdfReader({
   useEffect(() => {
     const element = surface.current;
     if (!element) return;
-    let initial: { distance: number; zoom: number } | null = null;
+    let initial: {
+      distance: number;
+      zoom: number;
+      value: number;
+      x: number;
+      y: number;
+      viewX: number;
+      viewY: number;
+    } | null = null;
     let frame = 0;
     const distance = (e: TouchEvent) =>
       Math.hypot(
@@ -316,18 +324,70 @@ export default function PdfReader({
       if (e.touches.length !== 2) return;
       pinching.current = true;
       touch.current = null;
-      initial = { distance: distance(e), zoom: zoomRef.current };
+      const sheet = element.querySelector<HTMLElement>(".pdf-pages");
+      if (!sheet) return;
+      const rect = sheet.getBoundingClientRect(),
+        area = element.getBoundingClientRect();
+      const x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      initial = {
+        distance: distance(e),
+        zoom: zoomRef.current,
+        value: zoomRef.current,
+        x: (x - rect.left) / Math.max(1, rect.width),
+        y: (y - rect.top) / Math.max(1, rect.height),
+        viewX: x - area.left,
+        viewY: y - area.top,
+      };
+      sheet.style.transformOrigin = `${x - rect.left}px ${y - rect.top}px`;
     };
     const move = (e: TouchEvent) => {
       if (!initial || e.touches.length !== 2) return;
       e.preventDefault();
-      const value =
-        (initial.zoom * distance(e)) / Math.max(1, initial.distance);
+      initial.value = Math.max(
+        1,
+        Math.min(
+          4,
+          (initial.zoom * distance(e)) / Math.max(1, initial.distance),
+        ),
+      );
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => changeZoom(value));
+      frame = requestAnimationFrame(() => {
+        if (!initial) return;
+        const sheet = element.querySelector<HTMLElement>(".pdf-pages");
+        if (sheet)
+          sheet.style.transform = `scale(${initial.value / initial.zoom})`;
+        element.dataset.pinchZoom = String(initial.value);
+      });
     };
     const end = (e: TouchEvent) => {
-      if (e.touches.length < 2) initial = null;
+      if (e.touches.length >= 2 || !initial) return;
+      const completed = initial;
+      initial = null;
+      cancelAnimationFrame(frame);
+      const sheet = element.querySelector<HTMLElement>(".pdf-pages");
+      if (sheet) {
+        sheet.style.transform = "";
+        sheet.style.transformOrigin = "";
+      }
+      delete element.dataset.pinchZoom;
+      if (e.type === "touchcancel") return;
+      // Re-render at the final resolution once; gesture frames only transform
+      // the existing canvas, avoiding repeated PDF decoding on mobile Safari.
+      changeZoom(completed.value);
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          if (!sheet) return;
+          element.scrollLeft =
+            sheet.offsetLeft +
+            completed.x * sheet.offsetWidth -
+            completed.viewX;
+          element.scrollTop =
+            sheet.offsetTop +
+            completed.y * sheet.offsetHeight -
+            completed.viewY;
+        });
+      });
     };
     element.addEventListener("touchstart", begin, { passive: true });
     element.addEventListener("touchmove", move, { passive: false });

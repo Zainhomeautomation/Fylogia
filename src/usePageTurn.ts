@@ -45,6 +45,12 @@ function paper(surface: HTMLElement, image: HTMLElement, forward: boolean) {
     ctx.fillRect(0, 0, w, h);
     const pages = [...image.querySelectorAll("canvas")];
     const widths = pages.map((c) => parseFloat(c.style.width) || c.width);
+    const top = Math.max(
+      20,
+      (h -
+        Math.max(...pages.map((c) => parseFloat(c.style.height) || c.height))) /
+        2,
+    );
     let left =
       (w -
         widths.reduce((sum, n) => sum + n, 0) -
@@ -54,7 +60,7 @@ function paper(surface: HTMLElement, image: HTMLElement, forward: boolean) {
       ctx.drawImage(
         canvas,
         left,
-        20 - surface.scrollTop,
+        top - surface.scrollTop,
         widths[i],
         parseFloat(canvas.style.height) || canvas.height,
       );

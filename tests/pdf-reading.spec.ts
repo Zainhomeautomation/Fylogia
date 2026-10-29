@@ -101,6 +101,9 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
     const bounds = (await canvas.boundingBox())!;
     const x = bounds.x + bounds.width / 2,
       y = bounds.y + bounds.height / 2;
+    const backingWidth = await canvas.evaluate(
+      (n: HTMLCanvasElement) => n.width,
+    );
     await cdp.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [
@@ -116,12 +119,18 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
       ],
     });
     await expect
-      .poll(async () => Number(await surface.getAttribute("data-zoom")))
+      .poll(async () => Number(await surface.getAttribute("data-pinch-zoom")))
       .toBeGreaterThan(1.8);
+    expect(await canvas.evaluate((n: HTMLCanvasElement) => n.width)).toBe(
+      backingWidth,
+    );
     await cdp.send("Input.dispatchTouchEvent", {
       type: "touchEnd",
       touchPoints: [],
     });
+    await expect
+      .poll(async () => Number(await surface.getAttribute("data-zoom")))
+      .toBeGreaterThan(1.8);
     await page
       .getByRole("button", { name: "Fit magazine pages", exact: true })
       .click();

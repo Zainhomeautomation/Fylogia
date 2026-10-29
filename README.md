@@ -233,3 +233,9 @@ The [179-feed validation report](docs/source-catalog.md) records source URLs, ca
 ## Full-article reading refinement
 
 The [reading release report](docs/full-article-release.md) includes the refreshed baseline 26-feed review and permission boundaries. Preview readers show a clear Continue Reading action without technical licensing messages. NASA figure/caption extraction and Science CDATA handling preserve more permitted content. Every edition item carries internal retrieval diagnostics; an unverified content field is never promoted to authorized full text. Existing offline records remain compatible. Paginated media scales to the viewport; scrolling progress now survives reopening and reading-mode changes. Original publisher pages open through the browser because no eligible, explicitly permitted embedded-original integration was established.
+
+### Original PDF reading and editorial images
+
+PDFs fit the available width and height, use readable portrait spreads, and retain original landscape spreads. Zoom buttons, double-tap/double-click and two-finger pinch support closer reading; zoomed sheets pan inside the reader. Pinch movement transforms the existing canvas and renders at final resolution on release. Rendering is bounded for mobile memory. Automatic PDF progress is keyed by magazine ID independently of legacy bookmarks, so identical filenames do not share progress.
+
+The library displays the actual NASA publication cover and generates private PDF covers locally, including for existing imports when opened. Bundled covers remain available offline. Article figures preserve aspect ratio, and feed processing selects safe, larger publisher-provided media/srcset images without guessing CDN URLs or changing permission policies. See [PDF and media details](docs/pdf-and-media-reading.md) for source attribution, limits and test coverage.
