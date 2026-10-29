@@ -38,6 +38,7 @@ import { loadCustom } from "./feeds";
 import { useOfflineLibrary } from "./useOfflineLibrary";
 import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
+import { useSectionRoute } from "./useSectionRoute";
 const navigation = [
   { id: "home", label: "For You", icon: Home },
   { id: "explore", label: "Explore", icon: Compass },
@@ -62,8 +63,8 @@ export default function App() {
     {},
   );
   const [custom, setCustom, customError] = useStored<Article[]>("custom", []);
+  const [view, setView] = useSectionRoute();
   const [edition, setEdition] = useState<Edition>(EMPTY),
-    [view, setView] = useState("home"),
     [filter, setFilter] = useState("All stories"),
     [query, setQuery] = useState(""),
     [reader, setReader] = useState<Article>(),

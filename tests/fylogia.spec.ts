@@ -89,7 +89,7 @@ test("onboarding, real stories, saves, history, theme and persistent preferences
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Your daily perspective." }),
+    page.getByRole("heading", { name: "Settings", exact: true }),
   ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await nav(page, "Saved Articles");

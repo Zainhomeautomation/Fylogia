@@ -1,6 +1,6 @@
 import { readdir, writeFile, readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
-const base = process.env.FYLOGIA_BASE_PATH || "/Fylogia/";
+const base = process.env.FYLOGIA_BASE_PATH || "/";
 if (!/^\/(?:[A-Za-z0-9_-]+\/)*$/.test(base))
   throw new Error(
     "FYLOGIA_BASE_PATH must be a root or slash-delimited URL path.",
@@ -9,7 +9,6 @@ const files = await readdir("dist/assets");
 const cache = "fylogia-shell-" + Date.now();
 const precache = [
   base,
-  base + "index.html",
   base + "data/edition.json",
   base + "manifest.webmanifest",
   base + "icon.svg",
@@ -39,7 +38,7 @@ self.addEventListener('fetch',event=>{
  if(url.pathname===BASE+'data/edition.json'){
   event.respondWith((async()=>{try{const response=await fetch(request);if(!response.ok)throw new Error('Edition unavailable');const cache=await caches.open(CACHE);await cache.put(BASE+'data/edition.json',response.clone());return response}catch{const shell=await caches.open(CACHE);const cached=await shell.match(BASE+'data/edition.json',{ignoreVary:true});return cached||new Response('Edition unavailable',{status:503})}})());return;
  }
- event.respondWith((async()=>{const shell=await caches.open(CACHE);const cached=await shell.match(request,{ignoreSearch:true,ignoreVary:true});if(cached)return cached;if(url.pathname.startsWith(BASE+'assets/')){const previous=await caches.match(request,{ignoreSearch:true,ignoreVary:true});if(previous)return previous;}try{const response=await fetch(request);if(response.ok){const cache=await caches.open(CACHE);await cache.put(request,response.clone())}return response}catch{return request.mode==='navigate'?(await (await caches.open(CACHE)).match(BASE+'index.html',{ignoreVary:true}))||Response.error():Response.error()}})());
+ event.respondWith((async()=>{const shell=await caches.open(CACHE);const cached=await shell.match(request,{ignoreSearch:true,ignoreVary:true});if(cached)return cached;if(url.pathname.startsWith(BASE+'assets/')){const previous=await caches.match(request,{ignoreSearch:true,ignoreVary:true});if(previous)return previous;}try{const response=await fetch(request);if(response.ok){const cache=await caches.open(CACHE);await cache.put(request,response.clone())}return response}catch{return request.mode==='navigate'?(await (await caches.open(CACHE)).match(BASE,{ignoreVary:true}))||Response.error():Response.error()}})());
 });
 `,
 );

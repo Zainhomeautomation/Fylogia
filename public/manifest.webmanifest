@@ -1,10 +1,10 @@
 {
-  "id": "/Folio/",
+  "id": "/",
   "name": "Fylogia \u2014 Read your world",
   "short_name": "Fylogia",
   "description": "Fylogia: your personal news and magazine reader",
-  "start_url": "/Fylogia/",
-  "scope": "/Fylogia/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#456657",

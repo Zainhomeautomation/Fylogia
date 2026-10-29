@@ -26,3 +26,5 @@ dist-ssr
 public/editions/
 test-results/
 playwright-report/
+
+.wrangler/

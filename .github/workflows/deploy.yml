@@ -1,18 +1,20 @@
-name: Validate Fylogia and prepare publication
+name: Validate Fylogia and refresh news
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "17 */3 * * *"
 permissions:
   contents: read
 concurrency:
-  group: fylogia-pages
+  group: fylogia-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  build:
-    if: github.repository == 'Zainhomeautomation/Fylogia'
+  validate:
+    if: github.repository == 'Zainhomeautomation/Fylogia' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -22,26 +24,45 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
-      - run: npm run feeds
-      - run: npm run magazines
-      - run: npm run build
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test:server
+      - run: npm run build:pages
       - run: npx playwright install --with-deps chromium webkit
       - run: npm test
-      - uses: actions/upload-pages-artifact@v3
+        env:
+          FYLOGIA_PAGES_RUNTIME: "1"
+      - uses: actions/upload-artifact@v4
+        if: failure()
         with:
-          path: dist
-  deploy:
-    # Publishing stays disabled until the owner approves the availability results.
-    if: github.repository == 'Zainhomeautomation/Fylogia' && vars.FYLOGIA_PUBLICATION_APPROVED == 'true'
-    needs: build
+          name: browser-test-failures
+          path: test-results
+  refresh-news:
+    if: github.repository == 'Zainhomeautomation/Fylogia' && github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      contents: write
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run feeds
+      - name: Commit refreshed publisher feeds
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data/edition.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Refresh publisher news edition'
+            git push origin HEAD:main
+          fi
+
+# Deployment is Cloudflare Pages' GitHub integration, never GitHub Pages.
+# Production branch: main; build: npm run build:pages; output: dist; Node: 24.
+# Three-hour refreshes use about 248 builds/month, below the free 500-build cap.

@@ -2,14 +2,12 @@
 
 A free, open-source personal news and magazine reader. No account, ads, paid subscription, or API key required.
 
-**Proposed final brand:** FYLOGIA (Fylogia). The broader 29 October 2026 screening identified registered PHILOZIA and FYLGIA marks with software/publishing overlap; do not treat this name as cleared. The existing personal repository has been renamed with its history preserved. Publication and domain purchases remain blocked until the owner approves the availability results.
-
-**Publication on hold:** the former GitHub Pages URL was `https://zainhomeautomation.github.io/Folio/`. GitHub does not redirect project-site URLs on repository rename; do not treat the old URL as the renamed app. The publication workflow is disabled, and no Fylogia site has been deployed.
+Production target: **https://fylogia.com/**, deployed from the personal [Zainhomeautomation/Fylogia](https://github.com/Zainhomeautomation/Fylogia) repository through Cloudflare Pages GitHub integration. The owner authorized publication on 29 October 2026. The earlier naming screen remains a cautionary record, not legal clearance.
 
 ## Features
 
 - Three-step onboarding: 21 interests, subtopics, regions, recommended sources and custom RSS/Atom feeds.
-- Real publisher content from 24 sources, refreshed hourly by GitHub Actions. The app checks for a newer deployed edition every 15 minutes and on Refresh.
+- Real publisher content from 24 sources, refreshed every three hours by GitHub Actions. The app checks for a newer deployed edition every 15 minutes and on Refresh.
 - Editorial home, Explore, Categories, source management, saved articles, magazines, history and settings.
 - Single-page article reading on small screens, two-column spreads on wide screens, swipes, keyboard/page controls, text-size adjustment and optional continuous scrolling. Pagination responds to resizing, rotation and folding.
 - Full NASA articles when supplied in the feed. Other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
@@ -29,7 +27,7 @@ npm run magazines
 npm run dev
 ```
 
-Open the printed `/Fylogia/` URL.
+Open the printed root URL.
 
 ```sh
 npm run build
@@ -42,13 +40,25 @@ Tests cover Chromium desktop, WebKit iPhone/iPad, onboarding, saved stories, his
 
 ## Deployment
 
-Only the personal repository **Zainhomeautomation/Fylogia** is used. `.github/workflows/deploy.yml` validates and prepares builds on pushes, manual runs and an hourly schedule. The live Actions workflow is disabled. The prepared workflow also requires the personal repository variable `FYLOGIA_PUBLICATION_APPROVED` to be explicitly set to `true`; only re-enable it and set that variable after the owner approves publication. GitHub Pages needs no third-party hosting credentials and works with public repositories on GitHub Free. See [GitHub documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+Use the existing Cloudflare account that owns fylogia.com. Connect only **Zainhomeautomation/Fylogia** using Pages' **Import an existing Git repository** workflow. Keep production branch **main**, build command **npm run build:pages**, output directory **dist**, repository root unchanged and **NODE_VERSION=24**. `.node-version` also specifies 24. No Cloudflare token or other private credential belongs in source or frontend environment variables. Pages automatically deploys future main pushes; disable preview branch builds to conserve the free allowance.
 
-Build permission is `contents: read`; the deployment job uses `pages: write` and `id-token: write`. Scheduled runs can be delayed, and GitHub may disable schedules after 60 days without repository activity. Push an update or re-enable/run the workflow manually. Failed feeds retain bundled cached content and report their status. Article dates remain visible. Refresh retrieves the latest deployed edition; it does not trigger a cloud build.
+Add `fylogia.com` in the Pages project's Custom domains, allowing Pages to create only its required apex DNS record. Configure a domain-specific Cloudflare redirect from `www.fylogia.com` to `https://fylogia.com`, preserving path and query. Keep HTTPS enabled. Do not alter unrelated zones, records, applications or account settings. Verify the public page, deep links, certificate and `build-info.json` commit after deployment. This repository does not provision DNS or store account credentials.
 
-The same repository is now `Zainhomeautomation/Fylogia`, preserving all original commits and branches. Existing browser-storage keys (`folio.v1.*`), the PDF database (`folio-magazines`), offline database (`fyllora-offline`), image cache (`fyllora-offline-images-v1`) and download index (`fyllora.offline.ids`) intentionally retain their compatibility names. The Pages mount is prepared as `/Fylogia/`; the manifest ID remains `/Folio/` on that same origin to retain installation identity. Storage remains origin-specific, and old/new service-worker scopes differ; visit the approved new URL online once before offline use. Library exports now use `fylogia-library.json`; previous exports still import. The old cache prefix is recognized during future service-worker upgrades.
+`npm run build:pages` uses the committed real-news dataset, generates the production app/service worker and checks the 25 MiB asset limit. The original NASA magazine exceeds that limit, so its fixed URL is served by one streaming Pages Function with HTTP range support; no arbitrary proxy target, uploaded document, credential forwarding or paid storage is used. `_routes.json` limits function invocations to that PDF. All other content is static; Pages' default SPA fallback handles section URLs. Do not add a top-level `404.html` without preserving SPA routing. `_headers` revalidates the manifest/service worker/news and caches versioned assets. No credentials or external backend are required for private local libraries.
 
-The default `/Fylogia/` deployment base matches the renamed repository. Set `FYLOGIA_BASE_PATH=/` for a Sites/root build. Vite processes the index asset URLs and the build script writes the manifest start URL, scope, identity and service-worker paths for the selected base. `FYLOGIA_TEST_URL` can target an already-running build; `FYLOGIA_SCREENSHOTS` selects an absolute screenshot output directory.
+GitHub Actions validates main pushes and pull requests. A separate scheduled job refreshes publisher feeds every three hours and commits only `public/data/edition.json`, triggering Pages through its GitHub integration. This uses about 248 of the free plan's 500 monthly builds, leaving room for code updates. Schedules can be delayed or disabled after inactivity; failed sources retain previous entries with visible timestamps. The app checks the deployed dataset every 15 minutes and on reconnection/Refresh. Refresh does not start a cloud build. The NASA PDF endpoint shares Cloudflare Workers Free request/CPU quotas; publisher or quota outages leave article reading and imported PDFs functional.
+
+The original offline, branding and local-profile branches are integrated by fast-forward, preserving their commits. Legacy browser-storage keys (`folio.v1.*`), PDF database (`folio-magazines`), offline database (`fyllora-offline`), image cache (`fyllora-offline-images-v1`) and download index intentionally retain their compatibility names. The production base, manifest identity, scope and service worker default to `/`. An explicit `FYLOGIA_BASE_PATH=/Fylogia/` still supports legacy subpath builds. `FYLOGIA_TEST_URL` targets an existing build; `FYLOGIA_SCREENSHOTS` chooses an absolute screenshot directory.
+
+Browser libraries belong to an origin. A GitHub Pages library cannot automatically move to fylogia.com: export/import its library backup in Settings, then re-download articles/images and re-import private PDFs on the new origin. No data is publicly uploaded or silently discarded.
+
+Local Pages runtime verification:
+
+```sh
+npm run build:pages
+npx wrangler pages dev dist --port 8788
+FYLOGIA_TEST_URL=http://127.0.0.1:8788/ npm test
+```
 
 ## Custom feeds
 
@@ -111,30 +121,9 @@ npm test
 
 The suite includes network-disabled launches, full article and opaque-image reading, horizontal page turns, folded/unfolded viewport changes, bookmarks/progress across reloads, multi-select and daily edition downloads, deletion, reconnection updates, copyright-policy exclusions, quota failures and browser eviction. Tests use current real feed entries. The opaque-image case uses the real publisher photo with CORS deliberately absent in the test response. Tests that simulate quota/eviction do so only in isolated test browser contexts. WebKit emulation is not physical iPhone Airplane Mode certification.
 
-## ChatGPT Sites preparation and supported publication path
+## Earlier Sites investigation
 
-Status: production-compatible root build prepared; **not published to Sites**. No hosting provider has been substituted. No renamed application has been deployed. Availability results await owner approval; the proposed branding is prepared in the `fylogia-brand` branch.
-
-Official OpenAI documentation supports preparing compatible existing local projects, saving a version, choosing visitor access and deploying it:
-
-- https://learn.chatgpt.com/docs/sites/creating-a-site
-- https://learn.chatgpt.com/docs/sites/publishing-and-sharing
-
-The installed Sites plugin's repository workflow is more specific: `create_site` provisions a Site and its assigned source repository; `site-workflow.mjs` pushes the exact source commit to that repository before packaging; `save_site_version` requires that assigned remote branch's commit; then `update_site_access` and `deploy_site_version` can publish publicly where the account permits. No available tool argument attaches an arbitrary existing GitHub repository or uploads a standalone archive without Site-source provenance. No undocumented GitHub-to-Sites integration, import button, or automatic sync is assumed.
-
-This conflicts with the instruction to keep source exclusively in the existing personal GitHub repository unless Sites can bind that exact repository. Therefore no Site-assigned source copy was created or pushed. An archive alone is **not** a verified one-click Sites import and is not a native Sites publication artifact until a real Site ID and matching source provenance are attached.
-
-### Exact next steps
-
-1. Keep the existing personal repository and commits. In ChatGPT web/desktop, open Sites or use `@Sites` and select this existing local project for compatibility preparation. Do not scaffold a replacement.
-2. Resolve the source-storage prerequisite: confirm that Sites can bind the exact personal repository `Zainhomeautomation/Fylogia` and return its real Site ID/source credentials. Current exposed tools do not offer this binding. If the service requires a different source repository, publication cannot proceed under the current exclusive-source instruction; it requires your explicit exception first. Obtain the owner’s approval of the FYLOGIA availability results before public publication.
-3. Once that prerequisite is satisfied, use Sites' returned real project ID to create `.openai/hosting.json` with `project_id` and `static: { directory: "dist" }`. Do not invent an ID. The reference `.openai/hosting.template.json` intentionally contains no project ID.
-4. Run `FYLOGIA_BASE_PATH=/ npm run build`. Validate using `FYLOGIA_BASE_PATH=/ npm test`. Keep the `/` base for the Sites origin.
-5. Use the documented Sites source helper to push the exact validated source to the service-confirmed source branch and package it. Supply credentials only through the helper's hidden stdin, never command arguments or committed files. Do not redirect to a company account.
-6. Pass the verified commit SHA and unchanged deployment archive to `save_site_version`. Read the Site's access state; if public access is supported, use `update_site_access` with `access_mode: "public"`, then `deploy_site_version` for the saved version. Poll its deployment ID to a terminal success result.
-7. Test the actual public HTTPS origin with no signed-in session, inspect the service-worker scope and root asset paths, download a real permitted article, disable network access and repeat the offline reading checks. Only then report a public Sites URL as working.
-
-No DNS purchase or domain registration is needed. Local storage is origin-specific: the old GitHub Pages library does not automatically transfer to a new Sites origin. Import the JSON library backup and re-download offline assets there. Sites feed freshness also needs a supported redeployment/scheduling mechanism; the current GitHub Actions refresh does not automatically update a Sites deployment, and no cross-service sync is claimed.
+Sites publication was not completed because the available integration required its own assigned source repository, conflicting with the personal-repository-only constraint. The owner subsequently selected Cloudflare Pages. No Sites deployment or duplicate source repository is required. The old `.openai` compatibility template remains historical and contains no credentials or invented project ID.
 
 ## FYLOGIA availability screening — 29 October 2026
 
@@ -147,7 +136,7 @@ No DNS purchase or domain registration is needed. Local storage is origin-specif
 - Apple US Search API for FYLOGIA returned four unrelated fuzzy results and no exact app name. [Apple search](https://itunes.apple.com/search?term=fylogia&entity=software&limit=25&country=us). [Google Play US search](https://play.google.com/store/search?q=fylogia&c=apps&hl=en&gl=US) displayed “No results for fylogia”. Other storefronts and developer-console name reservation are unverified.
 - Similar-name web results: FILOGIA, a French agricultural/nutrition-products business ([public business record](https://entreprises.lefigaro.fr/filogia-49/entreprise-847919685)); a historical biotech reference to Phylogia ([2012 report](https://www.businessnews.com.au/article/Phylogia-licences-technology-to-Janssen-Biotech)). Neither establishes a software/news/publishing conflict; current rights and any legal likelihood of confusion are unverified.
 
-Assessment after the expanded screening: CAUTION. Obtain targeted professional review of the similar publishing/software marks and an Oman national search before adopting the brand publicly. Domain purchase and public deployment still require the owner’s approval; no subsequent rename or publication was performed by the screening.
+Assessment after the expanded screening: CAUTION. Obtain targeted professional review of the similar publishing/software marks and an Oman national search before adopting the brand publicly. The owner subsequently registered the domain and authorized Cloudflare Pages publication. This does not replace professional trademark advice.
 
 ## Anonymous local profiles and recovery (implemented)
 
@@ -181,4 +170,4 @@ A concrete implementation must provide:
 - **Local offline assets:** synchronize library metadata and only content legally permitted for cloud storage. Images, PDFs and downloaded article bodies remain independent per device by default; do not upload publisher material or credentials from custom-feed URLs. Keep private API responses out of public service-worker caches. Existing article reading must never wait for cloud availability.
 - **Release evidence:** tests with unrelated users/devices proving library isolation through direct REST and Realtime access; pair expiry/replay/brute-force/dual-redemption tests; revocation with an existing JWT and pending offline writes; recovery rotation; concurrent deletion/edit/progress tests; offline startup without the backend; and free-tier quota/failure behavior. Only then expose pairing and claim cross-device synchronization works.
 
-**Publication remains on hold.** This optional-feature work does not approve the FYLOGIA name or resolve the existing Sites source-repository binding prerequisite. No deployment or paid service is created by this implementation.
+Cloud synchronization remains a documented future phase; local reading, offline downloads and encrypted recovery work independently of any cloud identity service.

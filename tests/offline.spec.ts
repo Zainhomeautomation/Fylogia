@@ -81,7 +81,7 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
   await context.setOffline(true);
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Your daily perspective." }),
+    page.getByRole("heading", { name: "Offline Library", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".edition-bar")).toContainText("Offline");
   await nav(page, "Offline Library");
