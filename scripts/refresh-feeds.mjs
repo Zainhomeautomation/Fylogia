@@ -74,9 +74,10 @@ const results = await Promise.all(
               )?.["@_url"] ||
               raw.match(/<img[^>]+src=["']([^"']+)/i)?.[1],
           );
-          const cleaned = source.full
-            ? cleanFeedArticle(raw, text(item.title))
-            : "";
+          const cleaned =
+            source.full && !!(item["content:encoded"] || item.content)
+              ? cleanFeedArticle(raw, text(item.title))
+              : "";
           const excerpt = text(
             item.description || item.summary || cleaned || raw,
           ).slice(0, 600);

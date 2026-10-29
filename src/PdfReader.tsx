@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { usePageTurn } from "./usePageTurn";
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
@@ -79,7 +80,10 @@ export default function PdfReader({
     [page, setPage] = useState(1),
     [width, setWidth] = useState(window.innerWidth),
     [bookmarked, setBookmarked] = useState(false);
-  const spread = width >= 950 ? 2 : 1;
+  const surface = useRef<HTMLDivElement>(null);
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  usePageTurn(surface, page);
+  const spread = width >= 740 ? 2 : 1;
   // Keep existing magazine page bookmarks across the rebrand.
   const key = "folio.v1.pdf." + title;
   useEffect(() => {
@@ -186,7 +190,28 @@ export default function PdfReader({
           </a>
         )}
       </header>
-      <div className="pdf-spread">
+      <div
+        className="pdf-spread"
+        data-spread={spread}
+        ref={surface}
+        onTouchStart={(e) => {
+          touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }}
+        onTouchEnd={(e) => {
+          const start = touch.current;
+          touch.current = null;
+          if (!start || !pdf) return;
+          const dx = e.changedTouches[0].clientX - start.x;
+          const dy = e.changedTouches[0].clientY - start.y;
+          if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
+            setPage((p) =>
+              Math.max(
+                1,
+                Math.min(pdf.numPages, p + (dx < 0 ? spread : -spread)),
+              ),
+            );
+        }}
+      >
         {error ? (
           <p role="alert">{error}</p>
         ) : pdf ? (

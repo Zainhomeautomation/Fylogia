@@ -176,7 +176,9 @@ test("all category and regional controls, source follow, search and no horizonta
   await expect(page.locator(".filter-tabs button.selected")).toHaveText("Cars");
   await expect(page.locator(".story").first()).toBeVisible();
   await nav(page, "My Sources");
-  const row = page.locator(".source-row").filter({ hasText: "NASA" });
+  const row = page
+    .locator(".source-row")
+    .filter({ has: page.getByText("NASA", { exact: true }) });
   await row.getByRole("button", { name: "Following", exact: true }).click();
   await expect(
     row.getByRole("button", { name: "Follow", exact: true }),

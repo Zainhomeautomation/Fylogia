@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { usePageTurn } from "./usePageTurn";
 import DOMPurify from "dompurify";
 import {
   X,
@@ -53,9 +54,60 @@ export function Reader({
     [spread, setSpread] = useState(1),
     [summary, setSummary] = useState(""),
     [summaryBusy, setSummaryBusy] = useState(false);
-  const start = useRef<number | null>(null),
+  usePageTurn(viewport, page, prefs.reading === "pages");
+  const position = useRef(initialProgress);
+  // Keep a real text location across column reflow; the stored ratio remains
+  // compatible with existing bookmarks and exports.
+  const anchor = useRef<Range | null>(null);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      if (
+        !content.current ||
+        !viewport.current ||
+        prefs.reading !== "pages" ||
+        count <= 1
+      )
+        return;
+      const bounds = viewport.current.getBoundingClientRect();
+      const walker = document.createTreeWalker(
+        content.current,
+        NodeFilter.SHOW_TEXT,
+      );
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (!node.textContent?.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        if (
+          ![...range.getClientRects()].some(
+            (r) =>
+              r.left >= bounds.left - 1 &&
+              r.left < bounds.right &&
+              r.bottom > bounds.top,
+          )
+        )
+          continue;
+        for (let i = 0; i < node.textContent.length; i++) {
+          range.setStart(node, i);
+          range.setEnd(node, i + 1);
+          const r = range.getBoundingClientRect();
+          if (
+            r.width &&
+            r.left >= bounds.left - 1 &&
+            r.left < bounds.right &&
+            r.top >= bounds.top - 1
+          ) {
+            anchor.current = range.cloneRange();
+            return;
+          }
+        }
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [page, width, spread, count, prefs.reading]);
+  const start = useRef<{ x: number; y: number } | null>(null),
     restored = useRef(false);
-  const html = DOMPurify.sanitize(article.content, {
+  let html = DOMPurify.sanitize(article.content, {
     ALLOWED_TAGS: [
       "p",
       "br",
@@ -76,12 +128,27 @@ export function Reader({
     ],
     ALLOWED_ATTR: ["src", "alt", "href", "title"],
     FORBID_ATTR: ["style", "srcset"],
-  });
+  }).replace(/<img /g, '<img referrerpolicy="no-referrer" ');
+  // Promote the credited lead figure rather than showing the same photo twice.
+  let leadCaption = "";
+  if (article.image) {
+    const document = new DOMParser().parseFromString(html, "text/html");
+    const figure = [...document.querySelectorAll("figure")].find(
+      (figure) =>
+        figure.querySelectorAll("img").length === 1 &&
+        figure.querySelector("img")?.getAttribute("src") === article.image,
+    );
+    if (figure) {
+      leadCaption = figure.querySelector("figcaption")?.textContent || "";
+      figure.remove();
+      html = document.body.innerHTML;
+    }
+  }
   const measure = () => {
     if (!viewport.current || !content.current) return;
     const w = viewport.current.clientWidth;
     setWidth(w);
-    setSpread(w >= 760 ? 2 : 1);
+    setSpread(w >= Math.max(680, prefs.fontSize * 36) ? 2 : 1);
     requestAnimationFrame(() => {
       if (content.current) {
         const n = Math.max(
@@ -89,7 +156,16 @@ export function Reader({
           Math.ceil((content.current.scrollWidth + 40) / (w + 40)),
         );
         setCount(n);
-        setPage((p) => Math.min(p, n - 1));
+        if (n > 1) restored.current = true;
+        const location = anchor.current?.startContainer.isConnected
+          ? Math.floor(
+              (anchor.current.getBoundingClientRect().left -
+                content.current.getBoundingClientRect().left +
+                1) /
+                (w + 40),
+            )
+          : Math.round(position.current * (n - 1));
+        setPage(Math.max(0, Math.min(n - 1, location)));
       }
     });
   };
@@ -101,12 +177,7 @@ export function Reader({
     return () => observer.disconnect();
   }, [prefs.reading, prefs.fontSize]);
   useEffect(() => {
-    if (count > 1 && !restored.current) {
-      setPage(Math.min(count - 1, Math.round(initialProgress * (count - 1))));
-      restored.current = true;
-    }
-  }, [count, initialProgress]);
-  useEffect(() => {
+    position.current = count > 1 ? page / (count - 1) : initialProgress;
     if (restored.current || initialProgress === 0)
       onProgress(count > 1 ? page / (count - 1) : 0);
   }, [page, count, onProgress, initialProgress]);
@@ -135,7 +206,7 @@ export function Reader({
               ? ".summary-panel button"
               : ".reader button:not(:disabled), .reader a[href]",
           ),
-        );
+        ).filter((element) => !element.closest("[inert]"));
         const first = controls[0],
           last = controls.at(-1);
         if (e.shiftKey && document.activeElement === first) {
@@ -281,14 +352,16 @@ export function Reader({
           "reader-viewport " +
           (prefs.reading === "scroll" ? "scrolling" : "paginated")
         }
+        data-spread={spread}
         ref={viewport}
         onTouchStart={(e) => {
-          start.current = e.touches[0].clientX;
+          start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }}
         onTouchEnd={(e) => {
           if (start.current !== null && prefs.reading === "pages") {
-            const dx = e.changedTouches[0].clientX - start.current;
-            if (Math.abs(dx) > 60)
+            const dx = e.changedTouches[0].clientX - start.current.x;
+            const dy = e.changedTouches[0].clientY - start.current.y;
+            if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
               setPage((p) =>
                 Math.max(0, Math.min(count - 1, p + (dx < 0 ? 1 : -1))),
               );
@@ -325,14 +398,15 @@ export function Reader({
                 }}
               />
               <figcaption>
-                Image supplied in the {article.source} feed. Rights remain with
-                the credited owner.
+                {leadCaption ||
+                  `Image supplied in the ${article.source} feed. Rights remain with the credited owner.`}
               </figcaption>
             </figure>
           )}
           {!article.full && (
             <p className="preview-note">
-              Publisher preview · Continue at the original source for the full
+              Publisher preview · Full-content republication permission is not
+              verified for this source. Open the original for the complete
               story.
             </p>
           )}

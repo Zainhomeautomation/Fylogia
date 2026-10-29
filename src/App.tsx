@@ -252,7 +252,9 @@ export default function App() {
           (n, t) =>
             n + (a.title.toLowerCase().includes(t.toLowerCase()) ? 3 : 0),
           0,
-        ) + (a.image ? 1 : 0);
+        ) +
+        (a.image ? 1 : 0) +
+        (a.full ? 2 : 0);
       result = [...result].sort(
         (a, b) =>
           score(b) - score(a) ||
