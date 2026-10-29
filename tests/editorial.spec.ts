@@ -44,9 +44,7 @@ test("editorial cover, readable preview, immersive controls and advanced setting
   await page.locator(".story-open").first().click();
   await page.setViewportSize({ width: 1100, height: 1000 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");
-  await expect(page.locator(".preview-note")).toContainText(
-    "Publisher preview",
-  );
+  await expect(page.locator(".preview-note")).toContainText("Article preview");
   const before = await page.locator(".reader-viewport").boundingBox();
   await page.getByRole("button", { name: "Enter immersive reading" }).click();
   await expect(page.locator(".reader-download-strip")).not.toBeVisible();

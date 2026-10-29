@@ -125,6 +125,33 @@ function articles(v: unknown): Article[] {
       a.duplicateCount < 5000
         ? { duplicateCount: a.duplicateCount }
         : {}),
+      ...(a.contentDetails &&
+      [
+        "full",
+        "body-unverified",
+        "preview",
+        "subscription",
+        "unavailable",
+      ].includes(a.contentDetails.availability) &&
+      ["permitted", "unverified"].includes(a.contentDetails.authorization) &&
+      ["rss-content", "rss-description", "rss-summary", "legacy-feed"].includes(
+        a.contentDetails.method,
+      ) &&
+      typeof a.contentDetails.retrievedAt === "string" &&
+      Number.isFinite(Date.parse(a.contentDetails.retrievedAt)) &&
+      ["publisher-body", "excerpt", "unknown"].includes(
+        a.contentDetails.completeness,
+      )
+        ? {
+            contentDetails: {
+              availability: a.contentDetails.availability,
+              authorization: a.contentDetails.authorization,
+              method: a.contentDetails.method,
+              retrievedAt: a.contentDetails.retrievedAt,
+              completeness: a.contentDetails.completeness,
+            },
+          }
+        : {}),
       ...(typeof a.author === "string" && a.author.length <= 2000
         ? { author: a.author }
         : {}),

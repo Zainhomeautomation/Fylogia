@@ -229,3 +229,7 @@ Dragging now reveals the destination article columns or an asynchronously render
 ## Expanded source directory
 
 The [179-feed validation report](docs/source-catalog.md) records source URLs, categories, freshness, permission evidence and measured refresh results. My Sources now supports search, region/topic/content filters, recommended/followed views and incremental browsing. Recommendations favor relevant permitted full text, while retaining existing follows. Eight source policies support qualifying full articles; the remainder are previews. Source capability does not mean every item qualifies. Automatic refresh uses conditional requests, bounded concurrency and retained last-known stories on outages; no paid infrastructure or article-page scraping is introduced.
+
+## Full-article reading refinement
+
+The [reading release report](docs/full-article-release.md) includes the refreshed baseline 26-feed review and permission boundaries. Preview readers show a clear Continue Reading action without technical licensing messages. NASA figure/caption extraction and Science CDATA handling preserve more permitted content. Every edition item carries internal retrieval diagnostics; an unverified content field is never promoted to authorized full text. Existing offline records remain compatible. Paginated media scales to the viewport; scrolling progress now survives reopening and reading-mode changes. Original publisher pages open through the browser because no eligible, explicitly permitted embedded-original integration was established.

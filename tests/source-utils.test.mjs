@@ -278,3 +278,14 @@ test("duplicate classifications and unchanged alternate contributions survive fe
   );
   assert.deepEqual(cached.categories, ["Technology"]);
 });
+
+test("inert document-type examples in article CDATA do not reject an authorized feed", () => {
+  const xml =
+    '<rss><channel><item><title>Science</title><link>https://science.nasa.gov/story</link><description><![CDATA[<!DOCTYPE html PUBLIC "example"><p>Publisher content</p>]]></description></item></channel></rss>';
+  assert.equal(parseFeedDocument(xml).items.length, 1);
+  assert.throws(() =>
+    parseFeedDocument(
+      '<!DOCTYPE rss [<!ENTITY x SYSTEM "file:///etc/passwd">]>' + xml,
+    ),
+  );
+});

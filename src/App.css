@@ -2195,3 +2195,27 @@ h2 {
     gap: 6px;
   }
 }
+
+/* Compact preview and readable article media share the existing paper surface. */
+.preview-note .continue-reading {
+  display: flex;
+  width: fit-content;
+  margin-top: 14px;
+  font-size: 13px;
+}
+.article-byline {
+  font:
+    12px/1.6 "DM Sans",
+    sans-serif;
+  color: var(--muted);
+}
+.paginated :is(.reader-content, .turn-content) img {
+  max-height: min(33dvh, calc(var(--reader-page-height, 70dvh) * 0.42));
+}
+.paginated :is(.reader-content, .turn-content) figcaption {
+  overflow-wrap: anywhere;
+}
+
+.paginated :is(.reader-content, .turn-content) figure {
+  max-height: none;
+}

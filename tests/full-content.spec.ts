@@ -68,7 +68,9 @@ test("licensed feed articles, read-here filter, immersive pagination and preview
     "href",
     preview.url,
   );
-  await expect(page.locator(".preview-note")).toContainText("permission");
+  await expect(page.locator(".preview-note")).toContainText(
+    "Continue reading at the original publisher",
+  );
   if (process.env.FYLOGIA_SCREENSHOTS)
     await page.screenshot({
       path: `${process.env.FYLOGIA_SCREENSHOTS}/full-content-preview-${info.project.name}.png`,
