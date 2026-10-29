@@ -16,7 +16,7 @@ Custom feed URLs containing queries/fragments stay device-local, as do article l
 
 ## Conflict and retry contract
 
-Mutations use device sequences and batch IDs for idempotent retries. Latest change times win; equal clocks prefer removals, then stable device IDs. A deletion suppresses an unobserved re-addition; deliberately re-saving after observing that deletion is allowed. Profile revisions support delta reads. Metadata batches and their sequence/revision updates commit atomically, including quota checks. Recovery rotates its random key and revokes older device credentials; deleting a cloud profile cascades through its private records and connections without affecting other profiles or local copies.
+Mutations use device sequences and batch IDs for idempotent retries. Latest change times win; equal clocks prefer removals, then stable device IDs. A deletion suppresses an unobserved re-addition; deliberately re-saving after observing that deletion is allowed. Profile revisions support delta reads. Metadata batches and their sequence/revision updates commit atomically, including quota checks. Recovery prepares a replacement key without consuming the old proof, then rotates the key and revokes older device credentials only after the user confirms saving the replacement. Its five-minute authenticated confirmation can restore the same cookie after a lost response; deleting a cloud profile cascades through its private records and connections without affecting other profiles or local copies.
 
 ## Free-tier capacity
 
@@ -28,7 +28,7 @@ Application safeguards cap normal requests at 5,000/day, accepted metadata opera
 
 Server tests use a disposable SQLite adapter; browser integration also exercises actual Pages Functions and local D1 with unrelated browser profiles. Test servers create and remove only their own local persistence directory, never a remote database. `npm test` now defaults to this Pages runtime; `FYLOGIA_PAGES_RUNTIME=0` selects the static preview for workflows without Functions.
 
-Before a compatible production deployment, apply reviewed migrations with a scoped personal account: `wrangler d1 execute FYLOGIA_SYNC_DB --remote --file migrations/0001_sync.sql`. Production code and its binding configuration deploy through the existing GitHub integration. Migration files do not contain credentials or destructive resets. The reviewed initial schema was applied to the new private database before release. Client and production two-device verification remain release requirements; no existing user library is queried or reset by migration.
+Before a compatible production deployment, apply reviewed migrations with a scoped personal account: `wrangler d1 execute FYLOGIA_SYNC_DB --remote --file migrations/0001_sync.sql`, then `wrangler d1 execute FYLOGIA_SYNC_DB --remote --file migrations/0002_sync_recovery.sql`. Production code and its binding configuration deploy through the existing GitHub integration. Migration files do not contain credentials or destructive resets. The reviewed initial schema was applied to the new private database before release. Client and production two-device verification remain release requirements; no existing user library is queried or reset by migration.
 
 ## Device interface and local durability
 
@@ -41,3 +41,9 @@ A separate private IndexedDB database holds metadata records, pending changes an
 Synced saved links are honestly labeled when their text is not on the device. Current authorized feed content enriches them in memory when available; empty links cannot masquerade as offline downloads. Local permitted article bodies always take precedence over bibliographic metadata. Original content remains accessible through the publisher link.
 
 This is private access-controlled storage, **not end-to-end encryption**. Cloudflare and the service operator can access stored metadata. Recovery rotates the key and revokes previous sessions. Revocation blocks future access, but cannot erase copies previously stored on a disconnected device. Deleting the private cloud library leaves all device-local copies untouched, as stated in the interface.
+
+## Release review regressions
+
+Daily issues containing private/signed story identifiers remain complete on the original device and are excluded from cloud projection; the server also rejects credential-bearing identifiers inside issue metadata. Cross-tab storage notifications carry cloud provenance, stale queued events are ignored, and storage-origin values are reconciled against the shared server/outbox state before creating an intent. Remote application never receives a new user-edit timestamp merely because another tab observed it.
+
+Recovery is a two-phase operation. Preparation creates one short-lived hashed pending proof per profile and leaves the previous key and devices valid. The interface requires saving the replacement key before confirmation. Confirmation atomically rotates the verifier, revokes prior devices and creates one replacement session. A repeated authenticated confirmation restores that same session after a lost response. An expired unacknowledged preparation leaves the original key usable. A nonce guards concurrent confirmation batches; no plaintext recovery/device secret is stored in the database.

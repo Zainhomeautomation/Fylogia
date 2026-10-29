@@ -290,40 +290,127 @@ export async function recoverProfile(db, body, url, now) {
       .bind(oldHash)
       .first();
   if (!profile) throw new ApiError(403, "Check your recovery key.");
-  const key = secret(),
-    keyHash = await hash(key),
+  const recoveryKey = secret(),
     token = secret(),
-    device = uid();
-  const results = await db.batch([
-    db
-      .prepare(
-        "UPDATE sync_profiles SET recovery_hash=? WHERE id=? AND recovery_hash=?",
-      )
-      .bind(keyHash, profile.id, oldHash),
-    db
-      .prepare(
-        "DELETE FROM sync_devices WHERE profile_id=? AND EXISTS(SELECT 1 FROM sync_profiles WHERE id=? AND recovery_hash=?)",
-      )
-      .bind(profile.id, profile.id, keyHash),
-    db
-      .prepare(
-        "INSERT INTO sync_devices(id,profile_id,secret_hash,label,created_at,last_seen,expires_at) SELECT ?,id,?,?,?,?,? FROM sync_profiles WHERE id=? AND recovery_hash=?",
-      )
-      .bind(
-        device,
-        await hash(token),
-        label(body.label),
-        now,
-        now,
-        now + YEAR,
-        profile.id,
-        keyHash,
-      ),
-  ]);
-  if (!results[0].meta.changes)
-    throw new ApiError(403, "The recovery key has changed.");
+    deviceId = uid();
+  await db
+    .prepare(
+      `INSERT INTO sync_recoveries(profile_id,token_hash,old_hash,new_hash,device_id,label,expires_at)
+    SELECT id,?,?,?,?,?,? FROM sync_profiles WHERE id=? AND recovery_hash=?
+    ON CONFLICT(profile_id) DO UPDATE SET token_hash=excluded.token_hash,old_hash=excluded.old_hash,new_hash=excluded.new_hash,device_id=excluded.device_id,label=excluded.label,expires_at=excluded.expires_at,confirmation_id='',confirmed_at=NULL`,
+    )
+    .bind(
+      await hash(token),
+      oldHash,
+      await hash(recoveryKey),
+      deviceId,
+      label(body.label),
+      now + PAIR_TTL,
+      profile.id,
+      oldHash,
+    )
+    .run();
   return {
-    data: { profileId: profile.id, deviceId: device, recoveryKey: key, now },
-    cookies: [cookie(url, token), cookie(url, "", true, true)],
+    data: {
+      recoveryKey,
+      requiresConfirmation: true,
+      expiresAt: now + PAIR_TTL,
+      now,
+    },
+    cookies: [cookie(url, token, true)],
+  };
+}
+export async function confirmRecovery(db, request, url, now) {
+  const token = readCookie(request, url, true);
+  if (!token)
+    throw new ApiError(
+      410,
+      "Recovery confirmation expired. Start again with your saved recovery key.",
+    );
+  const tokenHash = await hash(token);
+  const pending = await db
+    .prepare(
+      "SELECT * FROM sync_recoveries WHERE token_hash=? AND expires_at>?",
+    )
+    .bind(tokenHash, now)
+    .first();
+  if (!pending)
+    throw new ApiError(
+      410,
+      "Recovery confirmation expired. Start again with your saved recovery key.",
+    );
+  if (!pending.confirmed_at) {
+    const confirmation = uid();
+    await db.batch([
+      db
+        .prepare(
+          "UPDATE sync_recoveries SET confirmation_id=? WHERE token_hash=? AND confirmed_at IS NULL AND confirmation_id='' AND expires_at>? AND EXISTS(SELECT 1 FROM sync_profiles WHERE id=? AND recovery_hash=?)",
+        )
+        .bind(
+          confirmation,
+          tokenHash,
+          now,
+          pending.profile_id,
+          pending.old_hash,
+        ),
+      db
+        .prepare(
+          "UPDATE sync_profiles SET recovery_hash=? WHERE id=? AND recovery_hash=? AND EXISTS(SELECT 1 FROM sync_recoveries WHERE token_hash=? AND confirmation_id=?)",
+        )
+        .bind(
+          pending.new_hash,
+          pending.profile_id,
+          pending.old_hash,
+          tokenHash,
+          confirmation,
+        ),
+      db
+        .prepare(
+          "DELETE FROM sync_devices WHERE profile_id=? AND EXISTS(SELECT 1 FROM sync_recoveries WHERE token_hash=? AND confirmation_id=?) AND EXISTS(SELECT 1 FROM sync_profiles WHERE id=? AND recovery_hash=?)",
+        )
+        .bind(
+          pending.profile_id,
+          tokenHash,
+          confirmation,
+          pending.profile_id,
+          pending.new_hash,
+        ),
+      db
+        .prepare(
+          "INSERT INTO sync_devices(id,profile_id,secret_hash,label,created_at,last_seen,expires_at) SELECT ?,profile_id,token_hash,label,?,?,? FROM sync_recoveries WHERE token_hash=? AND confirmation_id=? AND EXISTS(SELECT 1 FROM sync_profiles WHERE id=? AND recovery_hash=?)",
+        )
+        .bind(
+          pending.device_id,
+          now,
+          now,
+          now + YEAR,
+          tokenHash,
+          confirmation,
+          pending.profile_id,
+          pending.new_hash,
+        ),
+      db
+        .prepare(
+          "UPDATE sync_recoveries SET confirmed_at=? WHERE token_hash=? AND confirmation_id=? AND EXISTS(SELECT 1 FROM sync_devices WHERE id=? AND active=1)",
+        )
+        .bind(now, tokenHash, confirmation, pending.device_id),
+    ]);
+  }
+  const device = await db
+    .prepare(
+      "SELECT id FROM sync_devices WHERE id=? AND profile_id=? AND secret_hash=? AND active=1 AND expires_at>?",
+    )
+    .bind(pending.device_id, pending.profile_id, tokenHash, now)
+    .first();
+  if (!device)
+    throw new ApiError(
+      403,
+      "The recovery proof changed. Start again with your saved recovery key.",
+    );
+  // Keep the pending proof for its original short TTL so a lost response can
+  // restore the same device cookie, never create a second identity.
+  return {
+    data: { profileId: pending.profile_id, deviceId: device.id, now },
+    cookies: [cookie(url, token)],
   };
 }

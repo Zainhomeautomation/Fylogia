@@ -1,6 +1,7 @@
 import { libraryKeys, type LibraryData } from "./library-data";
 import {
   getLibraryValue,
+  getLibraryChangeOrigin,
   setLibraryValue,
   snapshotLibrary,
   subscribeLibrary,
@@ -139,7 +140,7 @@ function apply(records: SyncRecord[], pending: SyncMutation[]) {
   try {
     for (const key of libraryKeys)
       if (!sameValue(next[key], getLibraryValue(key, undefined)))
-        setLibraryValue(key, next[key]);
+        setLibraryValue(key, next[key], "cloud");
   } finally {
     lastLibrary = library();
     baseline = projectLibrary(lastLibrary);
@@ -155,17 +156,24 @@ function observe() {
       libraryKeys.every((key) => current[key] === lastLibrary![key])
     )
       return;
+    const origin = getLibraryChangeOrigin();
     const historyChanged = current.history !== lastLibrary?.history;
     lastLibrary = current;
     const next = projectLibrary(current),
       before = baseline;
     baseline = next;
+    if (origin === "cloud") return;
     const changed = [...new Set([...before.keys(), ...next.keys()])].filter(
       (key) => !sameValue(before.get(key), next.get(key)),
     );
     // Revisiting a story updates history ordering even if its bibliographic metadata is unchanged.
     const first = library().history[0]?.id;
-    if (first && historyChanged && next.has("history:" + first))
+    if (
+      origin === "local" &&
+      first &&
+      historyChanged &&
+      next.has("history:" + first)
+    )
       changed.push("history:" + first);
     if (!changed.length) return;
     const now = Date.now() + offset,
@@ -190,7 +198,19 @@ function observe() {
           const state = await readSync();
           if (!state.enabled || state.profileId !== status.profileId) return;
           const queued = new Map(state.pending.map((m) => [m.key, m]));
-          for (const m of mutations) queued.set(m.key, m);
+          for (const m of mutations) {
+            // A real edit in another tab already has an original intent in the
+            // shared queue/journal. Never stamp echoed remote values as new edits.
+            const known =
+              queued.get(m.key) || state.records.find((r) => r.key === m.key);
+            if (
+              origin === "storage" &&
+              known &&
+              sameValue(known.value, m.value)
+            )
+              continue;
+            queued.set(m.key, m);
+          }
           state.pending = [...queued.values()];
           await writeSync(state);
           for (const m of mutations)

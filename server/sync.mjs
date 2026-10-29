@@ -19,6 +19,7 @@ import {
   approvePair,
   rejectPair,
   recoverProfile,
+  confirmRecovery,
 } from "./sync-pairing.mjs";
 const actions = new Set([
   "availability",
@@ -34,6 +35,7 @@ const actions = new Set([
   "devices",
   "revoke",
   "recover",
+  "recover-confirm",
   "rotate-recovery",
   "delete",
 ]);
@@ -207,6 +209,7 @@ export function createSyncHandler({ now: clock = Date.now } = {}) {
                 "join",
                 "pending",
                 "recover",
+                "recover-confirm",
               ].includes(action)
             ) &&
             !(fields[action] || []).includes(k),
@@ -249,6 +252,10 @@ export function createSyncHandler({ now: clock = Date.now } = {}) {
       }
       if (action === "recover") {
         const r = await recoverProfile(db, body, url, now);
+        return json(r.data, 200, r.cookies);
+      }
+      if (action === "recover-confirm") {
+        const r = await confirmRecovery(db, request, url, now);
         return json(r.data, 200, r.cookies);
       }
       const auth = await authenticate(db, request, url, now);

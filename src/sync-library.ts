@@ -73,7 +73,16 @@ export function projectLibrary(data: LibraryData): Projection {
     map.set("magazine-progress:" + id, v.page);
     map.set("magazine-bookmark:" + id, v.bookmark);
   }
-  for (const e of data.dailyEditions)
+  for (const e of data.dailyEditions) {
+    // An issue with a private link remains whole on its original device.
+    if (
+      e.stories.some(
+        (s) =>
+          privateArticles.has(s.id) ||
+          (s.id.startsWith("http") && deviceLocalUrl(s.id)),
+      )
+    )
+      continue;
     map.set("daily:" + e.id, {
       id: e.id,
       day: e.day,
@@ -81,6 +90,7 @@ export function projectLibrary(data: LibraryData): Projection {
       region: e.region,
       stories: e.stories.map((s) => ({ ...s })),
     });
+  }
   for (const [key, value] of map) validateSyncValue(key, value);
   return map;
 }
@@ -171,8 +181,24 @@ export function materializeLibrary(
     string,
     number
   >;
-  const dailyEditions = prefixEntries(map, "daily")
-    .map(([, v]) => v as unknown as DailyMagazine)
+  const privateArticleIds = new Set(
+    [...original.saved, ...original.history, ...original.custom]
+      .filter((a) => deviceLocalUrl(a.url))
+      .map((a) => a.id),
+  );
+  const privateIssues = original.dailyEditions.filter((e) =>
+    e.stories.some(
+      (s) =>
+        privateArticleIds.has(s.id) ||
+        (s.id.startsWith("http") && deviceLocalUrl(s.id)),
+    ),
+  );
+  const dailyEditions = [
+    ...privateIssues,
+    ...prefixEntries(map, "daily")
+      .map(([, v]) => v as unknown as DailyMagazine)
+      .filter((e) => !privateIssues.some((p) => p.id === e.id)),
+  ]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 30);
   const magazineReading: LibraryData["magazineReading"] = {};

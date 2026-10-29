@@ -128,6 +128,11 @@ export async function admission(db, request, url, now, action) {
         )
         .bind(now),
       db
+        .prepare(
+          "DELETE FROM sync_recoveries WHERE profile_id IN(SELECT profile_id FROM sync_recoveries WHERE expires_at<? LIMIT 100)",
+        )
+        .bind(now),
+      db
         .prepare("DELETE FROM sync_budget WHERE key<?")
         .bind(new Date(now - 3 * 86400000).toISOString().slice(0, 10)),
     ]);

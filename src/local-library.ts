@@ -14,6 +14,7 @@ interface Row {
   key: string;
   value: unknown;
   savedAt: number;
+  origin?: "cloud";
 }
 interface PersistenceStatus {
   profile: LocalProfile | null;
@@ -39,7 +40,18 @@ let restoring = false;
 let clock = Date.now();
 const timestamp = () => (clock = Math.max(clock + 1, Date.now()));
 const failures = new Set<string>();
-const emit = () => listeners.forEach((fn) => fn());
+type ChangeOrigin = "local" | "cloud" | "storage";
+let changeOrigin: ChangeOrigin = "local";
+export const getLibraryChangeOrigin = () => changeOrigin;
+function emit(origin: ChangeOrigin = "local") {
+  const previous = changeOrigin;
+  changeOrigin = origin;
+  try {
+    listeners.forEach((fn) => fn());
+  } finally {
+    changeOrigin = previous;
+  }
+}
 function updateStatus(patch: Partial<PersistenceStatus>) {
   status = { ...status, ...patch };
   emit();
@@ -56,6 +68,14 @@ export const getLibraryValue = <T>(key: string, initial: T): T =>
 export const snapshotLibrary = () => ({ version: 1, ...structuredClone(data) });
 function localWrite(row: Row) {
   try {
+    try {
+      localStorage.setItem(
+        "folio.local.origin." + row.key,
+        row.origin || "local",
+      );
+    } catch {
+      /* Provenance must not prevent saving the original primary value. */
+    }
     localStorage.setItem(PREFIX + row.key, JSON.stringify(row.value));
     localStorage.setItem("folio.local.savedAt." + row.key, String(row.savedAt));
     return true;
@@ -104,15 +124,19 @@ async function persist(row: Row) {
       : "",
   });
 }
-export function setLibraryValue<T>(key: string, next: T | ((current: T) => T)) {
+export function setLibraryValue<T>(
+  key: string,
+  next: T | ((current: T) => T),
+  origin?: "cloud",
+) {
   if (!libraryKeys.includes(key as LibraryKey) || restoring) return;
   const current = data[key as LibraryKey] as T;
   const value =
     typeof next === "function" ? (next as (v: T) => T)(current) : next;
   if (Object.is(value, current)) return;
   data = { ...data, [key]: value };
-  emit();
-  void persist({ key, value, savedAt: timestamp() });
+  emit(origin);
+  void persist({ key, value, savedAt: timestamp(), origin });
 }
 export async function replaceLocalLibrary(replacement: LibraryData) {
   if (restoring) throw new Error("A restore is already in progress.");
@@ -275,10 +299,16 @@ export function initializeLocalLibrary() {
       if (!key || !libraryKeys.includes(key) || !event.newValue || restoring)
         return;
       try {
+        // Ignore stale queued storage events instead of writing old values back.
+        if (localStorage.getItem(PREFIX + key) !== event.newValue) return;
+        const origin =
+          localStorage.getItem("folio.local.origin." + key) === "cloud"
+            ? "cloud"
+            : undefined;
         const value = normalizeLibraryValue(key, JSON.parse(event.newValue));
         data = { ...data, [key]: value };
-        emit();
-        void persist({ key, value, savedAt: timestamp() });
+        emit(origin || "storage");
+        void persist({ key, value, savedAt: timestamp(), origin });
       } catch {
         /* Invalid data from another tab must not replace this library. */
       }

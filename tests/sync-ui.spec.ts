@@ -131,6 +131,14 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
     expect((await empty.json()).records).toEqual([]);
 
     await first.getByRole("button", { name: "Create pairing code" }).click();
+    const sibling = await a.newPage();
+    await sibling.goto(new URL("settings", baseURL!).href);
+    await sibling
+      .getByRole("button", { name: "Sync my devices", exact: true })
+      .click();
+    await expect(
+      sibling.getByRole("button", { name: "Sync now", exact: true }),
+    ).toBeVisible();
     console.log("QA: pairing started");
     const code = await first
       .getByLabel("Pairing code", { exact: true })
@@ -264,6 +272,29 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
         ),
       )
       .toBe("dark");
+    await sibling.bringToFront();
+    await expect
+      .poll(() =>
+        sibling.evaluate(
+          () => JSON.parse(localStorage.getItem("folio.v1.preferences")!).theme,
+        ),
+      )
+      .toBe("dark");
+    await sync(sibling);
+    const secondStatus = await b.request.post(endpoint, {
+      headers: { Origin: origin },
+      data: { action: "status", expectedProfileId: profileId },
+    });
+    const secondDevice = (await secondStatus.json()).deviceId;
+    const records = await a.request.post(endpoint, {
+      headers: { Origin: origin },
+      data: { action: "exchange", expectedProfileId: profileId, cursor: 0 },
+    });
+    expect(
+      (await records.json()).records.find((r: any) => r.key === "setting:theme")
+        .writer,
+    ).toBe(secondDevice);
+    await sibling.close();
     // A background sync does not replace the local publisher body.
     expect(
       await first.evaluate(
@@ -282,6 +313,12 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
     await second.getByLabel("Recovery key", { exact: true }).fill(recoveryKey!);
     await second
       .getByRole("button", { name: "Recover and review library" })
+      .click();
+    await expect(
+      second.getByLabel("Saved recovery key", { exact: true }),
+    ).toBeVisible();
+    await second
+      .getByRole("button", { name: "I have saved my key", exact: true })
       .click();
     await expect(
       second.getByRole("button", { name: "Combine libraries and sync" }),

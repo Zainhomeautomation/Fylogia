@@ -42,6 +42,7 @@ export default function SyncPanel({ onClose }: { onClose: () => void }) {
     [pair, setPair] = useState<{ code: string; expiresAt: number }>();
   const [qr, setQr] = useState(""),
     [challenge, setChallenge] = useState("");
+  const [recoveryPending, setRecoveryPending] = useState(false);
   const [identity, setIdentity] = useState<Identity>(),
     [requests, setRequests] = useState<PairRequest[]>([]),
     [devices, setDevices] = useState<Device[]>([]);
@@ -203,6 +204,13 @@ export default function SyncPanel({ onClose }: { onClose: () => void }) {
         {key && (
           <section className="sync-recovery">
             <h3>Save your recovery key</h3>
+            {recoveryPending && (
+              <p>
+                Save this replacement key before confirming. Confirmation
+                disconnects previous devices. If this screen closes before
+                confirmation, your previous recovery key remains valid.
+              </p>
+            )}
             <p>
               This key reconnects your library if all devices are lost. Keep it
               somewhere private. It is shown only here and is never added to a
@@ -224,7 +232,21 @@ export default function SyncPanel({ onClose }: { onClose: () => void }) {
             >
               Copy recovery key
             </button>
-            <button className="secondary" onClick={() => setKey("")}>
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() =>
+                void act(async () => {
+                  if (recoveryPending) {
+                    const result =
+                      await cloudRequest<Identity>("recover-confirm");
+                    setIdentity(result);
+                    setRecoveryPending(false);
+                  }
+                  setKey("");
+                })
+              }
+            >
               I have saved my key
             </button>
           </section>
@@ -252,7 +274,7 @@ export default function SyncPanel({ onClose }: { onClose: () => void }) {
             </button>
           </section>
         ) : null}
-        {!cloud.connected && !identity && !challenge && (
+        {!cloud.connected && !identity && !challenge && !recoveryPending && (
           <>
             <label className="field">
               Device name
@@ -349,7 +371,7 @@ export default function SyncPanel({ onClose }: { onClose: () => void }) {
                     });
                     setRecovery("");
                     setKey(result.recoveryKey || "");
-                    setIdentity(result);
+                    setRecoveryPending(true);
                   })
                 }
               >

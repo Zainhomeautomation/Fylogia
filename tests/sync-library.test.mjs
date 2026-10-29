@@ -183,3 +183,41 @@ test("private feed queries and signed article links remain local and are rejecte
     }),
   );
 });
+
+test("daily edition metadata cannot indirectly carry signed article identifiers", async () => {
+  const { validateSyncValue } = await import("../src/sync-protocol.ts");
+  const original = data(),
+    secretId = "https://example.org/story?access_token=private-value";
+  const issue = {
+    id: "2026-10-29-private",
+    day: "2026-10-29",
+    createdAt: "2026-10-29T00:00:00Z",
+    region: "Worldwide",
+    stories: [
+      {
+        id: secretId,
+        title: "Private story",
+        source: "Custom",
+        section: "Space",
+        full: false,
+      },
+      {
+        id: a.id,
+        title: a.title,
+        source: a.source,
+        section: "Space",
+        full: true,
+      },
+    ],
+  };
+  original.dailyEditions = [issue];
+  assert.throws(() => validateSyncValue("daily:" + issue.id, issue));
+  const projection = projectLibrary(original);
+  assert.ok(!JSON.stringify([...projection]).includes("private-value"));
+  assert.equal(projection.has("daily:" + issue.id), false);
+  assert.equal(
+    materializeLibrary(projection, original).dailyEditions[0].stories.length,
+    2,
+  );
+  assert.equal(original.dailyEditions[0].stories.length, 2);
+});

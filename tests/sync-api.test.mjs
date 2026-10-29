@@ -1,19 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { createSyncHandler } from "../server/sync.mjs";
 import { validateSyncValue } from "../src/sync-protocol.ts";
 class DB {
   constructor() {
     this.db = new DatabaseSync(":memory:");
     this.db.exec("PRAGMA foreign_keys=ON");
-    this.db.exec(
-      readFileSync(
-        new URL("../migrations/0001_sync.sql", import.meta.url),
-        "utf8",
-      ),
-    );
+    for (const file of readdirSync(new URL("../migrations/", import.meta.url))
+      .filter((s) => s.endsWith(".sql"))
+      .sort())
+      this.db.exec(
+        readFileSync(new URL("../migrations/" + file, import.meta.url), "utf8"),
+      );
   }
   prepare(sql) {
     const db = this.db;
@@ -82,6 +82,7 @@ function fixture() {
                 "join",
                 "pending",
                 "recover",
+                "recover-confirm",
               ].includes(action) && profileId
                 ? { expectedProfileId: profileId }
                 : {}),
@@ -437,6 +438,9 @@ test("recovery rotates the key and revokes prior devices; cloud deletion cascade
     });
     assert.equal(r.status, 200, JSON.stringify(r.data));
     assert.notEqual(r.data.recoveryKey, info.recoveryKey);
+    assert.equal((await a.call("status")).status, 200);
+    assert.equal((await recovered.call("status")).status, 401);
+    assert.equal((await recovered.call("recover-confirm")).status, 200);
     assert.equal((await a.call("status")).status, 401);
     assert.equal((await b.call("status")).status, 401);
     assert.equal(
@@ -642,5 +646,53 @@ test("a revoked cookie does not prevent securely pairing this browser again", as
     assert.equal((await b.call("status")).status, 200);
   } finally {
     f.close();
+  }
+});
+
+test("lost recovery responses cannot invalidate the only key before replacement acknowledgement", async () => {
+  const f = fixture();
+  try {
+    const { a, info } = await owner(f);
+    const lost = f.device();
+    await lost.call("recover", {
+      recoveryKey: info.recoveryKey,
+      label: "Lost response",
+    });
+    lost.cookie = ""; // The entire response, including its cookie and key, was lost.
+    assert.equal((await a.call("status")).status, 200);
+    f.advance(301000); // An expired unacknowledged attempt does not consume the old key.
+    const retry = f.device();
+    const prepared = await retry.call(
+      "recover",
+      { recoveryKey: info.recoveryKey, label: "Retry" },
+      { ip: "192.0.2.21" },
+    );
+    assert.equal(prepared.status, 200);
+    assert.equal(prepared.data.requiresConfirmation, true);
+    const pendingCookie = retry.cookie;
+    assert.equal((await retry.call("status")).status, 401);
+    assert.equal((await retry.call("recover-confirm")).status, 200);
+    retry.cookie = pendingCookie; // Confirmation committed, but its response was lost.
+    const repaired = await retry.call("recover-confirm");
+    assert.equal(repaired.status, 200);
+    assert.equal((await retry.call("status")).status, 200);
+    assert.equal((await a.call("status")).status, 401);
+    assert.equal(
+      f.db.db.prepare("SELECT count(*) AS n FROM sync_devices").get().n,
+      1,
+    );
+    const recovery = f.device();
+    assert.equal(
+      (
+        await recovery.call(
+          "recover",
+          { recoveryKey: prepared.data.recoveryKey, label: "Saved new key" },
+          { ip: "192.0.2.22" },
+        )
+      ).status,
+      200,
+    );
+  } finally {
+    f.db.close();
   }
 });

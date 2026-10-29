@@ -203,6 +203,12 @@ export function validateSyncValue(
       const a = object(s);
       only(a, ["id", "title", "source", "section", "full"]);
       if (typeof a.full !== "boolean") throw new Error("Invalid content label");
+      if (
+        typeof a.id === "string" &&
+        a.id.startsWith("http") &&
+        deviceLocalUrl(a.id)
+      )
+        throw new Error("Private article identifiers cannot be synced");
       return {
         id: text(a.id),
         title: text(a.title, 1000),
