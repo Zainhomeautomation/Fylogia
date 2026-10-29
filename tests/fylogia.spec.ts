@@ -1,3 +1,4 @@
+import { readerOption } from "./reader-controls";
 import { test, expect, type Page } from "@playwright/test";
 async function setup(page: Page) {
   await page.goto("./");
@@ -152,7 +153,7 @@ test("full article pagination, resize, summaries and scrolling", async ({
         test.info().project.name +
         "-reader-spread.png",
     });
-  await page.getByRole("button", { name: "Switch to scrolling" }).click();
+  await (await readerOption(page, "Switch to scrolling")).click();
   await expect(page.locator(".reader-viewport")).toHaveClass(/scrolling/);
   await page.getByRole("button", { name: "Summarize", exact: true }).click();
   await expect(page.getByRole("alertdialog")).toContainText(

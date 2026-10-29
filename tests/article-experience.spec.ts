@@ -1,3 +1,4 @@
+import { readerOption } from "./reader-controls";
 import { test, expect, type Page } from "@playwright/test";
 async function openFixture(page: Page, full = true, media = false) {
   const edition = await (await page.request.get("data/edition.json")).json();
@@ -95,10 +96,10 @@ test("long article repaginates without losing or clipping text and scroll progre
     "1",
   );
   await intact(page);
-  await page.getByRole("button", { name: "Increase text size" }).click();
+  await (await readerOption(page, "Increase text size")).click();
   await intact(page);
   expect(await body.innerText()).toBe(original);
-  await page.getByRole("button", { name: "Switch to scrolling" }).click();
+  await (await readerOption(page, "Switch to scrolling")).click();
   await page.locator(".reader-viewport").evaluate((el) => {
     el.scrollTop = (el.scrollHeight - el.clientHeight) * 0.55;
   });
@@ -112,9 +113,9 @@ test("long article repaginates without losing or clipping text and scroll progre
       ),
     )
     .toBeGreaterThan(0.5);
-  await page.getByRole("button", { name: "Switch to pages" }).click();
+  await (await readerOption(page, "Switch to pages")).click();
   await expect(page.locator(".reader-footer")).not.toContainText("Page 1 of");
-  await page.getByRole("button", { name: "Switch to scrolling" }).click();
+  await (await readerOption(page, "Switch to scrolling")).click();
   await expect
     .poll(() =>
       page
@@ -131,7 +132,7 @@ test("long article repaginates without losing or clipping text and scroll progre
         .evaluate((el) => el.scrollTop / (el.scrollHeight - el.clientHeight)),
     )
     .toBeGreaterThan(0.5);
-  await page.getByRole("button", { name: "Switch to pages" }).click();
+  await (await readerOption(page, "Switch to pages")).click();
   await expect(page.locator(".reader-footer")).not.toContainText("Page 1 of");
   await intact(page);
   expect(await body.innerText()).toBe(original);
@@ -226,7 +227,7 @@ test("multiple permitted figures and captions remain readable after font and vie
     { width: 1200, height: 900 },
   ]) {
     await page.setViewportSize(dimensions);
-    await page.getByRole("button", { name: "Increase text size" }).click();
+    await (await readerOption(page, "Increase text size")).click();
     await intact(page);
     await expect(
       page.locator(".reader-content .article-body figcaption"),

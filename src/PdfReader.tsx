@@ -244,7 +244,9 @@ export default function PdfReader({
           {immersive ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </button>
         <button
-          className="secondary"
+          className="secondary pdf-bookmark-button"
+          aria-label="Bookmark page"
+          title="Bookmark page"
           aria-pressed={bookmarked}
           onClick={() => {
             try {
@@ -313,22 +315,20 @@ export default function PdfReader({
         ) : (
           <p role="status">Loading original publication…</p>
         )}
-        {pdf && pdf.numPages > spread && (
-          <PageTurnControls
-            curl={curl}
-            previous={
-              page > 1
-                ? () => setPage((p) => Math.max(1, p - spread))
-                : undefined
-            }
-            next={
-              page + spread <= pdf.numPages
-                ? () => setPage((p) => p + spread)
-                : undefined
-            }
-          />
-        )}
       </div>
+      {pdf && pdf.numPages > spread && (
+        <PageTurnControls
+          curl={curl}
+          previous={
+            page > 1 ? () => setPage((p) => Math.max(1, p - spread)) : undefined
+          }
+          next={
+            page + spread <= pdf.numPages
+              ? () => setPage((p) => p + spread)
+              : undefined
+          }
+        />
+      )}
       <footer className="reader-footer">
         <button
           className="secondary"
