@@ -212,6 +212,16 @@ test("daily edition metadata cannot indirectly carry signed article identifiers"
   };
   original.dailyEditions = [issue];
   assert.throws(() => validateSyncValue("daily:" + issue.id, issue));
+  for (const id of [
+    "HTTPS://example.org/story?access_token=private",
+    "https://example.org/story#access_token=private",
+  ])
+    assert.throws(() =>
+      validateSyncValue("daily:" + issue.id, {
+        ...issue,
+        stories: [{ ...issue.stories[0], id }],
+      }),
+    );
   const projection = projectLibrary(original);
   assert.ok(!JSON.stringify([...projection]).includes("private-value"));
   assert.equal(projection.has("daily:" + issue.id), false);

@@ -32,7 +32,7 @@ export function projectLibrary(data: LibraryData): Projection {
   const map: Projection = new Map();
   const privateSources = new Set(
     data.preferences.customSources
-      .filter((s) => deviceLocalUrl(s.url, true))
+      .filter((s) => deviceLocalUrl(s.url, true) || deviceLocalUrl(s.site))
       .map((s) => s.id),
   );
   const privateArticles = new Set(
@@ -66,7 +66,7 @@ export function projectLibrary(data: LibraryData): Projection {
   for (const [id, value] of Object.entries(data.progress))
     if (
       !privateArticles.has(id) &&
-      (!id.startsWith("http") || !deviceLocalUrl(id))
+      (!/^https?:/i.test(id) || !deviceLocalUrl(id))
     )
       map.set("progress:" + id, value);
   for (const [id, v] of Object.entries(data.magazineReading || {})) {
@@ -79,7 +79,7 @@ export function projectLibrary(data: LibraryData): Projection {
       e.stories.some(
         (s) =>
           privateArticles.has(s.id) ||
-          (s.id.startsWith("http") && deviceLocalUrl(s.id)),
+          (/^https?:/i.test(s.id) && deviceLocalUrl(s.id)),
       )
     )
       continue;
@@ -190,7 +190,7 @@ export function materializeLibrary(
     e.stories.some(
       (s) =>
         privateArticleIds.has(s.id) ||
-        (s.id.startsWith("http") && deviceLocalUrl(s.id)),
+        (/^https?:/i.test(s.id) && deviceLocalUrl(s.id)),
     ),
   );
   const dailyEditions = [

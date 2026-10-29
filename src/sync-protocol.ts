@@ -50,7 +50,10 @@ export function deviceLocalUrl(value: string, feed = false): boolean {
       u.username ||
       u.password ||
       (feed && (u.search || u.hash)) ||
-      [...u.searchParams.keys()].some((key) =>
+      [
+        ...u.searchParams.keys(),
+        ...new URLSearchParams(u.hash.slice(1)).keys(),
+      ].some((key) =>
         /^(?:access[-_]?token|refresh[-_]?token|token|api[-_]?key|key|secret|password|auth|authorization|signature|sig|x-amz-.+)$/i.test(
           key,
         ),
@@ -113,7 +116,7 @@ export function validateSyncValue(
     colon < 1 ||
     !id ||
     ["__proto__", "constructor", "prototype"].includes(id) ||
-    (id.startsWith("http") && deviceLocalUrl(id))
+    (/^https?:/i.test(id) && deviceLocalUrl(id))
   )
     throw new Error("Invalid record key");
   if (
@@ -205,7 +208,7 @@ export function validateSyncValue(
       if (typeof a.full !== "boolean") throw new Error("Invalid content label");
       if (
         typeof a.id === "string" &&
-        a.id.startsWith("http") &&
+        /^https?:/i.test(a.id) &&
         deviceLocalUrl(a.id)
       )
         throw new Error("Private article identifiers cannot be synced");
