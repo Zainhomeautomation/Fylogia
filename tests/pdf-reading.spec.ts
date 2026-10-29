@@ -230,13 +230,11 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
     .getByRole("button", { name: "Back to previous section", exact: true })
     .click();
   await page.setViewportSize({ width: 844, height: 390 });
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "Mixed orientation.pdf",
-      mimeType: "application/pdf",
-      buffer: magazineFixture(3, true),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "Mixed orientation.pdf",
+    mimeType: "application/pdf",
+    buffer: magazineFixture(3, true),
+  });
   await page
     .getByRole("button", { name: "Open Mixed orientation", exact: true })
     .click();
