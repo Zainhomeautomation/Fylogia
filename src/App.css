@@ -694,31 +694,31 @@ h2 {
   overflow: hidden;
   position: relative;
 }
-.reader-content {
+:is(.reader-content, .turn-content) {
   line-height: 1.7;
   overflow: visible;
   overflow-wrap: anywhere;
 }
-.paginated .reader-content {
+.paginated :is(.reader-content, .turn-content) {
   column-gap: 40px;
   column-fill: auto;
   height: 100%;
   transition: transform 0.22s ease;
   will-change: transform;
 }
-.reader-content h1 {
+:is(.reader-content, .turn-content) h1 {
   font-size: 2em;
   line-height: 1.12;
   letter-spacing: -1.4px;
   margin: 15px 0 24px;
   break-inside: avoid;
 }
-.reader-content p {
+:is(.reader-content, .turn-content) p {
   margin-bottom: 1em;
   line-height: 1.7;
 }
-.reader-content h2,
-.reader-content h3 {
+:is(.reader-content, .turn-content) h2,
+:is(.reader-content, .turn-content) h3 {
   break-after: avoid;
 }
 .article-source {
@@ -728,21 +728,21 @@ h2 {
   letter-spacing: 1.3px;
   color: var(--green);
 }
-.reader-content figure {
+:is(.reader-content, .turn-content) figure {
   margin: 0 0 20px;
   break-inside: avoid;
 }
-.reader-content img {
+:is(.reader-content, .turn-content) img {
   width: 100%;
   max-height: 33dvh;
   object-fit: contain;
   break-inside: avoid;
   margin: 16px 0;
 }
-.reader-content figure img {
+:is(.reader-content, .turn-content) figure img {
   object-fit: cover;
 }
-.reader-content figcaption {
+:is(.reader-content, .turn-content) figcaption {
   font:
     10px/1.5 "DM Sans",
     sans-serif;
@@ -755,7 +755,7 @@ h2 {
 .article-body li {
   overflow-wrap: anywhere;
 }
-.reader-content .preview-note {
+:is(.reader-content, .turn-content) .preview-note {
   font:
     12px/1.65 "DM Sans",
     sans-serif;
@@ -798,11 +798,11 @@ h2 {
   overscroll-behavior: contain;
   padding-bottom: 40px;
 }
-.scrolling .reader-content {
+.scrolling :is(.reader-content, .turn-content) {
   height: auto;
   font-family: var(--serif);
 }
-.scrolling .reader-content img {
+.scrolling :is(.reader-content, .turn-content) img {
   max-height: 65vh;
 }
 .summary-backdrop {
@@ -1266,7 +1266,7 @@ h2 {
     width: calc(100% - 42px);
     margin-top: 22px;
   }
-  .reader-content h1 {
+  :is(.reader-content, .turn-content) h1 {
     font-size: 1.85em;
   }
   .reader-footer {
@@ -1381,7 +1381,7 @@ h2 {
   .reader-actions {
     margin-left: 0;
   }
-  .reader-content h1 {
+  :is(.reader-content, .turn-content) h1 {
     font-size: 1.7em;
   }
   .ready {
@@ -1572,4 +1572,80 @@ h2 {
 .local-save-state {
   color: var(--green);
   font-weight: 600;
+}
+
+/* Paper surfaces share the existing readers and local/offline content. */
+.reader-viewport.paginated,
+.pdf-spread {
+  perspective: 1800px;
+  isolation: isolate;
+}
+.turn-leaf {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+  background: var(--paper, #fff);
+  box-shadow: 18px 0 35px #0003;
+  backface-visibility: hidden;
+}
+.paginated :is(.reader-content, .turn-content) {
+  transition: none;
+}
+:is(.reader-content, .turn-content) p {
+  orphans: 3;
+  widows: 3;
+}
+:is(.reader-content, .turn-content) figure {
+  max-height: 70%;
+}
+:is(.reader-content, .turn-content) img {
+  object-fit: contain;
+}
+.pdf-spread {
+  position: relative;
+}
+.pdf-page {
+  box-shadow: 0 4px 22px #0002;
+}
+@media (min-width: 740px) {
+  .reader-viewport {
+    width: min(calc(100% - 64px), 1440px);
+  }
+  .paginated {
+    box-shadow: 0 2px 24px #0001;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .turn-leaf {
+    display: none;
+  }
+}
+
+.turn-leaf::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    #0002,
+    transparent 12%,
+    transparent 75%,
+    #0001
+  );
+  pointer-events: none;
+}
+.pdf-turn-leaf {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.reader-viewport[data-spread="2"].paginated {
+  background-image: linear-gradient(
+    90deg,
+    transparent 49.6%,
+    #0000000b 50%,
+    transparent 50.4%
+  );
 }

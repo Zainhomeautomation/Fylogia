@@ -64,6 +64,15 @@ export interface Source {
 }
 export const sources: Source[] = [
   {
+    id: "nasa-science",
+    name: "NASA Science",
+    url: "https://science.nasa.gov/feed/",
+    site: "https://science.nasa.gov",
+    categories: ["Science", "Space"],
+    region: "Worldwide",
+    full: true,
+  },
+  {
     id: "nasa",
     name: "NASA",
     url: "https://www.nasa.gov/feed/",
