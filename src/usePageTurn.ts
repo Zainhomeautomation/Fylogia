@@ -1,5 +1,14 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 
+function copyCanvas(source: HTMLCanvasElement, target?: HTMLCanvasElement) {
+  if (!target) return;
+  // PDF rendering completes asynchronously after the surface snapshot is made.
+  target.width = source.width;
+  target.height = source.height;
+  target.style.cssText = source.style.cssText;
+  target.getContext("2d")?.drawImage(source, 0, 0);
+}
+
 /** Animate the outgoing paper surface while the live, accessible page updates. */
 export function usePageTurn(
   ref: RefObject<HTMLDivElement | null>,
@@ -38,7 +47,7 @@ export function usePageTurn(
     image.querySelectorAll(".turn-leaf").forEach((node) => node.remove());
     surface.querySelectorAll("canvas").forEach((canvas, index) => {
       const copy = image.querySelectorAll("canvas")[index];
-      copy?.getContext("2d")?.drawImage(canvas, 0, 0);
+      copyCanvas(canvas, copy);
     });
     previous.current = {
       page,
@@ -62,10 +71,7 @@ export function usePageTurn(
     active.current?.leaf.remove();
     const leaf = old.image;
     old.canvases.forEach((canvas, index) => {
-      leaf
-        .querySelectorAll("canvas")
-        [index]?.getContext("2d")
-        ?.drawImage(canvas, 0, 0);
+      copyCanvas(canvas, leaf.querySelectorAll("canvas")[index]);
     });
     leaf
       .querySelectorAll(".reader-content")

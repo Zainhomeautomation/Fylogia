@@ -205,7 +205,35 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
   await page.getByRole("button", { name: /NASA Spinoff 2025/ }).click();
   await expect(page.locator("canvas").first()).toBeVisible({ timeout: 60000 });
   await expect(page.locator(".reader-footer")).toContainText(/of \d+/);
+  await expect
+    .poll(() =>
+      page
+        .locator("canvas")
+        .first()
+        .evaluate((canvas: HTMLCanvasElement) => canvas.style.width),
+    )
+    .not.toBe("");
+  const dimensions = await page
+    .locator("canvas")
+    .first()
+    .evaluate((canvas: HTMLCanvasElement) => ({
+      width: canvas.width,
+      height: canvas.height,
+      display: canvas.style.cssText,
+    }));
   await page.getByRole("button", { name: "Next magazine page" }).click();
+  await expect(page.locator(".pdf-turn-leaf canvas").first()).toBeAttached();
+  expect(
+    await page
+      .locator(".pdf-turn-leaf canvas")
+      .first()
+      .evaluate((canvas: HTMLCanvasElement) => ({
+        width: canvas.width,
+        height: canvas.height,
+        display: canvas.style.cssText,
+      })),
+  ).toEqual(dimensions);
+  await expect(page.locator(".turn-leaf")).toHaveCount(0);
   await expect(page.locator(".reader-footer")).not.toContainText("Page 1 ");
   await page.getByRole("button", { name: "Bookmark page" }).click();
   await expect(
