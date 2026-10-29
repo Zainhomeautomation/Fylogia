@@ -12,7 +12,7 @@ Production target: **https://fylogia.com/**, deployed from the personal [Zainhom
 - Single-page article reading on small screens, two-column spreads on wide screens, swipes, keyboard/page controls, text-size adjustment and optional continuous scrolling. Pagination responds to resizing, rotation and folding.
 - Eight sources support permitted full text when their feed supplies a qualifying article body; other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
 - Original NASA Spinoff 2025 PDF with PDF.js page rendering, page turns, spreads and bookmarks. Imported PDFs stay in IndexedDB on your device (50 MB per file).
-- Midnight Navy, Editorial Green, Light and System themes; installable PWA with a cached shell, IndexedDB downloads, and a separate Cache Storage image library. Download individual articles, select several, or use Download Daily Edition (up to 30 stories from the current For You selection). Offline Library shows text/image availability, reading progress, storage use, refresh and delete controls.
+- Midnight Navy, Editorial Green, Light and System themes; installable PWA with a cached shell, IndexedDB downloads, and a separate Cache Storage image library. Download individual articles, select several, or use Download Daily Edition (up to 30 stories in Today’s Fylogia). Offline Library shows text/image availability, reading progress, storage use, refresh and delete controls.
 - Automatic anonymous local profiles; preferences, source selections, saved stories and progress persist with IndexedDB and legacy browser storage. JSON transfer/recovery and optional password-encrypted backups. No automatic cloud synchronization.
 - Summarize uses supported browsers' on-device Summarizer API. Otherwise extracted key passages are explicitly labeled as not an AI summary.
 
@@ -105,7 +105,7 @@ MIT © 2026 Zainhomeautomation. See LICENSE.
 Offline copies are stored in the `fyllora-offline` IndexedDB database. The `fyllora-offline-images-v1` Cache Storage cache holds permitted publisher images, including opaque image responses for CDNs that permit embedding without CORS. Public app-shell assets live in separately versioned shell caches. Updating the shell must not delete downloaded image data. IndexedDB stores download/refresh timestamps, image completeness, bookmarks and reading progress; legacy local storage continues to hold the existing library and preferences.
 
 1. Complete onboarding online and allow the service worker to finish its first installation.
-2. Choose the download arrow on a story, select multiple stories, or use Download Daily Edition. The daily action downloads a clearly labeled maximum of 30 stories from the current personalized selection.
+2. Choose the download arrow on a story, select multiple stories, or use Download Daily Edition. The daily action downloads the same ordered issue of up to 30 stories shown in Today’s Fylogia.
 3. Wait for the completed download count. Open Offline Library to check each copy's text and image status before travelling.
 4. Turn off connectivity, close/reopen or reload Fylogia, and open a downloaded story. Pagination, text size, single/two-column layouts, saved state and progress work locally.
 5. Remove a download from Offline Library to delete its IndexedDB content and any images not shared with another download. Bookmarks and reading progress remain in the existing personal library.
@@ -243,3 +243,7 @@ The library displays the actual NASA publication cover and generates private PDF
 ### Organized specialist interests
 
 The source catalog has 194 validated feeds and nine full-text-capable policies. Search grouped interests for computing/operating systems, architecture, engineering/construction, history/culture and marine topics. Recommendations balance interests and match topics without changing existing follows. Saved/history cards gain relevant category labels in memory while stored data remains intact. See [current coverage, publisher permission boundaries and validation](docs/organized-interests.md).
+
+### Today's Fylogia
+
+Open **Today's Fylogia** from For You for a personal cover, grouped table of contents and continuous reading through the existing magazine reader. **Download Daily Edition** saves the same issue for offline reading. Recent issues, bookmarks and each story's progress remain local; older library backups remain compatible. See [the daily magazine notes](docs/personalized-daily-magazine.md) for selection rules, preservation and limits.

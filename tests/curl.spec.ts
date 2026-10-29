@@ -130,6 +130,12 @@ test("single-page publisher preview has no misleading curl hint", async ({
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Create My Fylogia" }).click();
   await page.locator(".story-open").first().click();
-  await expect(page.locator(".reader-footer")).toContainText("Page 1 of 1");
+  await expect(page.locator(".reader-footer")).toContainText(
+    "Publisher preview",
+  );
+  await expect(page.locator(".reader-viewport")).toHaveClass(/scrolling/);
+  await expect(
+    page.getByRole("link", { name: "Continue Reading", exact: true }),
+  ).toBeVisible();
   await expect(page.locator(".page-turn-controls")).toHaveCount(0);
 });

@@ -46,7 +46,17 @@ export function Reader({
   downloaded = false,
   downloading = false,
   offlineLabel,
+  manageReturn = true,
+  nextStory,
+  onNextStory,
+  onContents,
+  editionPosition,
 }: {
+  manageReturn?: boolean;
+  nextStory?: string;
+  onNextStory?: () => void;
+  onContents?: () => void;
+  editionPosition?: string;
   article: Article;
   prefs: Preferences;
   saved: boolean;
@@ -61,7 +71,10 @@ export function Reader({
   downloading?: boolean;
   offlineLabel?: string;
 }) {
-  const goHome = useReaderReturn(onHome);
+  const goHome = useReaderReturn(onHome, manageReturn);
+  // Previews stay in one readable column with their publisher action visible.
+  // The user’s page/scroll preference still applies to complete articles.
+  const reading = article.full ? prefs.reading : "scroll";
   const viewport = useRef<HTMLDivElement>(null),
     content = useRef<HTMLDivElement>(null),
     close = useRef<HTMLButtonElement>(null);
@@ -99,7 +112,7 @@ export function Reader({
   const curl = usePageTurn(
     viewport,
     page,
-    prefs.reading === "pages",
+    reading === "pages",
     navigation.current,
   );
   const position = useRef(initialProgress);
@@ -120,7 +133,7 @@ export function Reader({
     if (
       !content.current ||
       !viewport.current ||
-      prefs.reading !== "pages" ||
+      reading !== "pages" ||
       count <= 1 ||
       (!navigation.current && anchor.current?.startContainer.isConnected)
     )
@@ -159,7 +172,7 @@ export function Reader({
         }
       }
     }
-  }, [page, width, spread, count, prefs.reading]);
+  }, [page, width, spread, count, reading]);
   const start = useRef<{ x: number; y: number } | null>(null),
     restored = useRef(false);
   const { html, leadCaption } = useMemo(() => {
@@ -228,7 +241,7 @@ export function Reader({
       "--reader-page-height",
       `${viewport.current.clientHeight}px`,
     );
-    if (prefs.reading === "scroll") {
+    if (reading === "scroll") {
       anchor.current = null;
       setWidth(w);
       setSpread(1);
@@ -281,21 +294,23 @@ export function Reader({
       observer.disconnect();
       cancelAnimationFrame(measurementFrame.current);
     };
-  }, [prefs.reading, prefs.fontSize]);
+  }, [reading, prefs.fontSize]);
   useEffect(() => {
-    if (prefs.reading !== "pages" || measuring.current) return;
+    if (reading !== "pages" || measuring.current) return;
     position.current = count > 1 ? page / (count - 1) : initialProgress;
     if (restored.current || initialProgress === 0)
       onProgress(count > 1 ? page / (count - 1) : 0);
-  }, [page, count, onProgress, initialProgress, prefs.reading]);
+  }, [page, count, onProgress, initialProgress, reading]);
   useEffect(() => {
     close.current?.focus();
+    // A containing Daily Magazine owns the lock for the entire issue.
+    if (!manageReturn) return;
     const old = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = old;
     };
-  }, []);
+  }, [manageReturn]);
   useEffect(() => {
     function key(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -305,8 +320,23 @@ export function Reader({
           optionsButton.current?.focus();
         } else onClose();
       }
-      if (e.key === "ArrowRight") setPage((p) => Math.min(count - 1, p + 1));
-      if (e.key === "ArrowLeft") setPage((p) => Math.max(0, p - 1));
+      if (
+        reading === "pages" &&
+        !summary &&
+        !optionsOpen &&
+        !e.altKey &&
+        !e.metaKey &&
+        !e.ctrlKey
+      ) {
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          setPage((p) => Math.min(count - 1, p + 1));
+        }
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          setPage((p) => Math.max(0, p - 1));
+        }
+      }
       if (e.key === "Tab") {
         const controls = Array.from(
           document.querySelectorAll<HTMLElement>(
@@ -331,7 +361,7 @@ export function Reader({
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [count, onClose, summary, setPage, optionsOpen]);
+  }, [count, onClose, summary, setPage, optionsOpen, reading]);
   useEffect(() => {
     if (!summary) return;
     const panel = document.querySelector<HTMLElement>(".summary-panel");
@@ -475,26 +505,26 @@ export function Reader({
           >
             <Plus size={17} />
           </button>
-          <button
-            className="icon-button"
-            aria-label={
-              prefs.reading === "pages"
-                ? "Switch to scrolling"
-                : "Switch to pages"
-            }
-            onClick={() =>
-              onPrefs({
-                reading: prefs.reading === "pages" ? "scroll" : "pages",
-              })
-            }
-          >
-            {prefs.reading === "pages" ? (
-              <AlignLeft size={20} />
-            ) : (
-              <Columns2 size={20} />
-            )}
-            <span>{prefs.reading === "pages" ? "Scroll" : "Pages"}</span>
-          </button>
+          {article.full && (
+            <button
+              className="icon-button"
+              aria-label={
+                reading === "pages" ? "Switch to scrolling" : "Switch to pages"
+              }
+              onClick={() =>
+                onPrefs({
+                  reading: reading === "pages" ? "scroll" : "pages",
+                })
+              }
+            >
+              {reading === "pages" ? (
+                <AlignLeft size={20} />
+              ) : (
+                <Columns2 size={20} />
+              )}
+              <span>{reading === "pages" ? "Scroll" : "Pages"}</span>
+            </button>
+          )}
         </div>
       </header>
       {onDownload && (
@@ -526,7 +556,7 @@ export function Reader({
       <div
         className={
           "reader-viewport " +
-          (prefs.reading === "scroll" ? "scrolling" : "paginated")
+          (reading === "scroll" ? "scrolling" : "paginated")
         }
         data-spread={spread}
         onClick={(event) => {
@@ -540,7 +570,7 @@ export function Reader({
             setChromeVisible((v) => !v);
         }}
         onScroll={(event) => {
-          if (prefs.reading !== "scroll") return;
+          if (reading !== "scroll") return;
           const element = event.currentTarget;
           const max = element.scrollHeight - element.clientHeight;
           if (max > 0) {
@@ -557,7 +587,7 @@ export function Reader({
           start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }}
         onTouchEnd={(e) => {
-          if (start.current !== null && prefs.reading === "pages") {
+          if (start.current !== null && reading === "pages") {
             const dx = e.changedTouches[0].clientX - start.current.x;
             const dy = e.changedTouches[0].clientY - start.current.y;
             if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
@@ -573,9 +603,10 @@ export function Reader({
           className="reader-content"
           style={{
             fontSize: prefs.fontSize,
-            columnCount: prefs.reading === "pages" ? spread : undefined,
+            columnCount:
+              reading === "pages" ? spread : article.full ? undefined : 1,
             transform:
-              prefs.reading === "pages"
+              reading === "pages"
                 ? `translateX(-${page * (width + 40)}px)`
                 : "none",
           }}
@@ -670,15 +701,41 @@ export function Reader({
           </div>
         </div>
       </div>
-      {prefs.reading === "pages" && count > 1 && (
+      {reading === "pages" && count > 1 && (
         <PageTurnControls
           curl={curl}
           previous={page > 0 ? () => setPage((p) => p - 1) : undefined}
           next={page < count - 1 ? () => setPage((p) => p + 1) : undefined}
         />
       )}
+      {onContents && (
+        <div className="daily-story-navigation">
+          <button className="text-button" onClick={onContents}>
+            Contents
+          </button>
+          <span>{editionPosition}</span>
+          {(reading === "scroll" || page === count - 1) && onNextStory && (
+            <button
+              className="secondary"
+              onClick={() => {
+                if (scrollSave.current !== undefined) {
+                  clearTimeout(scrollSave.current);
+                  scrollSave.current = undefined;
+                }
+                onNextStory();
+              }}
+              title={nextStory}
+            >
+              Next story <ChevronRight size={16} />
+            </button>
+          )}
+          {(reading === "scroll" || page === count - 1) && !onNextStory && (
+            <span>End of edition</span>
+          )}
+        </div>
+      )}
       <footer className="reader-footer">
-        {prefs.reading === "pages" ? (
+        {reading === "pages" ? (
           <>
             <button
               className="secondary"
@@ -703,7 +760,10 @@ export function Reader({
             </button>
           </>
         ) : (
-          <span>Scroll reading · {article.source}</span>
+          <span>
+            {article.full ? "Scroll reading" : "Publisher preview"} ·{" "}
+            {article.source}
+          </span>
         )}
       </footer>
       {summary && (
