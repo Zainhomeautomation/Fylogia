@@ -145,6 +145,8 @@ test("OSI full-feed text requires a verified staff byline and preserves its CC c
   assert.equal(article.full, true);
   assert.match(article.content, /CC BY 4.0/);
   assert.match(article.content, /Original heading/);
+  assert.match(article.excerpt, /^Publisher prose retained/);
+  assert.doesNotMatch(article.excerpt, /CC BY 4.0/);
   assert.doesNotMatch(article.content, /<img/);
   assert.equal(article.image, "");
   assert.equal(

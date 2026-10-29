@@ -75,6 +75,7 @@ export function feedArticle(
         "eff",
         "fedora-magazine",
         "mozilla-hacks",
+        "open-source-initiative",
       ].includes(source.id)
         ? 1
         : 0,
