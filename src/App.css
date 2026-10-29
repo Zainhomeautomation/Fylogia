@@ -1920,3 +1920,30 @@ h2 {
     grid-row: 3;
   }
 }
+
+.reader-navigation {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.reader-navigation .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--ink);
+}
+.reader-toolbar {
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-right: max(18px, env(safe-area-inset-right));
+}
+@media (max-width: 600px) {
+  .reader-toolbar {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .reader-toolbar > .wordmark {
+    display: none;
+  }
+  .reader-actions {
+    flex-wrap: wrap;
+  }
+}

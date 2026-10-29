@@ -57,7 +57,7 @@ test("editorial cover, readable preview, immersive controls and advanced setting
     )
     .toBeGreaterThan(before!.height);
   await page.getByRole("button", { name: "Exit immersive reading" }).click();
-  await page.getByRole("button", { name: "Close reader" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
   if (
     await page
       .getByRole("button", { name: "Open navigation", exact: true })

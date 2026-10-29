@@ -1,7 +1,10 @@
+import { useReaderReturn } from "./useReaderReturn";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePageTurn } from "./usePageTurn";
 import DOMPurify from "dompurify";
 import {
+  ArrowLeft,
+  House,
   X,
   Bookmark,
   ArrowUpRight,
@@ -29,6 +32,7 @@ export function Reader({
   onPrefs,
   onProgress,
   onClose,
+  onHome,
   onDownload,
   downloaded = false,
   downloading = false,
@@ -42,11 +46,13 @@ export function Reader({
   onPrefs: (p: Partial<Preferences>) => void;
   onProgress: (ratio: number) => void;
   onClose: () => void;
+  onHome: () => void;
   onDownload?: () => void;
   downloaded?: boolean;
   downloading?: boolean;
   offlineLabel?: string;
 }) {
+  const goHome = useReaderReturn(onHome);
   const viewport = useRef<HTMLDivElement>(null),
     content = useRef<HTMLDivElement>(null),
     close = useRef<HTMLButtonElement>(null);
@@ -198,13 +204,11 @@ export function Reader({
       onProgress(count > 1 ? page / (count - 1) : 0);
   }, [page, count, onProgress, initialProgress]);
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement;
     close.current?.focus();
     const old = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = old;
-      previous?.focus();
     };
   }, []);
   useEffect(() => {
@@ -279,14 +283,25 @@ export function Reader({
       aria-label={article.title}
     >
       <header className="reader-toolbar">
-        <button
-          ref={close}
-          className="icon-button"
-          aria-label="Close reader"
-          onClick={onClose}
-        >
-          <X />
-        </button>
+        <div className="reader-navigation">
+          <button
+            ref={close}
+            className="icon-button"
+            aria-label="Back to previous section"
+            title="Back to previous section (Escape)"
+            onClick={onClose}
+          >
+            <ArrowLeft />
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Home — For You"
+            title="Home — For You"
+            onClick={goHome}
+          >
+            <House />
+          </button>
+        </div>
         <span className="wordmark">Fylogia</span>
         <button
           className="icon-button focus-toggle"
