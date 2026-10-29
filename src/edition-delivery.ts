@@ -13,28 +13,31 @@ function edition(value: unknown): Edition {
     throw new Error("Invalid edition");
   return d;
 }
-export async function loadEdition(
+async function retrieveEdition(
   base: string,
   scope: string,
   signal: AbortSignal,
 ): Promise<DeliveredEdition> {
   const full = new URL(base + "data/edition.json", location.origin);
   const get = async (url: URL) => {
+    signal.throwIfAborted();
     const response = await fetch(url, {
       cache: "no-cache",
-      signal,
+      mode: "same-origin",
       priority: "high",
     });
     if (!response.ok) throw new Error("News unavailable");
-    return response.json();
+    const value = await response.json();
+    signal.throwIfAborted();
+    return value;
   };
   if (scope !== "*") {
     try {
       // Capability negotiation also keeps older static hosts and existing feed fixtures working.
       const capability = await fetch(full, {
         method: "HEAD",
+        mode: "same-origin",
         cache: "no-cache",
-        signal,
       });
       if (capability.headers.get("X-Fylogia-Index") === "1") {
         const indexUrl = new URL("source-index.json", full),
@@ -57,6 +60,8 @@ export async function loadEdition(
         const selected = index.sources.filter((s: { id: string }) =>
           wanted.has(s.id),
         );
+        if (selected.length > 12)
+          throw new Error("Use the complete edition for a broad library");
         const articles = new Map<string, Article>();
         // Bounded batches avoid a flood of parallel requests when many sources are followed.
         for (let offset = 0; offset < selected.length; offset += 6) {
@@ -94,4 +99,29 @@ export async function loadEdition(
     }
   }
   return { ...edition(await get(full)), delivery: "all" };
+}
+
+// Aborting a fetch controlled by a service worker can produce spurious WebKit
+// access-control errors. Cancel the consumer immediately, let its bounded static
+// request finish safely, and never start further batches or apply stale results.
+export async function loadEdition(
+  base: string,
+  scope: string,
+  signal: AbortSignal,
+): Promise<DeliveredEdition> {
+  signal.throwIfAborted();
+  let cancel!: () => void;
+  const cancelled = new Promise<never>((_, reject) => {
+    cancel = () =>
+      reject(signal.reason || new DOMException("Aborted", "AbortError"));
+    signal.addEventListener("abort", cancel, { once: true });
+  });
+  try {
+    return await Promise.race([
+      retrieveEdition(base, scope, signal),
+      cancelled,
+    ]);
+  } finally {
+    signal.removeEventListener("abort", cancel);
+  }
 }

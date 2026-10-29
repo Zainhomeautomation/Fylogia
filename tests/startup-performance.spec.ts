@@ -46,7 +46,8 @@ test("onboarding keeps feed parsing and news loading off the first-interests cri
   const response = page.waitForResponse(
     (r) =>
       r.request().method() === "GET" &&
-      r.url().includes("/data/edition.json") &&
+      (r.url().includes("/data/edition.json") ||
+        r.url().includes("/data/source-index.json")) &&
       r.ok(),
   );
   await page.getByRole("button", { name: "Continue", exact: true }).click();

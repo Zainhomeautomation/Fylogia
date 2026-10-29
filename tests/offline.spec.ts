@@ -32,9 +32,11 @@ async function fixture(page: Page, images = false) {
     .map((a) => ({ ...a, offlineImagesAllowed: images }));
   expect(articles.length).toBeGreaterThan(1);
   const state = { edition: { ...edition, articles }, original: edition };
-  await page.route("**/data/edition.json*", (route) =>
-    route.fulfill({ json: state.edition }),
-  );
+  await page
+    .context()
+    .route("**/data/edition.json*", (route) =>
+      route.fulfill({ json: state.edition }),
+    );
   return state;
 }
 async function downloadFirst(page: Page) {
@@ -154,11 +156,12 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
   await expect(page.locator(".offline-row")).toContainText(
     "some images missing",
   );
-  await page.unroute("**/data/edition.json*");
+  await page.context().unroute("**/data/edition.json*");
   const onlineEdition = page.waitForResponse(
     (response) =>
       response.request().method() === "GET" &&
-      response.url().includes("/data/edition.json") &&
+      (response.url().includes("/data/edition.json") ||
+        response.url().includes("/data/source-files/")) &&
       response.ok(),
   );
   await context.setOffline(false);
