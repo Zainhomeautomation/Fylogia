@@ -16,8 +16,11 @@ export function usePageTurn(
     },
     [],
   );
+  const resizedAt = useRef(0);
   const previous = useRef<{
     page: number;
+    width: number;
+    height: number;
     image: HTMLElement;
     canvases: HTMLCanvasElement[];
   } | null>(null);
@@ -25,6 +28,14 @@ export function usePageTurn(
     const surface = ref.current;
     if (!surface) return;
     const old = previous.current;
+    if (
+      old &&
+      (old.width !== surface.clientWidth || old.height !== surface.clientHeight)
+    ) {
+      resizedAt.current = performance.now();
+      active.current?.animation.cancel();
+      active.current?.leaf.remove();
+    }
     const image = surface.cloneNode(true) as HTMLElement;
     image.querySelectorAll(".turn-leaf").forEach((node) => node.remove());
     surface.querySelectorAll("canvas").forEach((canvas, index) => {
@@ -33,6 +44,8 @@ export function usePageTurn(
     });
     previous.current = {
       page,
+      width: surface.clientWidth,
+      height: surface.clientHeight,
       image,
       canvases: [
         ...surface.querySelectorAll<HTMLCanvasElement>(
@@ -44,6 +57,7 @@ export function usePageTurn(
       !enabled ||
       !old ||
       old.page === page ||
+      performance.now() - resizedAt.current < 150 ||
       matchMedia("(prefers-reduced-motion: reduce)").matches
     )
       return;
@@ -81,7 +95,12 @@ export function usePageTurn(
       [
         { transform: "perspective(1800px) rotateY(0deg)", opacity: 1 },
         {
-          transform: `perspective(1800px) rotateY(${forward ? -80 : 80}deg)`,
+          transform: `perspective(1800px) rotateY(${forward ? -78 : 78}deg)`,
+          opacity: 1,
+          offset: 0.85,
+        },
+        {
+          transform: `perspective(1800px) rotateY(${forward ? -90 : 90}deg)`,
           opacity: 0,
         },
       ],
