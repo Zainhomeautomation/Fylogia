@@ -144,3 +144,41 @@ test("compact toolbar, reserved navigation rail and single-tap immersive control
     await page.locator(".sidebar").evaluate((el) => (el as HTMLElement).inert),
   ).toBeFalsy();
 });
+test("summary stays above page corners and returns keyboard focus to visible reading options", async ({
+  page,
+}) => {
+  await open(page);
+  await page.setViewportSize({ width: 390, height: 500 });
+  const options = page.getByRole("button", {
+    name: "Reading options",
+    exact: true,
+  });
+  await options.click();
+  await page.getByRole("button", { name: "Summarize", exact: true }).click();
+  const summary = page.getByRole("alertdialog");
+  await expect(summary).toBeVisible();
+  expect(
+    await page.evaluate(() => {
+      const overlay = document.querySelector(".summary-backdrop")!;
+      const rail = document.querySelector(".page-turn-controls")!;
+      const r = rail.getBoundingClientRect();
+      return (
+        Number(getComputedStyle(overlay).zIndex) >
+          Number(getComputedStyle(rail).zIndex) &&
+        overlay.contains(
+          document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2),
+        )
+      );
+    }),
+  ).toBeTruthy();
+  await page
+    .getByRole("button", { name: "Back to reading", exact: true })
+    .click();
+  await expect(options).toBeFocused();
+  await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(
+    await page.locator(".sidebar").evaluate((el) => (el as HTMLElement).inert),
+  ).toBeFalsy();
+});

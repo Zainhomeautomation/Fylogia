@@ -334,7 +334,6 @@ export function Reader({
   }, [count, onClose, summary, setPage, optionsOpen]);
   useEffect(() => {
     if (!summary) return;
-    const previous = document.activeElement as HTMLElement;
     const panel = document.querySelector<HTMLElement>(".summary-panel");
     const restore = panel
       ? isolateReaderLayer(
@@ -345,7 +344,7 @@ export function Reader({
     document.querySelector<HTMLButtonElement>(".summary-panel button")?.focus();
     return () => {
       restore();
-      previous?.focus();
+      optionsButton.current?.focus();
     };
   }, [summary]);
   async function summarize() {

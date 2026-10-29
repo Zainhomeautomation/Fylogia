@@ -816,6 +816,7 @@ h2 {
   max-height: 65vh;
 }
 .summary-backdrop {
+  z-index: 20;
   position: absolute;
   inset: 0;
   background: #0007;
