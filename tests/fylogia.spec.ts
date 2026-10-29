@@ -77,7 +77,7 @@ test("onboarding, real stories, saves, history, theme and persistent preferences
           .getByRole("button", { name: "Save article", exact: true })
           .click();
     });
-  await page.getByRole("button", { name: "Close reader" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
   await nav(page, "Saved Articles");
   await expect(
     page.getByRole("heading", { name: headline, exact: true }),
@@ -157,7 +157,7 @@ test("full article pagination, resize, summaries and scrolling", async ({
     /summary|AI summarization/,
   );
   await page.getByRole("button", { name: "Back to reading" }).click();
-  await page.getByRole("button", { name: "Close reader" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
 });
 test("all category and regional controls, source follow, search and no horizontal overflow", async ({
   page,
@@ -248,7 +248,7 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
     page.getByRole("button", { name: "Bookmark page" }),
   ).toHaveAttribute("aria-pressed", "true");
   const text = await page.locator(".reader-footer [role=status]").innerText();
-  await page.getByRole("button", { name: "Close magazine" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
   await page.getByRole("button", { name: /NASA Spinoff 2025/ }).click();
   await expect(page.locator("canvas").first()).toBeVisible();
   await expect(page.locator(".reader-footer [role=status]")).toHaveText(text);
@@ -383,7 +383,16 @@ test("private PDF import survives reload and opens original page layout", async 
   await page.getByRole("button", { name: /Fylogia local PDF test/ }).click();
   await expect(page.locator("canvas")).toBeVisible();
   await expect(page.locator(".reader-footer")).toContainText("Page 1 of 1");
-  await page.getByRole("button", { name: "Close magazine" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
+  await expect(
+    page.getByRole("button", { name: /Fylogia local PDF test/ }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: /Fylogia local PDF test/ }).click();
+  await page.getByRole("button", { name: "Home — For You" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your daily perspective." }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("Fylogia branding preserves legacy libraries and installation identity", async ({
@@ -452,7 +461,7 @@ test("Fylogia branding preserves legacy libraries and installation identity", as
         window.innerWidth,
     ),
   ).toBeTruthy();
-  await page.getByRole("button", { name: "Close reader" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
   await nav(page, "History");
   await expect(
     page.getByRole("heading", { name: article.title, exact: true }),

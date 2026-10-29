@@ -758,7 +758,7 @@ export default function App() {
             }
           />
         )}
-        {view === "magazines" && <Magazines />}
+        {view === "magazines" && <Magazines onHome={() => navigate("home")} />}
         {view === "settings" && (
           <div className="settings">
             <section>
@@ -1043,6 +1043,10 @@ export default function App() {
           onSave={() => save(reader)}
           onPrefs={patch}
           onProgress={onProgress}
+          onHome={() => {
+            setReader(undefined);
+            navigate("home");
+          }}
           onClose={() => setReader(undefined)}
         />
       )}

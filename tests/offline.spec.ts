@@ -121,7 +121,7 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
   const position = await page
     .locator(".reader-footer [role=status]")
     .innerText();
-  await page.getByRole("button", { name: "Close reader" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
   await page.reload();
   await nav(page, "Offline Library");
   await expect(page.locator(".offline-row")).toContainText("Bookmarked");
@@ -145,7 +145,7 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
         test.info().project.name +
         "-offline-reading.png",
     });
-  await page.getByRole("button", { name: "Close reader" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
   await page.evaluate(() => caches.delete("fyllora-offline-images-v1"));
   await page.reload();
   await nav(page, "Offline Library");
@@ -200,7 +200,7 @@ test("multi-select and daily edition download, deletion preserves bookmarks and 
     .getByRole("button", { name: `Open downloaded ${article.title}` })
     .click();
   await page.getByRole("button", { name: "Save article", exact: true }).click();
-  await page.getByRole("button", { name: "Close reader" }).click();
+  await page.getByRole("button", { name: "Back to previous section" }).click();
   await page
     .getByRole("button", { name: `Delete download ${article.title}` })
     .click();

@@ -1,9 +1,11 @@
+import { useReaderReturn } from "./useReaderReturn";
 import { useEffect, useRef, useState } from "react";
 import { usePageTurn } from "./usePageTurn";
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
-  X,
+  ArrowLeft,
+  House,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -72,11 +74,14 @@ export default function PdfReader({
   url,
   title,
   onClose,
+  onHome,
 }: {
   url: string;
   title: string;
   onClose: () => void;
+  onHome: () => void;
 }) {
+  const goHome = useReaderReturn(onHome);
   const [immersive, setImmersive] = useState(false);
   const [pdf, setPdf] = useState<pdfjs.PDFDocumentProxy>(),
     [error, setError] = useState(""),
@@ -155,14 +160,25 @@ export default function PdfReader({
       aria-label={title}
     >
       <header className="reader-toolbar">
-        <button
-          autoFocus
-          className="icon-button"
-          onClick={onClose}
-          aria-label="Close magazine"
-        >
-          <X />
-        </button>
+        <div className="reader-navigation">
+          <button
+            autoFocus
+            className="icon-button"
+            aria-label="Back to previous section"
+            title="Back to previous section (Escape)"
+            onClick={onClose}
+          >
+            <ArrowLeft />
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Home — For You"
+            title="Home — For You"
+            onClick={goHome}
+          >
+            <House />
+          </button>
+        </div>
         <strong>{title}</strong>
         <button
           className="icon-button focus-toggle"

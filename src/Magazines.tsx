@@ -53,7 +53,7 @@ async function records(
     database.close();
   }
 }
-export function Magazines() {
+export function Magazines({ onHome }: { onHome: () => void }) {
   const [local, setLocal] = useState<Magazine[]>([]),
     [active, setActive] = useState<{ url: string; title: string }>(),
     [error, setError] = useState(""),
@@ -184,6 +184,10 @@ export function Magazines() {
           <PdfReader
             url={active.url}
             title={active.title}
+            onHome={() => {
+              setActive(undefined);
+              onHome();
+            }}
             onClose={() => setActive(undefined)}
           />
         </Suspense>
