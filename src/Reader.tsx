@@ -532,14 +532,19 @@ export function Reader({
       </header>
       {onDownload && (article.content || article.excerpt) && (
         <div className="reader-download-strip">
-          <span title={offlineLabel}>
-            {downloaded
-              ? "Available offline"
-              : downloading
-                ? "Downloading…"
-                : navigator.onLine
-                  ? "Keep for offline"
-                  : "Offline · Download unavailable"}
+          <span
+            className={downloadNotice ? "reader-download-notice" : undefined}
+            role={downloadNotice ? "status" : undefined}
+            title={downloadNotice || offlineLabel}
+          >
+            {downloadNotice ||
+              (downloaded
+                ? "Available offline"
+                : downloading
+                  ? "Downloading…"
+                  : navigator.onLine
+                    ? "Keep for offline"
+                    : "Offline · Download unavailable")}
           </span>
           <button
             className="text-button"
@@ -555,11 +560,6 @@ export function Reader({
                 : "Download"}
           </button>
         </div>
-      )}
-      {downloadNotice && (
-        <p className="reader-download-notice" role="status">
-          {downloadNotice}
-        </p>
       )}
       <div
         className={

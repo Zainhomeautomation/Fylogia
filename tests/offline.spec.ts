@@ -314,20 +314,40 @@ test("download failures remain visible inside article and Daily Magazine readers
   });
   await page.locator(".story-open").first().click();
   await page.getByRole("button", { name: "Next page", exact: true }).click();
+  const pageHeight = await page
+    .locator(".reader-viewport")
+    .evaluate((e) => e.clientHeight);
   await page
     .getByRole("button", { name: "Download current article", exact: true })
     .click();
   await expect(page.locator(".reader-download-notice")).toContainText(
     "Storage is full",
   );
+  await expect
+    .poll(() =>
+      page.locator(".reader-viewport").evaluate((e) => e.clientHeight),
+    )
+    .toBe(pageHeight);
   await expect(
     page.getByRole("button", { name: "Previous page", exact: true }),
   ).toBeEnabled();
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
+  // A visible error banner legitimately changes pagination while retaining the
+  // text anchor. Turn one page back from that measured position.
+  const footer = page.locator('.reader-footer [role="status"]');
+  const before = Number(
+    (await footer.innerText()).match(/(?:Page|Spread) (\d+) of/)![1],
+  );
   await page
     .getByRole("button", { name: "Previous page", exact: true })
     .click();
-  await expect(page.locator('.reader-footer [role="status"]')).toContainText(
-    /(?:Page|Spread) 1 of/,
+  await expect(footer).toContainText(
+    new RegExp(`(?:Page|Spread) ${before - 1} of`),
   );
   await page
     .getByRole("button", { name: "Back to previous section", exact: true })

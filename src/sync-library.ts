@@ -114,8 +114,8 @@ export function materializeLibrary(
   }
   prefs.interests = prefixEntries(map, "interest").map(([id]) => id);
   prefs.topics = prefixEntries(map, "topic").map(([id]) => id);
-  const privateSources = original.preferences.customSources.filter((s) =>
-    deviceLocalUrl(s.url, true),
+  const privateSources = original.preferences.customSources.filter(
+    (s) => deviceLocalUrl(s.url, true) || deviceLocalUrl(s.site),
   );
   prefs.sourceIds = [
     ...new Set([

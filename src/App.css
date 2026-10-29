@@ -2746,12 +2746,24 @@ h2 {
     padding-inline: 16px;
   }
 }
-.reader-download-notice {
-  margin: 0;
-  padding: 8px max(16px, env(safe-area-inset-left));
-  font-size: 12px;
+/* Status changes stay inside a reserved touch-height strip, so a download
+   result cannot resize the article while the reader is turning a page. */
+.reader-download-strip {
+  height: 44px;
+  min-height: 44px;
+  padding-block: 0;
+}
+.reader-download-strip .text-button {
+  min-height: 44px;
+}
+.reader-download-strip > span {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   line-height: 1.4;
-  background: var(--wash);
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
+}
+.reader-download-notice {
+  color: var(--ink);
 }

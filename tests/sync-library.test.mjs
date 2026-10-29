@@ -142,8 +142,14 @@ test("private feed queries and signed article links remain local and are rejecte
     categories: ["Space"],
     custom: true,
   };
-  original.preferences.customSources = [feed];
-  original.preferences.sourceIds.push(feed.id);
+  const privateSite = {
+    ...feed,
+    id: "private-site",
+    url: "https://example.org/feed",
+    site: "https://example.org/?token=private-value",
+  };
+  original.preferences.customSources = [feed, privateSite];
+  original.preferences.sourceIds.push(feed.id, privateSite.id);
   const signed = {
     ...a,
     id: "signed",
@@ -158,6 +164,9 @@ test("private feed queries and signed article links remain local and are rejecte
   const merged = materializeLibrary(map, original);
   assert.ok(merged.preferences.customSources.some((s) => s.id === feed.id));
   assert.ok(merged.preferences.sourceIds.includes(feed.id));
+  assert.ok(
+    merged.preferences.customSources.some((s) => s.id === privateSite.id),
+  );
   assert.ok(merged.saved.some((s) => s.id === signed.id));
   assert.equal(merged.progress.signed, 0.75);
   assert.throws(() =>
