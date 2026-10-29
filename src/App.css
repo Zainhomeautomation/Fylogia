@@ -2148,3 +2148,50 @@ h2 {
 .curl-underlay canvas {
   object-fit: contain;
 }
+
+.source-directory-tools {
+  padding: 8px 0 16px;
+}
+.source-directory-tools > .field {
+  max-width: 580px;
+}
+.source-directory-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.source-directory-filters select {
+  max-width: 100%;
+}
+.source-content-label,
+.source-recommendation,
+.duplicate-label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 5px 0;
+}
+.source-content-label.complete,
+.source-recommendation {
+  color: var(--green);
+}
+.source-permission {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--green);
+  margin-top: 5px;
+}
+.source-info {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.source-info small {
+  display: block;
+}
+@media (max-width: 600px) {
+  .source-directory-filters {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}

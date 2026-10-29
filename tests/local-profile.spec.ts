@@ -71,6 +71,7 @@ test("anonymous profile and entire library recover offline from IndexedDB after 
   await page.locator(".reader-content").dispatchEvent("load");
   await page.getByRole("button", { name: "Back to previous section" }).click();
   await nav(page, "My Sources");
+  await page.getByLabel("Search sources", { exact: true }).fill("BBC · World");
   await page
     .locator(".source-row")
     .filter({ hasText: "BBC · World" })

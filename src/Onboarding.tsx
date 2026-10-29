@@ -1,3 +1,4 @@
+import { recommendSources } from "./source-utils";
 import { useState } from "react";
 import { ArrowRight, Check, ArrowLeft, BookOpen } from "lucide-react";
 import { Sources } from "./Sources";
@@ -30,15 +31,21 @@ export function Onboarding({
         ? p[key].filter((i) => i !== item)
         : [...p[key], item],
     }));
-  const recommended = [...sources, ...draft.customSources].filter(
-    (s) =>
-      s.categories.some((c) => draft.interests.includes(c)) &&
-      (s.region === "Worldwide" || s.region === draft.region) &&
-      statuses.find((x) => x.id === s.id)?.ok !== false,
-  );
+  const collection = [...sources, ...draft.customSources];
+  const picks = recommendSources(collection, draft, statuses);
+  const recommended = [
+    ...picks,
+    ...collection.filter(
+      (s) =>
+        draft.sourceIds.includes(s.id) && !picks.some((p) => p.id === s.id),
+    ),
+  ];
   function next() {
     if (step === 0)
-      setDraft((p) => ({ ...p, sourceIds: recommended.map((s) => s.id) }));
+      setDraft((p) => ({
+        ...p,
+        sourceIds: [...new Set([...p.sourceIds, ...picks.map((s) => s.id)])],
+      }));
     setStep((s) => s + 1);
   }
   return (

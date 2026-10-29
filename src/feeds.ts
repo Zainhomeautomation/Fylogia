@@ -1,4 +1,4 @@
-import { XMLParser } from "fast-xml-parser";
+import { parseFeedDocument } from "./source-utils";
 import DOMPurify from "dompurify";
 import type { Article, Source } from "./catalog";
 import { safeUrl } from "./storage";
@@ -22,11 +22,7 @@ export async function loadCustom(
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const xml = await res.text();
     if (xml.length > 3_000_000) throw new Error("Feed too large");
-    const feed = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: "@_",
-    }).parse(xml);
-    items = array(feed.rss?.channel?.item || feed.feed?.entry);
+    items = parseFeedDocument(xml).items;
   } catch {
     if (!converter)
       throw new Error(
@@ -52,11 +48,7 @@ export async function loadCustom(
 }
 export function parseFeedFile(xml: string, source: Source) {
   if (xml.length > 3_000_000) throw new Error("Feed file exceeds 3 MB");
-  const feed = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: "@_",
-  }).parse(xml);
-  return parseItems(array(feed.rss?.channel?.item || feed.feed?.entry), source);
+  return parseItems(parseFeedDocument(xml).items, source);
 }
 function parseItems(items: any[], source: Source): Article[] {
   const result = items

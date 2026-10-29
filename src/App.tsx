@@ -38,6 +38,7 @@ import { loadCustom } from "./feeds";
 import { useOfflineLibrary } from "./useOfflineLibrary";
 import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
+import { articleMatchesLibrary } from "./source-utils";
 import { useSectionRoute } from "./useSectionRoute";
 const navigation = [
   { id: "home", label: "For You", icon: Home },
@@ -245,13 +246,7 @@ export default function App() {
   const articles = useMemo(() => {
     let result = view === "saved" ? saved : view === "history" ? history : all;
     if (view === "home")
-      result = result.filter(
-        (a) =>
-          prefs.sourceIds.includes(a.sourceId) &&
-          (prefs.region === "Worldwide" ||
-            a.region === prefs.region ||
-            (a.region === "Worldwide" && !a.categories.includes("World News"))),
-      );
+      result = result.filter((a) => articleMatchesLibrary(a, prefs));
     if (readableOnly) result = result.filter((a) => a.full);
     if (filter !== "All stories")
       result = result.filter((a) => a.categories.includes(filter));
@@ -721,7 +716,7 @@ export default function App() {
               <p className="edition-note">
                 Edition refreshed{" "}
                 {new Date(edition.generatedAt).toLocaleString("en")}. Publisher
-                feeds refresh hourly; scheduled runs can be delayed.{" "}
+                feeds refresh every four hours; scheduled runs can be delayed.{" "}
                 {edition.statuses.filter((s) => s.ok).length} of{" "}
                 {edition.statuses.length} feeds available.
               </p>
