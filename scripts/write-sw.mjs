@@ -1,12 +1,12 @@
 import { readdir, writeFile, readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
-const base = process.env.FYLLORA_BASE_PATH || "/Folio/";
+const base = process.env.FYLOGIA_BASE_PATH || "/Fylogia/";
 if (!/^\/(?:[A-Za-z0-9_-]+\/)*$/.test(base))
   throw new Error(
-    "FYLLORA_BASE_PATH must be a root or slash-delimited URL path.",
+    "FYLOGIA_BASE_PATH must be a root or slash-delimited URL path.",
   );
 const files = await readdir("dist/assets");
-const cache = "fyllora-shell-" + Date.now();
+const cache = "fylogia-shell-" + Date.now();
 const precache = [
   base,
   base + "index.html",
@@ -20,7 +20,8 @@ const precache = [
 const manifest = JSON.parse(
   await readFile("dist/manifest.webmanifest", "utf8"),
 );
-manifest.id = base;
+// Retain the installed PWA identity on the renamed GitHub Pages origin.
+manifest.id = base === "/Fylogia/" ? "/Folio/" : base;
 manifest.start_url = base;
 manifest.scope = base;
 await writeFile("dist/manifest.webmanifest", JSON.stringify(manifest, null, 2));
@@ -28,7 +29,7 @@ await writeFile(
   "dist/sw.js",
   `const CACHE=${JSON.stringify(cache)};const BASE=${JSON.stringify(base)};const FILES=${JSON.stringify(precache)};const IMAGES='fyllora-offline-images-v1';
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>{const previous=keys.filter(key=>(key.startsWith('fyllora-shell-')||/^fyllora-\\d+$/.test(key)||/^folio-\\d+$/.test(key))&&key!==CACHE).sort((a,b)=>Number(b.match(/\\d+$/)?.[0]||0)-Number(a.match(/\\d+$/)?.[0]||0));return Promise.all(previous.slice(1).map(key=>caches.delete(key)))}).then(()=>self.clients.claim())));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>{const previous=keys.filter(key=>(key.startsWith('fylogia-shell-')||key.startsWith('fyllora-shell-')||/^fyllora-\\d+$/.test(key)||/^folio-\\d+$/.test(key))&&key!==CACHE).sort((a,b)=>Number(b.match(/\\d+$/)?.[0]||0)-Number(a.match(/\\d+$/)?.[0]||0));return Promise.all(previous.slice(1).map(key=>caches.delete(key)))}).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
  const request=event.request,url=new URL(request.url);if(request.method!=='GET')return;
  if(request.destination==='image'){
@@ -57,7 +58,7 @@ await writeFile(
   "dist/build-info.json",
   JSON.stringify(
     {
-      product: "Fyllora",
+      product: "Fylogia",
       base,
       commit,
       dirty,

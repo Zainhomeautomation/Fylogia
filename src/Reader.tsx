@@ -200,7 +200,7 @@ export function Reader({
         >
           <X />
         </button>
-        <span className="wordmark">Fyllora</span>
+        <span className="wordmark">Fylogia</span>
         <div className="reader-actions">
           <button
             className="icon-button"
@@ -356,7 +356,7 @@ export function Reader({
             <p>
               {article.full
                 ? "Article content supplied by the publisher’s RSS feed. NASA material may include third-party credits."
-                : "Fyllora displays this publisher’s feed preview. The original may have its own access requirements."}
+                : "Fylogia displays this publisher’s feed preview. The original may have its own access requirements."}
             </p>
             <a
               className="primary"

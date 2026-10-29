@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
 import type { Article } from "./catalog";
+// Keep legacy storage names so the brand change never discards downloads.
 export const IMAGE_CACHE = "fyllora-offline-images-v1";
 const DB = "fyllora-offline";
 export interface DownloadedArticle {
@@ -41,7 +42,7 @@ function database() {
       request.onblocked = () => {
         pending = undefined;
         reject(
-          new Error("Close other Fyllora tabs to update offline storage."),
+          new Error("Close other Fylogia tabs to update offline storage."),
         );
       };
     });

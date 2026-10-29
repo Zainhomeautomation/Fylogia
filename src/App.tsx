@@ -288,7 +288,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "fyllora-library.json";
+    a.download = "fylogia-library.json";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -361,7 +361,7 @@ export default function App() {
       setNotice("Library imported successfully.");
     } catch {
       setNotice(
-        "That file is not a valid Fyllora library export. No changes were made.",
+        "That file is not a valid Fylogia library export. No changes were made.",
       );
     }
   }
@@ -397,7 +397,7 @@ export default function App() {
         >
           <Menu />
         </button>
-        <span className="wordmark">Fyllora</span>
+        <span className="wordmark">Fylogia</span>
         <button
           className="icon-button"
           aria-label="Search stories"
@@ -408,7 +408,7 @@ export default function App() {
       </header>
       <aside className={"sidebar " + (menu ? "open" : "")}>
         <div className="sidebar-brand">
-          <span className="wordmark">Fyllora</span>
+          <span className="wordmark">Fylogia</span>
           <button
             className="icon-button mobile-close"
             aria-label="Close navigation"
@@ -437,7 +437,7 @@ export default function App() {
         <div className="sidebar-footer">
           <p>A little more perspective.</p>
           <a
-            href="https://github.com/Zainhomeautomation/Folio"
+            href="https://github.com/Zainhomeautomation/Fylogia"
             target="_blank"
             rel="noreferrer"
           >
@@ -761,7 +761,7 @@ export default function App() {
           <div className="settings">
             <section>
               <h2>Make yourself at home.</h2>
-              <p>Choose how Fyllora looks and reads.</p>
+              <p>Choose how Fylogia looks and reads.</p>
               <h3>Appearance</h3>
               <div className="segmented">
                 {(["light", "dark", "system"] as const).map((theme, i) => {
@@ -877,15 +877,15 @@ export default function App() {
                 APOD and marked copyrighted material.
               </p>
               <p>
-                iOS can remove website data when storage is low. Add Fyllora to
+                iOS can remove website data when storage is low. Add Fylogia to
                 the Home Screen, keep free space, and recheck downloads before
                 Airplane Mode. Persistence is requested where supported but is
                 not guaranteed. If the entire origin is evicted, an offline
                 launch is impossible until you reconnect.
               </p>
-              <h2>Install Fyllora</h2>
+              <h2>Install Fylogia</h2>
               <p>
-                On iPhone or iPad, open Fyllora in Safari, tap Share, then Add
+                On iPhone or iPad, open Fylogia in Safari, tap Share, then Add
                 to Home Screen. On Mac, use Safari’s Add to Dock or your
                 browser’s Install option.
               </p>
@@ -900,21 +900,21 @@ export default function App() {
               <h2>Summaries & content</h2>
               <p>
                 Summarize uses your browser’s on-device AI when supported.
-                Otherwise Fyllora clearly labels locally extracted key passages.
+                Otherwise Fylogia clearly labels locally extracted key passages.
                 No API key or payment is required.
               </p>
               <p>
                 Most publishers supply a preview. NASA feed articles are
                 available in full when supplied. Full stories, image credits,
                 and publisher access conditions remain at the original source.
-                Fyllora never bypasses paywalls.
+                Fylogia never bypasses paywalls.
               </p>
               <a
-                href="https://github.com/Zainhomeautomation/Folio"
+                href="https://github.com/Zainhomeautomation/Fylogia"
                 target="_blank"
                 rel="noreferrer"
               >
-                Fyllora on GitHub · MIT License ↗
+                Fylogia on GitHub · MIT License ↗
               </a>
             </section>
           </div>

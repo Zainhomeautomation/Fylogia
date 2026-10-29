@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-const basePath = process.env.FYLLORA_BASE_PATH || "/Folio/";
+const basePath = process.env.FYLOGIA_BASE_PATH || "/Fylogia/";
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
   use: {
-    baseURL: process.env.FYLLORA_TEST_URL || "http://127.0.0.1:4173" + basePath,
+    baseURL: process.env.FYLOGIA_TEST_URL || "http://127.0.0.1:4173" + basePath,
     trace: "retain-on-failure",
   },
   projects: [
@@ -27,7 +27,7 @@ export default defineConfig({
       use: { ...devices["iPad Pro 11"], defaultBrowserType: "webkit" },
     },
   ],
-  webServer: process.env.FYLLORA_TEST_URL
+  webServer: process.env.FYLOGIA_TEST_URL
     ? undefined
     : {
         command: "npm run preview -- --host 127.0.0.1",

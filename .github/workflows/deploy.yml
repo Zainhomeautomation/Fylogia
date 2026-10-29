@@ -1,4 +1,4 @@
-name: Validate Fyllora and prepare publication
+name: Validate Fylogia and prepare publication
 on:
   push:
     branches: [main]
@@ -8,11 +8,11 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: fyllora-pages
+  group: fylogia-pages
   cancel-in-progress: false
 jobs:
   build:
-    if: github.repository == 'Zainhomeautomation/Folio'
+    if: github.repository == 'Zainhomeautomation/Fylogia'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -31,8 +31,8 @@ jobs:
         with:
           path: dist
   deploy:
-    # Provisional name: publishing stays disabled until availability is confirmed.
-    if: github.repository == 'Zainhomeautomation/Folio' && vars.FYLLORA_NAME_CONFIRMED == 'true'
+    # Publishing stays disabled until the owner approves the availability results.
+    if: github.repository == 'Zainhomeautomation/Fylogia' && vars.FYLOGIA_PUBLICATION_APPROVED == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:

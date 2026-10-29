@@ -122,7 +122,7 @@ export function useOfflineLibrary() {
         );
       } catch {
         setError(
-          "Could not delete this download. Try closing other Fyllora tabs.",
+          "Could not delete this download. Try closing other Fylogia tabs.",
         );
       }
     },

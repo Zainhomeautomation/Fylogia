@@ -36,7 +36,7 @@ export function OfflineLibrary({
         {library.persistent
           ? "Persistent storage granted."
           : "Your browser may evict downloads when storage is low."}{" "}
-        On iPhone or iPad, add Fyllora to the Home Screen and check your
+        On iPhone or iPad, add Fylogia to the Home Screen and check your
         downloads before travelling. Keep a library export for bookmarks;
         exports do not include downloaded images or PDFs.
       </p>

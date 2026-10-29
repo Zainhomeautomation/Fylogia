@@ -12,7 +12,7 @@ async function onboard(page: Page) {
   await page.goto("./");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "Create My Fyllora" }).click();
+  await page.getByRole("button", { name: "Create My Fylogia" }).click();
   await expect(page.locator(".story").first()).toBeVisible();
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -101,12 +101,12 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
       { timeout: 15000 },
     )
     .toBeTruthy();
-  if (process.env.FYLLORA_SCREENSHOTS)
+  if (process.env.FYLOGIA_SCREENSHOTS)
     await page.screenshot({
       animations: "disabled",
       scale: "css",
       path:
-        process.env.FYLLORA_SCREENSHOTS +
+        process.env.FYLOGIA_SCREENSHOTS +
         "/" +
         test.info().project.name +
         "-offline-article.png",
@@ -133,12 +133,12 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");
   await page.setViewportSize({ width: 1200, height: 900 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "2");
-  if (process.env.FYLLORA_SCREENSHOTS)
+  if (process.env.FYLOGIA_SCREENSHOTS)
     await page.screenshot({
       animations: "disabled",
       scale: "css",
       path:
-        process.env.FYLLORA_SCREENSHOTS +
+        process.env.FYLOGIA_SCREENSHOTS +
         "/" +
         test.info().project.name +
         "-offline-reading.png",

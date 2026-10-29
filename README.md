@@ -1,10 +1,10 @@
-# Fyllora
+# Fylogia
 
 A free, open-source personal news and magazine reader. No account, ads, paid subscription, or API key required.
 
-**Provisional product name:** Fyllora. Name availability has not been confirmed. Do not publish this rebrand, rename the repository, or register a domain until the name is approved.
+**Proposed final brand:** FYLOGIA (Fylogia). Preliminary availability screening on 29 October 2026 found no significant conflict in the checks completed; this is not worldwide trademark clearance. The existing personal repository has been renamed with its history preserved. Publication and domain purchases remain blocked until the owner approves the availability results.
 
-**Existing deployment (still Folio; unchanged):** https://zainhomeautomation.github.io/Folio/
+**Publication on hold:** the former GitHub Pages URL was `https://zainhomeautomation.github.io/Folio/`. GitHub does not redirect project-site URLs on repository rename; do not treat the old URL as the renamed app. The publication workflow is disabled, and no Fylogia site has been deployed.
 
 ## Features
 
@@ -29,7 +29,7 @@ npm run magazines
 npm run dev
 ```
 
-Open the printed `/Folio/` URL.
+Open the printed `/Fylogia/` URL.
 
 ```sh
 npm run build
@@ -42,13 +42,13 @@ Tests cover Chromium desktop, WebKit iPhone/iPad, onboarding, saved stories, his
 
 ## Deployment
 
-Only the personal repository **Zainhomeautomation/Folio** is used. `.github/workflows/deploy.yml` validates and prepares builds on pushes, manual runs and an hourly schedule. Publication is blocked unless the personal repository variable `FYLLORA_NAME_CONFIRMED` is explicitly set to `true` after name availability is confirmed. Do not enable it before approval. GitHub Pages needs no third-party hosting credentials and works with public repositories on GitHub Free. See [GitHub documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+Only the personal repository **Zainhomeautomation/Fylogia** is used. `.github/workflows/deploy.yml` validates and prepares builds on pushes, manual runs and an hourly schedule. The live Actions workflow is disabled. The prepared workflow also requires the personal repository variable `FYLOGIA_PUBLICATION_APPROVED` to be explicitly set to `true`; only re-enable it and set that variable after the owner approves publication. GitHub Pages needs no third-party hosting credentials and works with public repositories on GitHub Free. See [GitHub documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
 
 Build permission is `contents: read`; the deployment job uses `pages: write` and `id-token: write`. Scheduled runs can be delayed, and GitHub may disable schedules after 60 days without repository activity. Push an update or re-enable/run the workflow manually. Failed feeds retain bundled cached content and report their status. Article dates remain visible. Refresh retrieves the latest deployed edition; it does not trigger a cloud build.
 
-The repository remains `Zainhomeautomation/Folio`; no repository rename or domain registration is part of this provisional rebrand. Existing browser-storage keys (`folio.v1.*`), the PDF database (`folio-magazines`), PWA identity, and the Pages mount remain stable so existing user data and installations are preserved. Library exports now use `fyllora-library.json`; previous exports still import. The old cache prefix is recognized during future service-worker upgrades.
+The same repository is now `Zainhomeautomation/Fylogia`, preserving all original commits and branches. Existing browser-storage keys (`folio.v1.*`), the PDF database (`folio-magazines`), offline database (`fyllora-offline`), image cache (`fyllora-offline-images-v1`) and download index (`fyllora.offline.ids`) intentionally retain their compatibility names. The Pages mount is prepared as `/Fylogia/`; the manifest ID remains `/Folio/` on that same origin to retain installation identity. Storage remains origin-specific, and old/new service-worker scopes differ; visit the approved new URL online once before offline use. Library exports now use `fylogia-library.json`; previous exports still import. The old cache prefix is recognized during future service-worker upgrades.
 
-The default `/Folio/` deployment base preserves the existing repository URL. Set `FYLLORA_BASE_PATH=/` for a Sites/root build. Vite processes the index asset URLs and the build script writes the manifest start URL, scope, identity and service-worker paths for the selected base. `FYLLORA_TEST_URL` can target an already-running build; `FYLLORA_SCREENSHOTS` selects an absolute screenshot output directory.
+The default `/Fylogia/` deployment base matches the renamed repository. Set `FYLOGIA_BASE_PATH=/` for a Sites/root build. Vite processes the index asset URLs and the build script writes the manifest start URL, scope, identity and service-worker paths for the selected base. `FYLOGIA_TEST_URL` can target an already-running build; `FYLOGIA_SCREENSHOTS` selects an absolute screenshot output directory.
 
 ## Custom feeds
 
@@ -69,9 +69,9 @@ The main bundle is about 123 KB gzipped. PDF code/worker are loaded only when op
 
 ## Content rights
 
-MIT covers Fyllora code only. Publisher content retains its rights and original attribution. Public feeds supply previews and original links. NASA content is used factually for informational reading, without implying endorsement; original PDF pages and credits are preserved. See [NASA media guidance](https://www.nasa.gov/nasa-brand-center/images-and-media/).
+MIT covers Fylogia code only. Publisher content retains its rights and original attribution. Public feeds supply previews and original links. NASA content is used factually for informational reading, without implying endorsement; original PDF pages and credits are preserved. See [NASA media guidance](https://www.nasa.gov/nasa-brand-center/images-and-media/).
 
-[NASA Spinoff 2025 original PDF](https://ntts-prod.s3.amazonaws.com/t2p/prod/spinoff/NASA.Spinoff_2025_508.pdf) is 54 MB. Its binary is excluded from Git and downloaded at build time. Fyllora does not upload or redistribute user-imported PDFs. Import only publications you have permission to read.
+[NASA Spinoff 2025 original PDF](https://ntts-prod.s3.amazonaws.com/t2p/prod/spinoff/NASA.Spinoff_2025_508.pdf) is 54 MB. Its binary is excluded from Git and downloaded at build time. Fylogia does not upload or redistribute user-imported PDFs. Import only publications you have permission to read.
 
 ## MVP limits
 
@@ -88,7 +88,7 @@ Offline copies are stored in the `fyllora-offline` IndexedDB database. The `fyll
 1. Complete onboarding online and allow the service worker to finish its first installation.
 2. Choose the download arrow on a story, select multiple stories, or use Download Daily Edition. The daily action downloads a clearly labeled maximum of 30 stories from the current personalized selection.
 3. Wait for the completed download count. Open Offline Library to check each copy's text and image status before travelling.
-4. Turn off connectivity, close/reopen or reload Fyllora, and open a downloaded story. Pagination, text size, single/two-column layouts, saved state and progress work locally.
+4. Turn off connectivity, close/reopen or reload Fylogia, and open a downloaded story. Pagination, text size, single/two-column layouts, saved state and progress work locally.
 5. Remove a download from Offline Library to delete its IndexedDB content and any images not shared with another download. Bookmarks and reading progress remain in the existing personal library.
 
 Downloads contain only already-supplied RSS text: full NASA feed articles where supplied, conservative previews for other publishers. No article page, paywall, login, or PDF restriction is bypassed. Image downloads use a conservative NASA informational-media policy: only official NASA-hosted images on qualifying NASA articles; APOD and feed material marked with copyright are excluded. Original credits remain in the content. Other publisher images are omitted from offline copies when permission has not been established. The UI reports partial or text-only copies rather than claiming those images are available. A failed image does not prevent permitted text from being stored.
@@ -112,7 +112,7 @@ The suite includes network-disabled launches, full article and opaque-image read
 
 ## ChatGPT Sites preparation and supported publication path
 
-Status: production-compatible root build prepared; **not published to Sites**. No hosting provider has been substituted. The existing GitHub Pages deployment is not updated by this work. Name clearance remains unresolved from the naming screen; the provisional branding is retained in this development branch.
+Status: production-compatible root build prepared; **not published to Sites**. No hosting provider has been substituted. No renamed application has been deployed. Availability results await owner approval; the proposed branding is prepared in the `fylogia-brand` branch.
 
 Official OpenAI documentation supports preparing compatible existing local projects, saving a version, choosing visitor access and deploying it:
 
@@ -126,11 +126,24 @@ This conflicts with the instruction to keep source exclusively in the existing p
 ### Exact next steps
 
 1. Keep the existing personal repository and commits. In ChatGPT web/desktop, open Sites or use `@Sites` and select this existing local project for compatibility preparation. Do not scaffold a replacement.
-2. Resolve the source-storage prerequisite: confirm that Sites can bind the exact personal repository `Zainhomeautomation/Folio` (or its later approved rename) and return its real Site ID/source credentials. Current exposed tools do not offer this binding. If the service requires a different source repository, publication cannot proceed under the current exclusive-source instruction; it requires your explicit exception first. Also resolve the previously reported naming conflicts before enabling public publication.
+2. Resolve the source-storage prerequisite: confirm that Sites can bind the exact personal repository `Zainhomeautomation/Fylogia` and return its real Site ID/source credentials. Current exposed tools do not offer this binding. If the service requires a different source repository, publication cannot proceed under the current exclusive-source instruction; it requires your explicit exception first. Obtain the owner’s approval of the FYLOGIA availability results before public publication.
 3. Once that prerequisite is satisfied, use Sites' returned real project ID to create `.openai/hosting.json` with `project_id` and `static: { directory: "dist" }`. Do not invent an ID. The reference `.openai/hosting.template.json` intentionally contains no project ID.
-4. Run `FYLLORA_BASE_PATH=/ npm run build`. Validate using `FYLLORA_BASE_PATH=/ npm test`. Keep the `/` base for the Sites origin.
+4. Run `FYLOGIA_BASE_PATH=/ npm run build`. Validate using `FYLOGIA_BASE_PATH=/ npm test`. Keep the `/` base for the Sites origin.
 5. Use the documented Sites source helper to push the exact validated source to the service-confirmed source branch and package it. Supply credentials only through the helper's hidden stdin, never command arguments or committed files. Do not redirect to a company account.
 6. Pass the verified commit SHA and unchanged deployment archive to `save_site_version`. Read the Site's access state; if public access is supported, use `update_site_access` with `access_mode: "public"`, then `deploy_site_version` for the saved version. Poll its deployment ID to a terminal success result.
 7. Test the actual public HTTPS origin with no signed-in session, inspect the service-worker scope and root asset paths, download a real permitted article, disable network access and repeat the offline reading checks. Only then report a public Sites URL as working.
 
 No DNS purchase or domain registration is needed. Local storage is origin-specific: the old GitHub Pages library does not automatically transfer to a new Sites origin. Import the JSON library backup and re-download offline assets there. Sites feed freshness also needs a supported redeployment/scheduling mechanism; the current GitHub Actions refresh does not automatically update a Sites deployment, and no cross-service sync is claimed.
+
+## FYLOGIA availability screening — 29 October 2026
+
+- `fylogia.com`: Verisign registry RDAP returned HTTP 404; no registered domain record found. [Registry query](https://rdap.verisign.com/com/v1/domain/fylogia.com).
+- `fylogia.app`: Google Registry RDAP returned HTTP 404 with “fylogia.app not found”. [Registry query](https://pubapi.registry.google/rdap/domain/fylogia.app). Both appear unregistered; registrability, premium/reserved status and price remain unverified until a registrar checks. Nothing was purchased or reserved.
+- Personal repository: `Zainhomeautomation/Fylogia` returned 404 before rename; GitHub public repository-name search returned zero results. The existing repository was renamed in place, preserving repository ID 1438014070.
+- [USPTO](https://tmsearch.uspto.gov/): Wordmark searches FYLOGIA, FILOGIA, PHYLOGIA and prefix FYLOG* returned “No results found”, with live and dead statuses included and no class restriction.
+- [TMview](https://www.tmdn.org/tmview/): Contains searches FYLOGIA, FILOGIA and PHYLOGIA returned no rows. No software, news or publishing trademark record was identified in the completed searches. TMview is an aggregator, not a legal clearance certificate.
+- WIPO direct search was blocked by an automated challenge and was not completed. Oman and other national registers were not comprehensively cleared. A worldwide phonetic/translation/logo and unregistered-rights review has not been performed.
+- Apple US Search API for FYLOGIA returned four unrelated fuzzy results and no exact app name. [Apple search](https://itunes.apple.com/search?term=fylogia&entity=software&limit=25&country=us). [Google Play US search](https://play.google.com/store/search?q=fylogia&c=apps&hl=en&gl=US) displayed “No results for fylogia”. Other storefronts and developer-console name reservation are unverified.
+- Similar-name web results: FILOGIA, a French agricultural/nutrition-products business ([public business record](https://entreprises.lefigaro.fr/filogia-49/entreprise-847919685)); a historical biotech reference to Phylogia ([2012 report](https://www.businessnews.com.au/article/Phylogia-licences-technology-to-Janssen-Biotech)). Neither establishes a software/news/publishing conflict; current rights and any legal likelihood of confusion are unverified.
+
+Assessment: no significant conflict identified in this preliminary screening. The code/repository rename is authorized by the owner’s conditional instruction; domain purchase and public deployment still require their approval of these results.

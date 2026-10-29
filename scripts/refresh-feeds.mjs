@@ -40,7 +40,7 @@ const results = await Promise.all(
         signal: AbortSignal.timeout(25000),
         headers: {
           "User-Agent":
-            "Fyllora RSS Reader (+https://github.com/Zainhomeautomation/Folio)",
+            "Fylogia RSS Reader (+https://github.com/Zainhomeautomation/Fylogia)",
         },
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
