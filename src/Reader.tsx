@@ -48,13 +48,18 @@ export function Reader({
   const viewport = useRef<HTMLDivElement>(null),
     content = useRef<HTMLDivElement>(null),
     close = useRef<HTMLButtonElement>(null);
-  const [page, setPage] = useState(0),
+  const [page, setPageState] = useState(0),
     [count, setCount] = useState(1),
     [width, setWidth] = useState(0),
     [spread, setSpread] = useState(1),
     [summary, setSummary] = useState(""),
     [summaryBusy, setSummaryBusy] = useState(false);
-  usePageTurn(viewport, page, prefs.reading === "pages");
+  const navigation = useRef(true);
+  const setPage: typeof setPageState = (next) => {
+    navigation.current = true;
+    setPageState(next);
+  };
+  usePageTurn(viewport, page, prefs.reading === "pages" && navigation.current);
   const position = useRef(initialProgress);
   // Keep a real text location across column reflow; the stored ratio remains
   // compatible with existing bookmarks and exports.
@@ -165,7 +170,8 @@ export function Reader({
                 (w + 40),
             )
           : Math.round(position.current * (n - 1));
-        setPage(Math.max(0, Math.min(n - 1, location)));
+        navigation.current = false;
+        setPageState(Math.max(0, Math.min(n - 1, location)));
       }
     });
   };

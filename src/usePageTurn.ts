@@ -16,7 +16,6 @@ export function usePageTurn(
     },
     [],
   );
-  const resizedAt = useRef(0);
   const previous = useRef<{
     page: number;
     width: number;
@@ -32,7 +31,6 @@ export function usePageTurn(
       old &&
       (old.width !== surface.clientWidth || old.height !== surface.clientHeight)
     ) {
-      resizedAt.current = performance.now();
       active.current?.animation.cancel();
       active.current?.leaf.remove();
     }
@@ -57,7 +55,6 @@ export function usePageTurn(
       !enabled ||
       !old ||
       old.page === page ||
-      performance.now() - resizedAt.current < 150 ||
       matchMedia("(prefers-reduced-motion: reduce)").matches
     )
       return;
