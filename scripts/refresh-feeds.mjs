@@ -8,10 +8,17 @@ import {
 } from "../src/source-utils.ts";
 import { feedArticle } from "./feed-content.mjs";
 const pipelineVersion = 3;
+const contentVersion = 1;
+const fullOnly = process.argv.includes("--full-only");
 let previous = { articles: [], statuses: [] };
 try {
   previous = JSON.parse(await readFile("public/data/edition.json", "utf8"));
 } catch {}
+if (
+  fullOnly &&
+  sources.some((s) => !previous.statuses.some((old) => old.id === s.id))
+)
+  throw new Error("A complete existing edition is required for --full-only");
 const now = new Date().toISOString();
 async function refresh(source) {
   const old = previous.statuses.find((s) => s.id === source.id);
@@ -32,18 +39,21 @@ async function refresh(source) {
             },
           },
     );
+  if (fullOnly && !source.full) return { articles: cached, status: old };
   try {
     const headers = {
       "User-Agent": "Fylogia RSS Reader (+https://fylogia.com/)",
     };
     if (
       previous.pipelineVersion === pipelineVersion &&
+      (!source.full || old?.contentVersion === contentVersion) &&
       cached.length &&
       old?.etag
     )
       headers["If-None-Match"] = old.etag;
     if (
       previous.pipelineVersion === pipelineVersion &&
+      (!source.full || old?.contentVersion === contentVersion) &&
       cached.length &&
       old?.lastModified
     )
@@ -85,6 +95,7 @@ async function refresh(source) {
         ok: true,
         count: articles.length,
         fullCount: articles.filter((a) => a.full).length,
+        contentVersion: source.full ? contentVersion : undefined,
         bodyCount: parsed.items.filter((i) => i["content:encoded"] || i.content)
           .length,
         feedEntries: parsed.items.length,

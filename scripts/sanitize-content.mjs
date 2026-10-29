@@ -14,11 +14,23 @@ export function sanitizePublisherContent(html, base) {
     .forEach((n) => n.remove());
   for (const node of [...document.body.querySelectorAll("*")].reverse()) {
     if (!tags.has(node.localName)) {
-      node.replaceWith(
-        document.createTextNode(" "),
-        ...node.childNodes,
-        document.createTextNode(" "),
-      );
+      const block =
+        [
+          "div",
+          "section",
+          "article",
+          "header",
+          "footer",
+          "aside",
+          "main",
+        ].includes(node.localName) && !node.closest("pre,code");
+      if (block)
+        node.replaceWith(
+          document.createTextNode(" "),
+          ...node.childNodes,
+          document.createTextNode(" "),
+        );
+      else node.replaceWith(...node.childNodes);
       continue;
     }
     for (const attr of [...node.attributes]) {

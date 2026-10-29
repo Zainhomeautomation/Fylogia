@@ -248,3 +248,24 @@ test("video media enclosures never become article photographs", async () => {
     "https://publisher.example/actual-photo.jpg",
   );
 });
+
+test("syntax-highlighting markup never changes publisher code whitespace or string literals", async () => {
+  const { sanitizePublisherContent } =
+    await import("../scripts/sanitize-content.mjs");
+  const { parseHTML } = await import("linkedom");
+  const html =
+    '<pre><code><span>homeassistant</span>:\n  <span>allowlist_external_dirs</span>:\n    - <span>"/config/www"</span>\n</code></pre>';
+  const expected = parseHTML(
+    "<html><body>" + html + "</body></html>",
+  ).document.querySelector("code").textContent;
+  const actual = parseHTML(
+    "<html><body>" +
+      sanitizePublisherContent(html, "https://www.home-assistant.io/story") +
+      "</body></html>",
+  ).document.querySelector("code").textContent;
+  assert.equal(actual, expected);
+  assert.equal(
+    actual,
+    'homeassistant:\n  allowlist_external_dirs:\n    - "/config/www"\n',
+  );
+});

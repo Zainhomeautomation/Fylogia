@@ -314,6 +314,7 @@ export interface Article {
   full: boolean;
 }
 export interface FeedStatus {
+  contentVersion?: number;
   bodyCount?: number;
   feedEntries?: number;
   latestPublished?: string;

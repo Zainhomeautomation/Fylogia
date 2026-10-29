@@ -4,7 +4,7 @@ Implementation verification before the final production audit. Original source I
 
 ## Current coverage
 
-Snapshot 2026-10-29T14:18:34.952Z: 169/179 feeds refreshed successfully; 78 authorized full articles and 1533 previews. Eight full-text-capable source policies, 171 preview-only sources. Counts vary with updates; an allowlisted source can still supply previews when an individual item fails checks. All 26 baseline feeds returned usable XML during this refresh.
+Snapshot 2026-10-29T14:27:25.185Z: 168/179 feeds show a successful most-recent check; 78 authorized full articles and 1533 previews. Eight full-text-capable source policies, 171 preview-only sources. Counts vary with updates; an allowlisted source can still supply previews when an individual item fails checks. All 26 baseline feeds returned usable XML during the full-catalog implementation check. A subsequent targeted full-text refresh could not reach Global Voices; its previous articles remain available with the earlier retrieval timestamp.
 
 ## Retrieval improvements
 
@@ -53,6 +53,8 @@ Bodies below are raw publisher content fields, not proof of complete text or per
 | [The Guardian · Food](https://www.theguardian.com/food/rss) | 31 | 0 | 0 | Preview; no additional authorized full-content route established |
 | [PC Gamer](https://www.pcgamer.com/rss/) | 50 | 50 | 0 | Preview; no additional authorized full-content route established |
 | [PetaPixel](https://petapixel.com/feed/) | 20 | 0 | 0 | Preview; no additional authorized full-content route established |
+
+`node scripts/refresh-feeds.mjs --full-only` rechecks the eight full-text feeds while preserving the other sources and their checked timestamps. Per-source content versions force re-extraction after sanitizer changes. Code whitespace is retained exactly when syntax-highlighting spans are removed.
 
 Existing [permission evidence](feed-content-review.md) and [expanded-source policies](source-catalog.md) apply. BBC section feeds and The Hindu supply excerpts. Apple supplies content fields but brief bodies. Ars Technica, Simple Flying, 3DPrint.com, PC Gamer and Autoblog can supply longer bodies; a public RSS field does not establish republication rights. NASA, Global Voices, MIT News and Home Assistant use the established full-feed policies.
 
