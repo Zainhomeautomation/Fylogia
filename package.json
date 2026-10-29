@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "feeds": "node scripts/refresh-feeds.mjs",
     "magazines": "node scripts/fetch-magazines.mjs",
-    "test": "playwright test"
+    "test": "playwright test",
+    "format": "prettier --write src scripts tests *.ts *.json index.html README.md .github/workflows/deploy.yml",
+    "format:check": "prettier --check src scripts tests *.ts *.json index.html README.md .github/workflows/deploy.yml"
   },
   "dependencies": {
     "dompurify": "^3.4.17",
@@ -29,6 +31,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "linkedom": "^0.18.14",
     "oxlint": "^1.89.0",
+    "prettier": "^3.9.10",
     "typescript": "~7.0.2",
     "vite": "^8.3.5"
   }

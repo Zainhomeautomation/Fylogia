@@ -1,1 +1,6 @@
-html{scroll-behavior:smooth}button{touch-action:manipulation}
+html {
+  scroll-behavior: smooth;
+}
+button {
+  touch-action: manipulation;
+}
