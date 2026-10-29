@@ -102,6 +102,15 @@ function articles(v: unknown): Article[] {
       categories: a.categories,
       url: a.url,
       full: a.full,
+      ...(typeof a.author === "string" && a.author.length <= 2000
+        ? { author: a.author }
+        : {}),
+      ...(["publisher-feed", "publisher-preview"].includes(a.contentOrigin)
+        ? { contentOrigin: a.contentOrigin }
+        : {}),
+      ...(typeof a.previewReason === "string" && a.previewReason.length <= 2000
+        ? { previewReason: a.previewReason }
+        : {}),
       ...(url(a.image, true) ? { image: a.image } : {}),
       ...(typeof a.offlineImagesAllowed === "boolean"
         ? {

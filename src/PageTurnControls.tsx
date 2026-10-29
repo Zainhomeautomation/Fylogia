@@ -119,6 +119,12 @@ export function PageTurnControls({
                 ignoreClick.current = true;
                 curl.end(false, () => {});
               }}
+              onLostPointerCapture={() => {
+                if (!gesture.current) return;
+                gesture.current = null;
+                ignoreClick.current = true;
+                curl.end(false, () => {});
+              }}
               onClick={() => {
                 if (!ignoreClick.current) turn(forward);
                 ignoreClick.current = false;

@@ -86,3 +86,87 @@ export function feedText(html) {
   }
   return document.body.textContent.replace(/\s+/g, " ").trim();
 }
+
+// These publishers explicitly permit syndicating their own feed text. Full
+// markup alone never grants permission: the fixed source and origin must match.
+export function cleanLicensedFeed(
+  html,
+  { sourceId, url, author, subtitle = "" },
+) {
+  const policies = {
+    "mit-ai": {
+      host: "news.mit.edu",
+      name: "MIT News",
+      license: "https://news.mit.edu/terms-of-use",
+      label: "MIT News republication policy",
+    },
+    homeassistant: {
+      host: "www.home-assistant.io",
+      name: "Home Assistant",
+      license: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      label: "CC BY-NC-SA 4.0",
+    },
+  };
+  const policy = policies[sourceId];
+  if (!policy || !author) return "";
+  try {
+    if (new URL(url).hostname !== policy.host) return "";
+  } catch {
+    return "";
+  }
+  const { document } = parseHTML("<html><body>" + html + "</body></html>");
+  if (
+    /all rights reserved|republished (?:from|with)|originally (?:published|appeared) (?:in|on|by)|not (?:for )?republication/i.test(
+      document.body.textContent,
+    )
+  )
+    return "";
+  // Item-level rights notices override a publisher-wide policy. Inspect before
+  // media removal so a caption cannot conceal a restrictive notice.
+  for (const link of document.querySelectorAll("a[href]")) {
+    const href = link.getAttribute("href") || "";
+    if (
+      /creativecommons\.org\/licenses\//i.test(href) &&
+      !(
+        sourceId === "homeassistant" &&
+        /creativecommons\.org\/licenses\/by-nc-sa\/4\.0/i.test(href)
+      )
+    )
+      return "";
+  }
+  if (
+    /CC\s*BY[-\s]*(?:NC[-\s]*)?ND|no derivatives|do not (?:reproduce|republish)/i.test(
+      document.body.textContent,
+    )
+  )
+    return "";
+  if (feedText(html).length < 200) return "";
+  // Third-party media is not covered by a general permission for publisher text.
+  document
+    .querySelectorAll(
+      "script,style,iframe,video,audio,lite-youtube,noscript,form,button,figure,picture,img,svg",
+    )
+    .forEach((n) => n.remove());
+  for (const a of document.querySelectorAll("a[href]")) {
+    try {
+      const target = new URL(a.getAttribute("href"), url);
+      if (!["https:", "http:"].includes(target.protocol))
+        a.removeAttribute("href");
+      else a.setAttribute("href", target.href);
+    } catch {
+      a.removeAttribute("href");
+    }
+  }
+  const escape = (v) =>
+    v
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll('"', "&quot;");
+  const credit = `<p class="syndication-credit">${escape(author)} · <a href="${escape(url)}">${policy.name}</a> · <a href="${policy.license}">${policy.label}</a></p>`;
+  const deck = subtitle ? `<p>${escape(subtitle)}</p>` : "";
+  const footer =
+    sourceId === "mit-ai"
+      ? '<p>Reprinted with permission of <a href="https://news.mit.edu/">MIT News</a>. Text preserved; formatting adapted and media omitted.</p>'
+      : "<p>Home Assistant text reused noncommercially under CC BY-NC-SA 4.0; formatting adapted and media omitted. This article text remains under that license.</p>";
+  return credit + deck + document.body.innerHTML + footer;
+}

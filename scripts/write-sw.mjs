@@ -7,7 +7,17 @@ if (!/^\/(?:[A-Za-z0-9_-]+\/)*$/.test(base))
   );
 const files = await readdir("dist/assets");
 const cache = "fylogia-shell-" + Date.now();
+async function codecFiles(directory) {
+  const result = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = directory + "/" + entry.name;
+    if (entry.isDirectory()) result.push(...(await codecFiles(path)));
+    else result.push(base + path.replace(/^dist\//, ""));
+  }
+  return result;
+}
 const precache = [
+  ...(await codecFiles("dist/pdfjs")),
   base,
   base + "data/edition.json",
   base + "manifest.webmanifest",

@@ -2056,3 +2056,54 @@ h2 {
     animation: none;
   }
 }
+
+.readable-filter {
+  margin: 8px 0 12px;
+}
+.readable-filter[aria-pressed="true"] {
+  background: var(--green);
+  color: var(--paper);
+}
+.reading-detail {
+  color: var(--muted);
+  font:
+    12px/1.5 "DM Sans",
+    sans-serif;
+}
+.preview-note a {
+  display: block;
+  margin-top: 8px;
+  color: var(--green);
+  font-weight: 600;
+}
+.preview-note svg {
+  vertical-align: middle;
+}
+.article-body pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.85em;
+  background: var(--wash);
+  padding: 12px;
+}
+.article-body code {
+  overflow-wrap: anywhere;
+}
+.article-body table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+.article-body :is(td, th) {
+  border: 1px solid var(--line);
+  padding: 6px;
+  vertical-align: top;
+}
+.article-body :is(h4, h5, h6) {
+  break-after: avoid;
+  font-family: var(--serif);
+}
+.article-body :is(dl, blockquote, pre) {
+  max-width: 100%;
+}

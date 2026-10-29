@@ -201,6 +201,7 @@ export const sources: Source[] = [
     site: "https://www.home-assistant.io",
     categories: ["Smart Home", "Technology"],
     region: "Worldwide",
+    full: true,
   },
   {
     id: "3dprint",
@@ -217,6 +218,7 @@ export const sources: Source[] = [
     site: "https://news.mit.edu",
     categories: ["AI", "Science", "Technology"],
     region: "Worldwide",
+    full: true,
   },
   {
     id: "arstechnica",
@@ -276,6 +278,9 @@ export const sources: Source[] = [
   },
 ];
 export interface Article {
+  author?: string;
+  contentOrigin?: "publisher-feed" | "publisher-preview";
+  previewReason?: string;
   offlineImagesAllowed?: boolean;
   id: string;
   sourceId: string;
@@ -291,6 +296,7 @@ export interface Article {
   full: boolean;
 }
 export interface FeedStatus {
+  fullCount?: number;
   id: string;
   ok: boolean;
   count: number;

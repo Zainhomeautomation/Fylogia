@@ -116,7 +116,7 @@ export function Sources({
                       {s.custom
                         ? "Custom RSS/Atom feed"
                         : status?.ok
-                          ? `${status.count} articles · Feed available`
+                          ? `${status.count} articles · ${status.fullCount !== undefined ? status.fullCount + " full text · " : ""}Feed available`
                           : status
                             ? "Feed unavailable · retrying next refresh"
                             : "Checking feed"}

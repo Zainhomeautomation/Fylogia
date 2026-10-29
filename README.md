@@ -207,3 +207,13 @@ Both existing readers now use a transient curved paper surface for page turns. T
 The inset corner buttons support dragging, tap-to-turn and keyboard activation. Short drags return the page; longer drags commit a turn. Existing swipe, footer, arrow-key and Back/Home controls remain available. A short guide and three-cycle corner hint appear on first multi-page use. Completing a corner turn or choosing Got it stores `fylogia.page-turn-tutorial.v1`; no existing library keys are changed. Single-page previews and scrolling mode have no corner controls. Daily Edition articles use the same article reader, including downloaded copies.
 
 [StPageFlip](https://github.com/Nodlik/StPageFlip) was evaluated, including version 2.0.7's HTML page model and render lifecycle. It would require a separate page collection, and its perpetual render loop does not fit this transient animation design. No dependency was retained. Page pagination, text anchors and offline storage continue to use Fylogia's existing implementations.
+
+## Full article experience and feed review
+
+The [26-source content review](docs/feed-content-review.md) records real feed-body availability and permission boundaries. MIT News syndication and Home Assistant's noncommercial share-alike text join NASA and Global Voices. Attribution and applicable license/reprint notices travel inside downloaded article bodies. Optional content metadata survives plain/encrypted export and IndexedDB recovery; old articles without it remain valid. Older saved/downloaded previews are retained until the user replaces their offline copy.
+
+Use **Full articles only** while browsing to find articles available inside Fylogia. Source settings report the number of full texts from the latest refresh. Full articles show estimated reading time and support immersive pagination, headings, lists, code and tables. Preview stories explain the limit and link directly to the publisher near the headline. Feed bodies alone do not establish permission: unverified publishers remain previews, and no article-page scraping or paywall bypass is used.
+
+The MIT license covers Fylogia's application code. Publisher article text, photographs and other third-party materials retain their own rights and licenses; they are not relicensed under the application's MIT license.
+
+PDF decoding assets are packaged from the installed pdf.js version under a versioned local URL and included in the PWA cache, so JPEG2000/JBIG2 images do not depend on a missing decoder or external CDN. Their upstream licenses are retained. Curl layers also have a bounded cleanup deadline and cancel on lost pointer capture, including when WebKit temporarily suspends animation frames.

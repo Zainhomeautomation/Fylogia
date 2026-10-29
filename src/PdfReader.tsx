@@ -48,10 +48,15 @@ function Canvas({
         canvas.style.width = width + "px";
         canvas.style.height =
           viewport.height / Math.min(devicePixelRatio, 2) + "px";
+        canvas.setAttribute("aria-busy", "true");
         task = page.render({ canvas, viewport });
-        task.promise.catch((e) => {
-          if (!cancelled) setError(String(e));
-        });
+        task.promise
+          .then(() => {
+            if (!cancelled) canvas.setAttribute("aria-busy", "false");
+          })
+          .catch((e) => {
+            if (!cancelled) setError(String(e));
+          });
       })
       .catch((e) => {
         if (!cancelled) setError(String(e));
@@ -66,7 +71,11 @@ function Canvas({
       {error ? (
         <p role="alert">{error}</p>
       ) : (
-        <canvas ref={ref} aria-label={`Magazine page ${num}`} />
+        <canvas
+          ref={ref}
+          aria-busy="true"
+          aria-label={`Magazine page ${num}`}
+        />
       )}
     </div>
   );
@@ -108,7 +117,10 @@ export default function PdfReader({
     }
     const entry = (!local && retainedEdition) || {
       url,
-      task: pdfjs.getDocument({ url }),
+      task: pdfjs.getDocument({
+        url,
+        wasmUrl: `${import.meta.env.BASE_URL}pdfjs/${pdfjs.version}/`,
+      }),
       loaded: false,
     };
     if (!local) retainedEdition = entry;
