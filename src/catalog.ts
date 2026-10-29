@@ -284,6 +284,7 @@ export const sources: Source[] = [
   ...expandedSources,
 ];
 export interface Article {
+  feedContexts?: { sourceId: string; categories: string[]; region: string }[];
   alsoIn?: string[];
   duplicateCount?: number;
   author?: string;

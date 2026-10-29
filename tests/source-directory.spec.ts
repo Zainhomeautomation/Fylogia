@@ -83,6 +83,16 @@ test("merged stories remain visible to readers following the alternate feed", as
     ...original,
     title: "Source provenance regression fixture",
     sourceId: "nasa",
+    region: "United States",
+    categories: ["World News", "Technology"],
+    feedContexts: [
+      { sourceId: "nasa", region: "United States", categories: ["World News"] },
+      {
+        sourceId: "nasa-science",
+        region: "Worldwide",
+        categories: ["Technology"],
+      },
+    ],
     alsoIn: ["nasa-science"],
     duplicateCount: 2,
   };
@@ -96,7 +106,7 @@ test("merged stories remain visible to readers following the alternate feed", as
         complete: true,
         interests: ["Space"],
         topics: [],
-        region: "Worldwide",
+        region: "Europe",
         sourceIds: ["nasa-science"],
         customSources: [],
         theme: "navy",

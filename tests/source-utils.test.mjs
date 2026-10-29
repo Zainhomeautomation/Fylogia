@@ -238,3 +238,43 @@ test("duplicate URL aliases cannot reappear after same-publisher headline mergin
   assert.equal(result.articles.length, 1);
   assert.equal(result.duplicatesRemoved, 2);
 });
+
+test("duplicate classifications and unchanged alternate contributions survive feed refresh", async () => {
+  const { articleMatchesLibrary } = await import("../src/source-utils.ts");
+  const a = {
+    ...article("us", "https://publisher.example/story"),
+    categories: ["World News", "Politics"],
+    region: "United States",
+  };
+  const b = {
+    ...a,
+    sourceId: "tech",
+    categories: ["Technology"],
+    region: "Worldwide",
+  };
+  const merged = deduplicateArticles([
+    { id: "tech", articles: [b] },
+    { id: "us", articles: [a] },
+  ]).articles[0];
+  assert.ok(merged.categories.includes("Technology"));
+  assert.ok(
+    articleMatchesLibrary(merged, {
+      sourceIds: ["tech"],
+      region: "Middle East",
+    }),
+  );
+  assert.ok(
+    !articleMatchesLibrary(merged, {
+      sourceIds: ["us"],
+      region: "Middle East",
+    }),
+  );
+  // Original representative feed drops the item; alternate feed is unchanged (304).
+  const cached = deduplicateArticles([{ id: "tech", articles: [merged] }])
+    .articles[0];
+  assert.ok(cached.alsoIn.includes("tech"));
+  assert.ok(
+    articleMatchesLibrary(cached, { sourceIds: ["tech"], region: "Europe" }),
+  );
+  assert.deepEqual(cached.categories, ["Technology"]);
+});

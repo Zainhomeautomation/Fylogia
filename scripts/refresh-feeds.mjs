@@ -121,7 +121,11 @@ async function worker() {
 }
 await Promise.all(Array.from({ length: 6 }, worker));
 const merged = deduplicateArticles(
-  results.map((r) => ({ id: r.status.id, articles: r.articles })),
+  results.map((r) => ({
+    id: r.status.id,
+    articles: r.articles,
+    source: sources.find((s) => s.id === r.status.id),
+  })),
 );
 merged.articles.sort((a, b) =>
   (b.published || "").localeCompare(a.published || ""),

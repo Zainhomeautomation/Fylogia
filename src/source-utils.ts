@@ -97,11 +97,23 @@ export function canonicalStoryUrl(value: string) {
   }
 }
 export function deduplicateArticles(
-  groups: { id: string; articles: Article[] }[],
+  groups: {
+    id: string;
+    articles: Article[];
+    source?: Pick<Source, "categories" | "region">;
+  }[],
 ) {
   const records = new Map<
     string,
-    { article: Article; sources: Set<string>; count: number }
+    {
+      article: Article;
+      sources: Set<string>;
+      contexts: Map<
+        string,
+        { sourceId: string; categories: string[]; region: string }
+      >;
+      count: number;
+    }
   >();
   const titles = new Map<string, string>();
   const aliases = new Map<string, string>();
@@ -110,7 +122,21 @@ export function deduplicateArticles(
     (a.full ? 100 : 0) + (a.offlineImagesAllowed ? 10 : 0) + (a.image ? 1 : 0);
   for (const group of groups)
     for (const input of group.articles) {
-      const { alsoIn: _old, duplicateCount: _count, ...article } = input;
+      const {
+        alsoIn: _old,
+        duplicateCount: _count,
+        feedContexts: _contexts,
+        ...article
+      } = input;
+      const classification =
+        group.source ||
+        input.feedContexts?.find((c) => c.sourceId === group.id) ||
+        input;
+      const context = {
+        sourceId: group.id,
+        categories: classification.categories || [],
+        region: classification.region || "Worldwide",
+      };
       const canonical = canonicalStoryUrl(article.url);
       const title = article.title
         .toLowerCase()
@@ -131,6 +157,7 @@ export function deduplicateArticles(
       if (old) {
         old.sources.add(group.id);
         old.sources.add(article.sourceId);
+        old.contexts.set(group.id, context);
         old.count++;
         duplicatesRemoved++;
         if (score(article) >= score(old.article)) old.article = article;
@@ -138,20 +165,27 @@ export function deduplicateArticles(
         records.set(key, {
           article,
           sources: new Set([group.id, article.sourceId]),
+          contexts: new Map([[group.id, context]]),
           count: 1,
         });
       aliases.set(canonical, key);
       if (signature) titles.set(signature, key);
     }
-  const articles = [...records.values()].map(({ article, sources, count }) => ({
-    ...article,
-    ...(count > 1
-      ? {
-          duplicateCount: count,
-          alsoIn: [...sources].filter((id) => id !== article.sourceId),
-        }
-      : {}),
-  }));
+  const articles = [...records.values()].map(
+    ({ article, sources, contexts, count }) => ({
+      ...article,
+      categories: [
+        ...new Set([...contexts.values()].flatMap((c) => c.categories)),
+      ],
+      ...(sources.size > 1 || count > 1
+        ? {
+            feedContexts: [...contexts.values()],
+            alsoIn: [...sources].filter((id) => id !== article.sourceId),
+          }
+        : {}),
+      ...(count > 1 ? { duplicateCount: count } : {}),
+    }),
+  );
   return { articles, duplicatesRemoved };
 }
 export function recommendSources(
@@ -196,5 +230,30 @@ export function sourceMatches(
     (region === "All regions" || s.region === region) &&
     (content === "All content" ||
       (content === "Full text capable" ? !!s.full : !s.full))
+  );
+}
+
+export function articleMatchesLibrary(
+  article: Article,
+  prefs: Pick<Preferences, "sourceIds" | "region">,
+) {
+  const contexts = article.feedContexts || [
+    {
+      sourceId: article.sourceId,
+      categories: article.categories,
+      region: article.region,
+    },
+    ...(article.alsoIn || []).map((sourceId) => ({
+      sourceId,
+      categories: article.categories,
+      region: article.region,
+    })),
+  ];
+  return contexts.some(
+    (c) =>
+      prefs.sourceIds.includes(c.sourceId) &&
+      (prefs.region === "Worldwide" ||
+        c.region === prefs.region ||
+        (c.region === "Worldwide" && !c.categories.includes("World News"))),
   );
 }

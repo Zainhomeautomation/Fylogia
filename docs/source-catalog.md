@@ -4,12 +4,12 @@ This is source-expansion validation, not the final production audit. The 26 orig
 
 ## Measured refresh
 
-- Snapshot: 2026-10-29T13:32:18.377Z.
-- Successful refreshes, including conditional HTTP 304: 178/179 (99.44%).
+- Snapshot: 2026-10-29T13:42:37.860Z.
+- Successful refreshes, including conditional HTTP 304: 174/179 (97.21%).
 - 8 full-text-capable sources; 171 conservative preview sources.
-- 1609 unique stories: 78 full and 1531 previews; 30 duplicate feed entries combined.
-- 95 conditional responses reused previous bodies.
-- Failed refreshes: yahoo-sports (fetch failed; 8 retained entries).
+- 1610 unique stories: 78 full and 1532 previews; 29 duplicate feed entries combined.
+- 74 conditional responses reused previous bodies.
+- Failed refreshes: six-colors (fetch failed; 8 retained entries), eso-news (The operation was aborted due to timeout; 8 retained entries), fstoppers (fetch failed; 8 retained entries), naked-capitalism (fetch failed; 8 retained entries), yahoo-sports (fetch failed; 8 retained entries).
 
 A failed current refresh is not reported as healthy because a previous request succeeded. All selected endpoints were validated with usable dated content during selection. Latest-entry age is shown separately: fresh ≤30 days, infrequent ≤90 days, stale >90 days. Technical blogs publish less frequently. Feeds are rechecked every four hours; availability and article counts vary.
 
@@ -86,7 +86,7 @@ Tracking URLs and same-publisher exact long headlines on the same date are merge
 | [All News](https://www.investing.com/rss/news.rss) | Business, Economy | Worldwide | Preview | OK | fresh |
 | [Budget Bytes](https://www.budgetbytes.com/feed/) | Cooking, Healthy Food | Worldwide | Preview | OK | fresh |
 | [Federal Reserve News](https://www.federalreserve.gov/feeds/press_all.xml) | Economy, Business | United States | Preview | OK | fresh |
-| [Six Colors](https://sixcolors.com/feed/) | Apple, Technology | Worldwide | Preview | OK | fresh |
+| [Six Colors](https://sixcolors.com/feed/) | Apple, Technology | Worldwide | Preview | Retained / unavailable | fresh |
 | [Digital Camera World](https://www.digitalcameraworld.com/feeds.xml) | Photography, Technology | Worldwide | Preview | OK | fresh |
 | [OpenAI News](https://openai.com/news/rss.xml) | AI, Technology | Worldwide | Preview | OK | fresh |
 | [Cancer Research UK News](https://news.cancerresearchuk.org/feed/) | Health, Science | Worldwide | Preview | OK | fresh |
@@ -98,7 +98,7 @@ Tracking URLs and same-publisher exact long headlines on the same date are merge
 | [One Mile at a Time](https://onemileatatime.com/feed/) | Travel, Aviation | Worldwide | Preview | OK | fresh |
 | [Autosport](https://www.autosport.com/rss/all/news/) | Sports, Cars | Worldwide | Preview | OK | fresh |
 | [AirlineGeeks](https://airlinegeeks.com/feed/) | Aviation, Travel | Worldwide | Preview | OK | fresh |
-| [ESO News](https://www.eso.org/public/news/feed/) | Space, Science, Photography | Worldwide | Preview | OK | fresh |
+| [ESO News](https://www.eso.org/public/news/feed/) | Space, Science, Photography | Worldwide | Preview | Retained / unavailable | fresh |
 | [AppleHome Authority](https://www.applehomeauthority.com/feed/) | Smart Home, Apple | Worldwide | Preview | OK | fresh |
 | [Bambu Lab Blog](https://blog.bambulab.com/rss/) | 3D Printing, Technology | Worldwide | Preview | OK | fresh |
 | [Economic Times](https://economictimes.indiatimes.com/rssfeedsdefault.cms) | Business, Economy | Worldwide | Preview | OK | fresh |
@@ -122,7 +122,7 @@ Tracking URLs and same-publisher exact long headlines on the same date are merge
 | [Pinch of Yum](https://pinchofyum.com/feed) | Cooking, Healthy Food | Worldwide | Preview | OK | fresh |
 | [European Central Bank](https://www.ecb.europa.eu/rss/press.html) | Economy, Business | Europe | Preview | OK | fresh |
 | [Apple Developer News](https://developer.apple.com/news/rss/news.rss) | Apple, Technology | Worldwide | Preview | OK | fresh |
-| [Fstoppers](https://fstoppers.com/feed) | Photography, Technology | Worldwide | Preview | OK | fresh |
+| [Fstoppers](https://fstoppers.com/feed) | Photography, Technology | Worldwide | Preview | Retained / unavailable | fresh |
 | [Google Research](https://research.google/blog/rss/) | AI, Science | Worldwide | Preview | OK | fresh |
 | [KFF Health News](https://kffhealthnews.org/feed/) | Health, Politics | United States | Preview | OK | fresh |
 | [Nintendo Life](https://www.nintendolife.com/feeds/latest) | Gaming | Worldwide | Preview | OK | fresh |
@@ -137,7 +137,7 @@ Tracking URLs and same-publisher exact long headlines on the same date are merge
 | [VoxelMatters](https://www.voxelmatters.com/feed/) | 3D Printing, Technology | Worldwide | Preview | OK | fresh |
 | [Fortune](https://fortune.com/feed/fortune-feeds/?id=3230629) | Business, Economy | Worldwide | Preview | OK | fresh |
 | [Skinnytaste](https://www.skinnytaste.com/feed/) | Cooking, Healthy Food | Worldwide | Preview | OK | fresh |
-| [Naked Capitalism](https://www.nakedcapitalism.com/feed) | Economy, Business | Worldwide | Preview | OK | fresh |
+| [Naked Capitalism](https://www.nakedcapitalism.com/feed) | Economy, Business | Worldwide | Preview | Retained / unavailable | fresh |
 | [iDownloadBlog](https://www.idownloadblog.com/feed/) | Apple, Technology | Worldwide | Preview | OK | fresh |
 | [Amateur Photographer](https://amateurphotographer.com/feed/) | Photography | Worldwide | Preview | OK | fresh |
 | [Hugging Face](https://huggingface.co/blog/feed.xml) | AI, Technology | Worldwide | Preview | OK | fresh |

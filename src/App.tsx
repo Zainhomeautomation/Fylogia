@@ -38,6 +38,7 @@ import { loadCustom } from "./feeds";
 import { useOfflineLibrary } from "./useOfflineLibrary";
 import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
+import { articleMatchesLibrary } from "./source-utils";
 import { useSectionRoute } from "./useSectionRoute";
 const navigation = [
   { id: "home", label: "For You", icon: Home },
@@ -245,14 +246,7 @@ export default function App() {
   const articles = useMemo(() => {
     let result = view === "saved" ? saved : view === "history" ? history : all;
     if (view === "home")
-      result = result.filter(
-        (a) =>
-          (prefs.sourceIds.includes(a.sourceId) ||
-            a.alsoIn?.some((id) => prefs.sourceIds.includes(id))) &&
-          (prefs.region === "Worldwide" ||
-            a.region === prefs.region ||
-            (a.region === "Worldwide" && !a.categories.includes("World News"))),
-      );
+      result = result.filter((a) => articleMatchesLibrary(a, prefs));
     if (readableOnly) result = result.filter((a) => a.full);
     if (filter !== "All stories")
       result = result.filter((a) => a.categories.includes(filter));

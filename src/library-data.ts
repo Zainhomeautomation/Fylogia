@@ -102,6 +102,23 @@ function articles(v: unknown): Article[] {
       categories: a.categories,
       url: a.url,
       full: a.full,
+      ...(Array.isArray(a.feedContexts) &&
+      a.feedContexts.length <= 5000 &&
+      a.feedContexts.every(
+        (c: any) =>
+          c &&
+          typeof c.sourceId === "string" &&
+          strings(c.categories) &&
+          typeof c.region === "string",
+      )
+        ? {
+            feedContexts: a.feedContexts.map((c: any) => ({
+              sourceId: c.sourceId,
+              categories: c.categories,
+              region: c.region,
+            })),
+          }
+        : {}),
       ...(strings(a.alsoIn) ? { alsoIn: a.alsoIn } : {}),
       ...(Number.isInteger(a.duplicateCount) &&
       a.duplicateCount > 1 &&
