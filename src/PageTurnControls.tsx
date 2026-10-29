@@ -50,7 +50,7 @@ export function PageTurnControls({
     >
       {!learned && (
         <aside className="turn-tutorial" aria-label="Page turning guide">
-          <span>Swipe or drag to turn pages</span>
+          <span>Drag or swipe to turn pages</span>
           <small>
             Try dragging the folded corner inward. Release halfway to turn; drag
             back to cancel.
@@ -69,7 +69,7 @@ export function PageTurnControls({
                   ? "Drag or tap to turn forward"
                   : "Drag or tap to turn backward"
               }
-              title="Swipe or drag to turn pages"
+              title="Drag or swipe to turn pages"
               onPointerDown={(e) => {
                 if (e.button !== 0) return;
                 const surface = e.currentTarget.closest(

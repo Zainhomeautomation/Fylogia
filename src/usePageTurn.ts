@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
 function snapshot(surface: HTMLElement) {
   const image = surface.cloneNode(true) as HTMLElement;
   image
-    .querySelectorAll(".turn-leaf, .page-turn-controls")
+    .querySelectorAll(".turn-leaf, .curl-underlay, .page-turn-controls")
     .forEach((n) => n.remove());
   surface.querySelectorAll("canvas").forEach((canvas, i) => {
     const target = image.querySelectorAll("canvas")[i];
@@ -143,6 +143,10 @@ export function usePageTurn(
   page: number,
   enabled = true,
   animatePage = true,
+  prepare?: (
+    forward: boolean,
+    signal: AbortSignal,
+  ) => Promise<HTMLElement | undefined>,
 ) {
   const state = useRef<ReturnType<typeof paper> | null>(null);
   const frame = useRef(0),
@@ -156,7 +160,12 @@ export function usePageTurn(
     canvases: HTMLCanvasElement[];
   } | null>(null);
   const deadline = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const underlay = useRef<HTMLElement | null>(null);
+  const preparing = useRef<AbortController | null>(null);
   function clear() {
+    preparing.current?.abort();
+    underlay.current?.remove();
+    underlay.current = null;
     clearTimeout(deadline.current);
     cancelAnimationFrame(frame.current);
     state.current?.leaf.remove();
@@ -258,12 +267,44 @@ export function usePageTurn(
         return;
       state.current = paper(ref.current, snapshot(ref.current), forward);
       state.current.draw(0);
+      const surface = ref.current;
+      const controller = new AbortController();
+      preparing.current = controller;
+      const add = (image?: HTMLElement) => {
+        if (!image || controller.signal.aborted || !state.current) return;
+        image.className = "curl-underlay";
+        image.inert = true;
+        image.setAttribute("aria-hidden", "true");
+        if (surface.dataset.spread === "2")
+          image.style.clipPath = forward
+            ? "inset(0 0 0 50%)"
+            : "inset(0 50% 0 0)";
+        surface.insertBefore(image, state.current.leaf);
+        underlay.current = image;
+      };
+      if (prepare)
+        void prepare(forward, controller.signal)
+          .then(add)
+          .catch(() => {});
+      else {
+        const image = snapshot(surface);
+        const content = image.querySelector<HTMLElement>(".turn-content");
+        if (content) {
+          const x = Number(
+            content.style.transform.match(/translateX\(([-\d.]+)px\)/)?.[1] ||
+              0,
+          );
+          content.style.transform = `translateX(${x + (forward ? -1 : 1) * (surface.clientWidth + 40)}px)`;
+          add(image);
+        }
+      }
     },
     move(progress: number) {
       value.current = progress;
       state.current?.draw(progress);
     },
     end(commit: boolean, turn: () => void) {
+      preparing.current?.abort();
       if (!state.current) {
         if (commit) turn();
         return;

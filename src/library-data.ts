@@ -133,7 +133,7 @@ export function normalizeLibraryValue(
       !strings(p.sourceIds) ||
       !Array.isArray(p.customSources) ||
       p.customSources.length > 500 ||
-      !["system", "light", "dark"].includes(p.theme) ||
+      !["system", "light", "dark", "navy"].includes(p.theme) ||
       (p.topics !== undefined && !strings(p.topics))
     )
       throw new Error("Invalid preferences");

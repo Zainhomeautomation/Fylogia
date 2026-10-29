@@ -315,7 +315,7 @@ export interface Preferences {
   region: string;
   sourceIds: string[];
   customSources: Source[];
-  theme: "system" | "light" | "dark";
+  theme: "system" | "light" | "dark" | "navy";
   reading: "pages" | "scroll";
   fontSize: number;
   converter: boolean;
@@ -327,7 +327,7 @@ export const defaults: Preferences = {
   region: "Worldwide",
   sourceIds: [],
   customSources: [],
-  theme: "system",
+  theme: "navy",
   reading: "pages",
   fontSize: 19,
   converter: false,

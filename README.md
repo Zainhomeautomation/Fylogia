@@ -217,3 +217,11 @@ Use **Full articles only** while browsing to find articles available inside Fylo
 The MIT license covers Fylogia's application code. Publisher article text, photographs and other third-party materials retain their own rights and licenses; they are not relicensed under the application's MIT license.
 
 PDF decoding assets are packaged from the installed pdf.js version under a versioned local URL and included in the PWA cache, so JPEG2000/JBIG2 images do not depend on a missing decoder or external CDN. Their upstream licenses are retained. Curl layers also have a bounded cleanup deadline and cancel on lost pointer capture, including when WebKit temporarily suspends animation frames.
+
+## Final appearance and curl direction
+
+Appearance offers Midnight Navy (`#0A1018`), Editorial Green, Light and System. New profiles default to Navy, with lighter navy surfaces, cream text and sage accents. Existing stored `dark` preferences remain Editorial Green, and old light/system values remain valid. System resolves to Navy for a dark device appearance and Light otherwise. Appearance metadata and installation colors follow the Navy default; the app restores the user's selected appearance after launch.
+
+Dragging now reveals the destination article columns or an asynchronously rendered next PDF page underneath the outgoing paper. PDF preview rendering is abortable and capped to a viewport-sized pixel budget; cancelled drags leave the current page and progress intact. The guide still uses its existing completion key, so returning users are not retrained.
+
+**Curl fidelity limitation:** the renderer is a twelve-strip projected curve approximation with shaded paper backs and corner lift. It is not a physically deformable paper simulation, and should not be presented as equivalent to a high-fidelity physical page curl. StPageFlip's separate page collection and render lifecycle were evaluated previously; no new library is retained. Physical mobile-Safari performance and feel remain unverified. Reduced-motion mode keeps immediate accessible navigation.

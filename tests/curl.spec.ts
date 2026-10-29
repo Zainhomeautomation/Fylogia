@@ -38,6 +38,17 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
     if (cancel) await corner.dispatchEvent(cancel, { pointerId: 1 });
     else {
       await expect(page.locator(".curl-strip")).toHaveCount(12);
+      await expect(page.locator(".curl-underlay")).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+      const liveTransform = await page
+        .locator(".reader-content")
+        .evaluate((n) => (n as HTMLElement).style.transform);
+      const nextTransform = await page
+        .locator(".curl-underlay .turn-content")
+        .evaluate((n) => (n as HTMLElement).style.transform);
+      expect(nextTransform).not.toBe(liveTransform);
       const transforms = await page
         .locator(".curl-strip")
         .evaluateAll((nodes) =>
@@ -51,6 +62,7 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
     }
     await page.mouse.up();
     await expect(page.locator(".turn-leaf")).toHaveCount(0);
+    await expect(page.locator(".curl-underlay")).toHaveCount(0);
   }
   await drag(0.15);
   await expect(status).toHaveText(before);
