@@ -95,12 +95,14 @@ function Canvas({
   );
 }
 export default function PdfReader({
+  id,
   url,
   title,
   onClose,
   onHome,
   onCover,
 }: {
+  id: string;
   url: string;
   title: string;
   onClose: () => void;
@@ -144,7 +146,7 @@ export default function PdfReader({
   const pinching = useRef(false);
   const lastTap = useRef(0);
   const touchZoomed = useRef(0);
-  const progressKey = "fylogia.pdf.progress." + title;
+  const progressKey = "fylogia.pdf.progress." + id;
   function changeZoom(value: number) {
     const next = Math.max(1, Math.min(4, value));
     zoomRef.current = next;

@@ -26,6 +26,9 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
   });
   const edition = page.getByRole("button", { name: /Portrait magazine/ });
   await expect(edition.locator("img")).toHaveAttribute("src", /^data:image\//);
+  const magazineId = await edition.evaluate((n) =>
+    n.closest("article")!.getAttribute("data-magazine-id")!,
+  );
   await edition.click();
   const surface = page.locator(".pdf-spread");
   for (const size of [
@@ -208,6 +211,15 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
     page.getByRole("heading", { name: "Magazines", exact: true }),
   ).toBeVisible();
   await expect(edition.locator("img")).toHaveAttribute("src", /^data:image\//);
+  await expect
+    .poll(() =>
+      page
+        .getByAltText("NASA Spinoff 2025 — original publication cover")
+        .evaluate(
+          (image: HTMLImageElement) => image.complete && image.naturalWidth > 0,
+        ),
+    )
+    .toBeTruthy();
   await edition.click();
   await expect(page.locator(".pdf-page canvas[aria-busy=false]")).toBeVisible();
   await expect(page.locator(".reader-footer")).toContainText("Page 3 of 5");
@@ -221,8 +233,9 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
     ),
   ).toBe("3");
   expect(
-    await page.evaluate(() =>
-      localStorage.getItem("fylogia.pdf.progress.Portrait magazine"),
+    await page.evaluate(
+      (id) => localStorage.getItem("fylogia.pdf.progress." + id),
+      magazineId,
     ),
   ).toBe("4");
   await context.setOffline(false);
@@ -258,4 +271,61 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
   ).toBeLessThanOrEqual(area.height - 39);
   await page.mouse.up();
   await expect(page.locator(".reader-footer")).toContainText("Page 1 of 3");
+});
+
+test("same-filename private magazines retain independent automatic reading positions", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Create My Fylogia" }).click();
+  await page
+    .getByRole("button", { name: "Open navigation", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Magazines", exact: true }).click();
+  const file = {
+    name: "Shared name.pdf",
+    mimeType: "application/pdf",
+    buffer: magazineFixture(),
+  };
+  await page.locator("input[type=file]").setInputFiles(file);
+  const cards = page.locator(".magazine").filter({
+    has: page.getByRole("heading", { name: "Shared name", exact: true }),
+  });
+  await expect(cards).toHaveCount(1);
+  const first = await cards.getAttribute("data-magazine-id");
+  await cards.locator(".magazine-cover").click();
+  await expect(page.locator(".pdf-page canvas[aria-busy=false]")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Next magazine page", exact: true })
+    .click();
+  await expect(page.locator(".reader-footer")).toContainText("Page 2 of 5");
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  await page.locator("input[type=file]").setInputFiles(file);
+  await expect(cards).toHaveCount(2);
+  const second = await cards.evaluateAll(
+    (nodes, old) =>
+      nodes
+        .map((n) => n.getAttribute("data-magazine-id"))
+        .find((id) => id !== old),
+    first,
+  );
+  await page.locator(`[data-magazine-id="${second}"] .magazine-cover`).click();
+  await expect(page.locator(".reader-footer")).toContainText("Page 1 of 5");
+  await page
+    .getByRole("button", { name: "Next magazine page", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Next magazine page", exact: true })
+    .click();
+  await expect(page.locator(".reader-footer")).toContainText("Page 3 of 5");
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  await page.locator(`[data-magazine-id="${first}"] .magazine-cover`).click();
+  await expect(page.locator(".reader-footer")).toContainText("Page 2 of 5");
 });

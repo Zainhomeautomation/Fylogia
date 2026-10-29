@@ -4,7 +4,7 @@ Original PDF pages fit both the available width and height before zooming. A por
 
 Zoom controls, double-click/double-tap and scoped two-finger pinch support closer reading. Zoomed pages pan inside the PDF surface; page-corner gestures are paused until Fit is selected, avoiding conflicts between panning and page turns. Footer navigation remains available and returns to the fitted layout. Rendering is capped at device density 2 and five million backing pixels per visible page. This limits memory use on mobile browsers; maximum zoom is not equivalent to unlimited print-resolution rendering.
 
-Automatic PDF reading position uses a separate `fylogia.pdf.progress.<title>` key. Existing `folio.v1.pdf.<title>` bookmarks remain intact and provide the initial position when no newer progress exists. Imported PDF files keep their existing IndexedDB database/store. No destructive migration occurs.
+Automatic PDF reading position uses a separate `fylogia.pdf.progress.<magazine-id>` key. Existing `folio.v1.pdf.<title>` bookmarks remain intact and provide the initial position when no newer progress exists. Imported PDF files keep their existing IndexedDB database/store. No destructive migration occurs.
 
 The NASA library thumbnail is the actual front panel of the original PDF cover, rendered at 800 pixels. It identifies the publication and does not imply NASA endorsement. Source: https://ntts-prod.s3.amazonaws.com/t2p/prod/spinoff/NASA.Spinoff_2025_508.pdf. Media guidance: https://www.nasa.gov/nasa-brand-center/images-and-media/. New private PDF covers are rendered in the browser and stored with the local file; neither file nor cover is uploaded. Older imports generate and retain a local cover when first opened, without reimporting or replacing the PDF.
 

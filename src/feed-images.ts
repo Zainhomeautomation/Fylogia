@@ -61,6 +61,7 @@ export function feedImage(item: any, html: string, base: string) {
       ];
   return (
     choose([...originals, ...inline]) ||
+    imageUrl(img.match(/\ssrc\s*=\s*["']([^"']+)["']/i)?.[1] || "", base) ||
     choose(
       feedArray(item["media:thumbnail"]).map((m) => ({
         url: imageUrl(m["@_url"], base),

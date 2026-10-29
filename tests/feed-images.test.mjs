@@ -37,6 +37,18 @@ test("a publisher srcset upgrades the inline image and survives sanitation as on
 test("missing image metadata stays absent and safe thumbnail fallback remains supported", () => {
   assert.equal(feedImage({}, "<p>Only text.</p>", base), "");
   assert.equal(
+    feedImage({}, '<img src="/fallback.jpg" srcset="/original.jpg">', base),
+    "https://publisher.example/fallback.jpg",
+  );
+  assert.equal(
+    feedImage(
+      {},
+      '<img src="/fallback.jpg" srcset="javascript:alert(1) 2x">',
+      base,
+    ),
+    "https://publisher.example/fallback.jpg",
+  );
+  assert.equal(
     feedImage({ "media:thumbnail": { "@_url": "/thumb.jpg" } }, "", base),
     "https://publisher.example/thumb.jpg",
   );

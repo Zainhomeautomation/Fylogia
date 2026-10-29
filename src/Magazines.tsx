@@ -139,7 +139,7 @@ export function Magazines({ onHome }: { onHome: () => void }) {
       {error && <p role="alert">{error}</p>}
       <div className="magazine-grid">
         {[...editions, ...local].map((m, i) => (
-          <article className="magazine" key={m.id}>
+          <article className="magazine" key={m.id} data-magazine-id={m.id}>
             <button
               aria-label={`Open ${m.title}`}
               className={
@@ -209,6 +209,7 @@ export function Magazines({ onHome }: { onHome: () => void }) {
       {active && (
         <Suspense fallback={<div className="loading">Opening magazine…</div>}>
           <PdfReader
+            id={active.id}
             url={active.url}
             title={active.title}
             onCover={
