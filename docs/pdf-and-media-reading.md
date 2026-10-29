@@ -1,0 +1,13 @@
+# PDF and editorial media reading
+
+Original PDF pages fit both the available width and height before zooming. A portrait document uses facing pages only when the viewport can provide two pages at least 280 CSS pixels wide. A landscape PDF whose original pages already represent spreads (including NASA Spinoff 2025) shows one original spread at a time. Rotation and viewport changes retain the current original page number.
+
+Zoom controls, double-click/double-tap and scoped two-finger pinch support closer reading. Zoomed pages pan inside the PDF surface; page-corner gestures are paused until Fit is selected, avoiding conflicts between panning and page turns. Footer navigation remains available and returns to the fitted layout. Rendering is capped at device density 2 and five million backing pixels per visible page. This limits memory use on mobile browsers; maximum zoom is not equivalent to unlimited print-resolution rendering.
+
+Automatic PDF reading position uses a separate `fylogia.pdf.progress.<title>` key. Existing `folio.v1.pdf.<title>` bookmarks remain intact and provide the initial position when no newer progress exists. Imported PDF files keep their existing IndexedDB database/store. No destructive migration occurs.
+
+The NASA library thumbnail is the actual front panel of the original PDF cover, rendered at 800 pixels. It identifies the publication and does not imply NASA endorsement. Source: https://ntts-prod.s3.amazonaws.com/t2p/prod/spinoff/NASA.Spinoff_2025_508.pdf. Media guidance: https://www.nasa.gov/nasa-brand-center/images-and-media/. New private PDF covers are rendered in the browser and stored with the local file; neither file nor cover is uploaded. Older imports generate and retain a local cover when first opened, without reimporting or replacing the PDF.
+
+Article figures use contained images rather than a forced crop. Feed processing chooses actual publisher-provided image candidates, including image media groups and `srcset`, favors widths up to 2560 pixels, rejects non-web URLs and video media, and never guesses CDN transformations. Sanitized content retains one selected safe image URL, captions and attribution. Existing per-source media permission restrictions still apply; larger image availability does not create republication permission.
+
+Validation adds a deterministic multi-page PDF fixture covering fitted dimensions, portrait/facing layouts, resizing, zoom bounds, native Chromium pinch input, WebKit double-tap, automatic progress, bookmarks, local covers and offline relaunch. Three server checks cover image quality selection, safe markup preservation and missing-image fallbacks. Browser/device emulation is not a physical iPhone Duo test.

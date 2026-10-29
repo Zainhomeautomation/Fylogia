@@ -6,12 +6,14 @@ interface Magazine {
   title: string;
   url?: string;
   file?: ArrayBuffer;
+  cover?: string;
   description: string;
 }
 const editions: Magazine[] = [
   {
     id: "nasa-spinoff-2025",
     title: "NASA Spinoff 2025",
+    cover: import.meta.env.BASE_URL + "covers/nasa-spinoff-2025.jpg",
     url: import.meta.env.BASE_URL + "editions/nasa-spinoff-2025.pdf",
     description:
       "NASA’s annual publication on space technology improving life on Earth. Original PDF, provided by NASA.",
@@ -55,7 +57,11 @@ async function records(
 }
 export function Magazines({ onHome }: { onHome: () => void }) {
   const [local, setLocal] = useState<Magazine[]>([]),
-    [active, setActive] = useState<{ url: string; title: string }>(),
+    [active, setActive] = useState<{
+      id: string;
+      url: string;
+      title: string;
+    }>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -82,10 +88,17 @@ export function Magazines({ onHome }: { onHome: () => void }) {
       const data = await file.arrayBuffer();
       if (!new TextDecoder().decode(data.slice(0, 5)).startsWith("%PDF-"))
         throw new Error("Please choose a valid PDF file.");
+      let cover: string | undefined;
+      try {
+        cover = await (await import("./pdf-cover")).createPdfCover(data);
+      } catch {
+        /* A cover is optional; the original PDF remains available. */
+      }
       await records("put", {
         id: crypto.randomUUID(),
         title: file.name.replace(/\.pdf$/i, ""),
         file: data,
+        cover,
         description: "Your private PDF · saved in this browser",
       });
       setLocal(await records("list"));
@@ -128,9 +141,15 @@ export function Magazines({ onHome }: { onHome: () => void }) {
         {[...editions, ...local].map((m, i) => (
           <article className="magazine" key={m.id}>
             <button
-              className={"magazine-cover cover-" + (i % 3)}
+              aria-label={`Open ${m.title}`}
+              className={
+                "magazine-cover cover-" +
+                (i % 3) +
+                (m.cover ? " has-original-cover" : "")
+              }
               onClick={() =>
                 setActive({
+                  id: m.id,
                   title: m.title,
                   url:
                     m.url ||
@@ -140,6 +159,14 @@ export function Magazines({ onHome }: { onHome: () => void }) {
                 })
               }
             >
+              {m.cover && (
+                <img
+                  src={m.cover}
+                  alt={`${m.title} — original publication cover`}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
               <span>{m.url ? "NASA" : "YOUR LIBRARY"}</span>
               <BookOpen size={70} strokeWidth={0.8} />
               <h2>{m.title}</h2>
@@ -184,6 +211,24 @@ export function Magazines({ onHome }: { onHome: () => void }) {
           <PdfReader
             url={active.url}
             title={active.title}
+            onCover={
+              local.some((m) => m.id === active.id && !m.cover)
+                ? async (cover) => {
+                    const magazine = local.find((m) => m.id === active.id);
+                    if (!magazine) return;
+                    try {
+                      await records("put", { ...magazine, cover });
+                      setLocal((previous) =>
+                        previous.map((m) =>
+                          m.id === magazine.id ? { ...m, cover } : m,
+                        ),
+                      );
+                    } catch {
+                      /* The original PDF remains available when thumbnail storage is full. */
+                    }
+                  }
+                : undefined
+            }
             onHome={() => {
               setActive(undefined);
               onHome();

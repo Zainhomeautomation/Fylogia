@@ -223,7 +223,7 @@ export function usePageTurn(
       image,
       canvases: [
         ...surface.querySelectorAll<HTMLCanvasElement>(
-          ":scope > .pdf-page canvas",
+          ":scope > .pdf-page canvas, :scope > .pdf-pages > .pdf-page canvas",
         ),
       ],
     };

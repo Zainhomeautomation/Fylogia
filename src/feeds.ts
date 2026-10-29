@@ -1,3 +1,4 @@
+import { feedImage } from "./feed-images";
 import { parseFeedDocument } from "./source-utils";
 import DOMPurify from "dompurify";
 import type { Article, Source } from "./catalog";
@@ -80,13 +81,7 @@ function parseItems(items: any[], source: Source): Article[] {
         published: Number.isNaN(date.getTime()) ? "" : date.toISOString(),
         categories: source.categories,
         region: source.region,
-        image: safeUrl(
-          item.thumbnail ||
-            item.enclosure?.link ||
-            array(item["media:thumbnail"])[0]?.["@_url"] ||
-            content.match(/<img[^>]+src=["']([^"']+)/i)?.[1] ||
-            "",
-        ),
+        image: feedImage(item, content, url),
         excerpt,
         content: `<p>${DOMPurify.sanitize(excerpt)}</p>`,
         full: false,

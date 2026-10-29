@@ -13,6 +13,9 @@ import {
   Bookmark,
   Maximize2,
   Minimize2,
+  ZoomIn,
+  ZoomOut,
+  Scan,
 } from "lucide-react";
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 // Retain one online edition for this tab so reopening a large magazine does
@@ -24,10 +27,12 @@ function Canvas({
   pdf,
   num,
   width,
+  maxHeight,
 }: {
   pdf: pdfjs.PDFDocumentProxy;
   num: number;
   width: number;
+  maxHeight: number;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState("");
@@ -38,16 +43,25 @@ function Canvas({
       .getPage(num)
       .then((page) => {
         if (cancelled || !ref.current) return;
-        const scale = width / page.getViewport({ scale: 1 }).width;
+        const base = page.getViewport({ scale: 1 });
+        const displayWidth = Math.min(
+          width,
+          (maxHeight * base.width) / base.height,
+        );
+        const displayHeight = (displayWidth * base.height) / base.width;
+        const density = Math.min(
+          devicePixelRatio,
+          2,
+          Math.sqrt(5_000_000 / (displayWidth * displayHeight)),
+        );
         const viewport = page.getViewport({
-          scale: scale * Math.min(devicePixelRatio, 2),
+          scale: (displayWidth / base.width) * density,
         });
         const canvas = ref.current;
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        canvas.style.width = width + "px";
-        canvas.style.height =
-          viewport.height / Math.min(devicePixelRatio, 2) + "px";
+        canvas.style.width = displayWidth + "px";
+        canvas.style.height = displayHeight + "px";
         canvas.setAttribute("aria-busy", "true");
         task = page.render({ canvas, viewport });
         task.promise
@@ -65,7 +79,7 @@ function Canvas({
       cancelled = true;
       task?.cancel();
     };
-  }, [pdf, num, width]);
+  }, [pdf, num, width, maxHeight]);
   return (
     <div className="pdf-page">
       {error ? (
@@ -85,22 +99,65 @@ export default function PdfReader({
   title,
   onClose,
   onHome,
+  onCover,
 }: {
   url: string;
   title: string;
   onClose: () => void;
   onHome: () => void;
+  onCover?: (cover: string) => void;
 }) {
   const goHome = useReaderReturn(onHome);
+  const coverCallback = useRef(onCover);
+  useEffect(() => {
+    coverCallback.current = onCover;
+  }, [onCover]);
   const [immersive, setImmersive] = useState(false);
   const [pdf, setPdf] = useState<pdfjs.PDFDocumentProxy>(),
     [error, setError] = useState(""),
     [page, setPage] = useState(1),
-    [width, setWidth] = useState(window.innerWidth),
-    [bookmarked, setBookmarked] = useState(false);
+    [size, setSize] = useState({
+      width: window.innerWidth,
+      height: window.innerHeight - 180,
+    }),
+    [ratio, setRatio] = useState(1.3),
+    [zoom, setZoom] = useState(1),
+    [bookmarkPage, setBookmarkPage] = useState(() => {
+      try {
+        return Number(localStorage.getItem("folio.v1.pdf." + title)) || 0;
+      } catch {
+        return 0;
+      }
+    });
+  const bookmarked = bookmarkPage === page;
   const surface = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
-  const spread = width >= 740 ? 2 : 1;
+  const spread =
+    size.width >= 740 && ratio >= 0.85 && (size.height - 40) / ratio >= 280
+      ? 2
+      : 1;
+  const pageWidth = Math.max(
+    1,
+    Math.min((size.width - 36) / spread, (size.height - 40) / ratio, 900),
+  );
+  const zoomRef = useRef(1);
+  const pinching = useRef(false);
+  const lastTap = useRef(0);
+  const touchZoomed = useRef(0);
+  const progressKey = "fylogia.pdf.progress." + title;
+  function changeZoom(value: number) {
+    const next = Math.max(1, Math.min(4, value));
+    zoomRef.current = next;
+    setZoom(next);
+  }
+  function turn(value: number | ((previous: number) => number)) {
+    setPage(value);
+    changeZoom(1);
+    if (surface.current) {
+      surface.current.scrollTop = 0;
+      surface.current.scrollLeft = 0;
+    }
+  }
   const curl = usePageTurn(
     surface,
     page,
@@ -117,16 +174,12 @@ export default function PdfReader({
         if (signal.aborted) return;
         const pdfPage = await pdf.getPage(target + i);
         if (signal.aborted) return;
-        const pageWidth = Math.min((width - 50) / spread, 650);
         const viewport = pdfPage.getViewport({
           scale: pageWidth / pdfPage.getViewport({ scale: 1 }).width,
         });
         const canvas = document.createElement("canvas");
         canvas.width = viewport.width;
-        canvas.height = Math.min(
-          viewport.height,
-          Math.max(1, (surface.current?.clientHeight || viewport.height) - 40),
-        );
+        canvas.height = viewport.height;
         canvas.style.cssText = `width:${pageWidth}px;height:${canvas.height}px;flex-shrink:0`;
         const task = pdfPage.render({ canvas, viewport });
         const cancel = () => task.cancel();
@@ -142,12 +195,30 @@ export default function PdfReader({
       return wrapper;
     },
   );
+  useEffect(() => {
+    if (!pdf || !coverCallback.current) return;
+    let active = true;
+    void import("./pdf-cover")
+      .then((m) => m.renderPdfCover(pdf))
+      .then((cover) => {
+        if (active) coverCallback.current?.(cover);
+      })
+      .catch(() => {
+        /* A missing cover never prevents reading. */
+      });
+    return () => {
+      active = false;
+    };
+  }, [pdf]);
   // Keep existing magazine page bookmarks across the rebrand.
   const key = "folio.v1.pdf." + title;
   useEffect(() => {
     let saved = 1;
     try {
-      saved = Number(localStorage.getItem(key)) || 1;
+      saved =
+        Number(
+          localStorage.getItem(progressKey) || localStorage.getItem(key),
+        ) || 1;
     } catch {}
     let active = true;
     const local = url.startsWith("blob:");
@@ -170,6 +241,11 @@ export default function PdfReader({
         entry.loaded = true;
         if (!active) return;
         setPdf(p);
+        void p.getPage(1).then((first) => {
+          if (!active) return;
+          const dimensions = first.getViewport({ scale: 1 });
+          setRatio(dimensions.height / dimensions.width);
+        });
         setPage(Math.min(saved, p.numPages));
       })
       .catch(() => {
@@ -186,25 +262,78 @@ export default function PdfReader({
         if (retainedEdition === entry) retainedEdition = undefined;
       }
     };
-  }, [url, key]);
+  }, [url, key, progressKey]);
   useEffect(() => {
-    const resize = () => setWidth(window.innerWidth);
-    window.addEventListener("resize", resize);
+    if (pdf) {
+      try {
+        localStorage.setItem(progressKey, String(page));
+      } catch {
+        /* Reading remains available if storage is full. */
+      }
+    }
+  }, [page, pdf, progressKey]);
+  useEffect(() => {
+    const element = surface.current;
+    if (!element) return;
+    const resize = () =>
+      setSize({ width: element.clientWidth, height: element.clientHeight });
+    const observer = new ResizeObserver(resize);
+    observer.observe(element);
+    resize();
     const esc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight")
-        setPage((p) => Math.min(pdf?.numPages || 1, p + spread));
-      if (e.key === "ArrowLeft") setPage((p) => Math.max(1, p - spread));
+        turn((p) => Math.min(pdf?.numPages || 1, p + spread));
+      if (e.key === "ArrowLeft") turn((p) => Math.max(1, p - spread));
     };
     window.addEventListener("keydown", esc);
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      window.removeEventListener("resize", resize);
+      observer.disconnect();
       window.removeEventListener("keydown", esc);
       document.body.style.overflow = previous;
     };
   }, [pdf, spread, onClose]);
+  useEffect(() => {
+    const element = surface.current;
+    if (!element) return;
+    let initial: { distance: number; zoom: number } | null = null;
+    let frame = 0;
+    const distance = (e: TouchEvent) =>
+      Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY,
+      );
+    const begin = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      pinching.current = true;
+      touch.current = null;
+      initial = { distance: distance(e), zoom: zoomRef.current };
+    };
+    const move = (e: TouchEvent) => {
+      if (!initial || e.touches.length !== 2) return;
+      e.preventDefault();
+      const value =
+        (initial.zoom * distance(e)) / Math.max(1, initial.distance);
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => changeZoom(value));
+    };
+    const end = (e: TouchEvent) => {
+      if (e.touches.length < 2) initial = null;
+    };
+    element.addEventListener("touchstart", begin, { passive: true });
+    element.addEventListener("touchmove", move, { passive: false });
+    element.addEventListener("touchend", end, { passive: true });
+    element.addEventListener("touchcancel", end, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      element.removeEventListener("touchstart", begin);
+      element.removeEventListener("touchmove", move);
+      element.removeEventListener("touchend", end);
+      element.removeEventListener("touchcancel", end);
+    };
+  }, []);
   return (
     <div
       className={`reader pdf-reader ${immersive ? "immersive" : ""}`}
@@ -251,7 +380,7 @@ export default function PdfReader({
           onClick={() => {
             try {
               localStorage.setItem(key, String(page));
-              setBookmarked(true);
+              setBookmarkPage(page);
             } catch {
               setError(
                 "Could not save this bookmark. Browser storage is full.",
@@ -275,20 +404,83 @@ export default function PdfReader({
         )}
       </header>
       <div
+        className="pdf-zoom-controls"
+        role="group"
+        aria-label="Magazine zoom"
+      >
+        <button
+          className="icon-button"
+          aria-label="Zoom out"
+          disabled={zoom <= 1}
+          onClick={() => changeZoom(zoom - 0.5)}
+        >
+          <ZoomOut size={18} />
+        </button>
+        <button
+          className="text-button"
+          aria-label="Fit magazine pages"
+          title="Fit magazine pages"
+          onClick={() => changeZoom(1)}
+        >
+          <Scan size={16} /> {Math.round(zoom * 100)}%
+        </button>
+        <button
+          className="icon-button"
+          aria-label="Zoom in"
+          disabled={zoom >= 4}
+          onClick={() => changeZoom(zoom + 0.5)}
+        >
+          <ZoomIn size={18} />
+        </button>
+        <span>
+          {zoom > 1
+            ? "Drag to explore · Fit to turn"
+            : "Double-tap or pinch to zoom"}
+        </span>
+      </div>
+      <div
         className="pdf-spread"
         data-spread={spread}
         ref={surface}
+        data-zoom={zoom}
+        onDoubleClick={(e) => {
+          if (
+            performance.now() - touchZoomed.current > 700 &&
+            (e.target as HTMLElement).closest("canvas")
+          )
+            changeZoom(zoom > 1 ? 1 : 2);
+        }}
         onTouchStart={(e) => {
+          if (e.touches.length !== 1) {
+            touch.current = null;
+            return;
+          }
+          pinching.current = false;
           touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }}
         onTouchEnd={(e) => {
           const start = touch.current;
           touch.current = null;
-          if (!start || !pdf) return;
+          if (!start || !pdf || pinching.current || e.touches.length) return;
           const dx = e.changedTouches[0].clientX - start.x;
           const dy = e.changedTouches[0].clientY - start.y;
-          if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
-            setPage((p) =>
+          if (
+            Math.hypot(dx, dy) < 12 &&
+            (e.target as HTMLElement).closest("canvas")
+          ) {
+            const now = performance.now();
+            if (now - lastTap.current < 300) {
+              touchZoomed.current = now;
+              changeZoom(zoom > 1 ? 1 : 2);
+              lastTap.current = 0;
+            } else lastTap.current = now;
+          }
+          if (
+            zoom === 1 &&
+            Math.abs(dx) > 60 &&
+            Math.abs(dx) > Math.abs(dy) * 1.5
+          )
+            turn((p) =>
               Math.max(
                 1,
                 Math.min(pdf.numPages, p + (dx < 0 ? spread : -spread)),
@@ -300,31 +492,41 @@ export default function PdfReader({
           <p role="alert">{error}</p>
         ) : pdf ? (
           <>
-            {Array.from(
-              { length: Math.min(spread, pdf.numPages - page + 1) },
-              (_, i) => (
-                <Canvas
-                  key={page + i}
-                  pdf={pdf}
-                  num={page + i}
-                  width={Math.min((width - 50) / spread, 650)}
-                />
-              ),
-            )}
+            <div
+              className="pdf-pages"
+              style={{
+                width:
+                  pageWidth * zoom * Math.min(spread, pdf.numPages - page + 1) +
+                  12 * (spread - 1),
+              }}
+            >
+              {Array.from(
+                { length: Math.min(spread, pdf.numPages - page + 1) },
+                (_, i) => (
+                  <Canvas
+                    key={page + i}
+                    pdf={pdf}
+                    num={page + i}
+                    width={pageWidth * zoom}
+                    maxHeight={(size.height - 40) * zoom}
+                  />
+                ),
+              )}
+            </div>
           </>
         ) : (
           <p role="status">Loading original publication…</p>
         )}
       </div>
-      {pdf && pdf.numPages > spread && (
+      {pdf && pdf.numPages > spread && zoom === 1 && (
         <PageTurnControls
           curl={curl}
           previous={
-            page > 1 ? () => setPage((p) => Math.max(1, p - spread)) : undefined
+            page > 1 ? () => turn((p) => Math.max(1, p - spread)) : undefined
           }
           next={
             page + spread <= pdf.numPages
-              ? () => setPage((p) => p + spread)
+              ? () => turn((p) => p + spread)
               : undefined
           }
         />
@@ -335,8 +537,7 @@ export default function PdfReader({
           aria-label="Previous magazine page"
           disabled={page === 1 || !pdf}
           onClick={() => {
-            setPage((p) => Math.max(1, p - spread));
-            setBookmarked(false);
+            turn((p) => Math.max(1, p - spread));
           }}
         >
           <ChevronLeft />
@@ -353,8 +554,7 @@ export default function PdfReader({
           aria-label="Next magazine page"
           disabled={!pdf || page + spread > pdf.numPages}
           onClick={() => {
-            setPage((p) => p + spread);
-            setBookmarked(false);
+            turn((p) => p + spread);
           }}
         >
           Next

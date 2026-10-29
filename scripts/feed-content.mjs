@@ -1,3 +1,4 @@
+import { feedImage } from "../src/feed-images.ts";
 import {
   cleanFeedArticle,
   cleanLicensedFeed,
@@ -25,23 +26,7 @@ export function feedArticle(
   const raw = str(
     item["content:encoded"] || item.content || item.description || item.summary,
   );
-  const image = safe(
-    arr(item["media:content"]).find(
-      (x) =>
-        x["@_url"] &&
-        (x["@_medium"] === "image" ||
-          String(x["@_type"] || "").startsWith("image/") ||
-          (!x["@_medium"] &&
-            !x["@_type"] &&
-            /\.(?:jpe?g|png|webp|gif|avif)(?:[?#]|$)/i.test(x["@_url"]))),
-    )?.["@_url"] ||
-      arr(item["media:thumbnail"])[0]?.["@_url"] ||
-      arr(item.enclosure).find((x) =>
-        String(x["@_type"]).startsWith("image"),
-      )?.["@_url"] ||
-      raw.match(/<img[^>]+src=["']([^"']+)/i)?.[1],
-    url,
-  );
+  const image = feedImage(item, raw, url);
   const author =
     text(item["dc:creator"] || item.author?.name) ||
     (source.id === "homeassistant" ? "Home Assistant contributors" : "");

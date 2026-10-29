@@ -18,6 +18,7 @@ async function codecFiles(directory) {
 }
 const precache = [
   ...(await codecFiles("dist/pdfjs")),
+  ...(await codecFiles("dist/covers")),
   base,
   base + "data/edition.json",
   base + "manifest.webmanifest",

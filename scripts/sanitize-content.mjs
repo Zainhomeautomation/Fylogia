@@ -1,3 +1,4 @@
+import { bestSrcset } from "../src/feed-images.ts";
 import { parseHTML } from "linkedom";
 const tags = new Set(
   "p br strong em b i h2 h3 h4 h5 h6 pre code table thead tbody tr th td sup sub dl dt dd ul ol li blockquote figure figcaption img a".split(
@@ -32,6 +33,10 @@ export function sanitizePublisherContent(html, base) {
         );
       else node.replaceWith(...node.childNodes);
       continue;
+    }
+    if (node.localName === "img" && node.getAttribute("srcset")) {
+      const image = bestSrcset(node.getAttribute("srcset"), base);
+      if (image) node.setAttribute("src", image);
     }
     for (const attr of [...node.attributes]) {
       if (["href", "src"].includes(attr.name)) {
