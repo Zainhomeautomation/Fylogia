@@ -64,6 +64,15 @@ export interface Source {
 }
 export const sources: Source[] = [
   {
+    id: "global-voices",
+    name: "Global Voices",
+    url: "https://globalvoices.org/feed/",
+    site: "https://globalvoices.org",
+    categories: ["World News", "Politics", "Technology"],
+    region: "Worldwide",
+    full: true,
+  },
+  {
     id: "nasa-science",
     name: "NASA Science",
     url: "https://science.nasa.gov/feed/",

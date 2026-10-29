@@ -14,6 +14,8 @@ import {
   Plus,
   Download,
   Check,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import type { Article, Preferences } from "./catalog";
 import { dateLabel } from "./storage";
@@ -48,6 +50,7 @@ export function Reader({
   const viewport = useRef<HTMLDivElement>(null),
     content = useRef<HTMLDivElement>(null),
     close = useRef<HTMLButtonElement>(null);
+  const [immersive, setImmersive] = useState(false);
   const [page, setPageState] = useState(0),
     [count, setCount] = useState(1),
     [width, setWidth] = useState(0),
@@ -160,7 +163,7 @@ export function Reader({
     // anchor through both renders, and through repeated fold/unfold changes.
     navigation.current = false;
     setWidth(w);
-    setSpread(w >= Math.max(680, prefs.fontSize * 36) ? 2 : 1);
+    setSpread(article.full && w >= Math.max(680, prefs.fontSize * 36) ? 2 : 1);
     requestAnimationFrame(() => {
       if (content.current) {
         const n = Math.max(
@@ -270,7 +273,7 @@ export function Reader({
   }
   return (
     <div
-      className="reader"
+      className={`reader ${!article.full ? "preview-reader" : ""} ${immersive ? "immersive" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label={article.title}
@@ -285,6 +288,16 @@ export function Reader({
           <X />
         </button>
         <span className="wordmark">Fylogia</span>
+        <button
+          className="icon-button focus-toggle"
+          aria-label={
+            immersive ? "Exit immersive reading" : "Enter immersive reading"
+          }
+          aria-pressed={immersive}
+          onClick={() => setImmersive(!immersive)}
+        >
+          {immersive ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
         <div className="reader-actions">
           <button
             className="icon-button"
@@ -341,10 +354,7 @@ export function Reader({
       </header>
       {onDownload && (
         <div className="reader-download-strip">
-          <span>
-            {offlineLabel ||
-              "Download this feed article or preview to read without a connection."}
-          </span>
+          <span>{offlineLabel || "Keep this story for offline reading."}</span>
           <button
             className="text-button"
             disabled={downloaded || downloading || !navigator.onLine}
@@ -442,7 +452,7 @@ export function Reader({
           <div className="article-end">
             <p>
               {article.full
-                ? "Article content supplied by the publisher’s RSS feed. NASA material may include third-party credits."
+                ? "Publisher-provided full text, formatted for Fylogia. Attribution and credits are retained."
                 : "Fylogia displays this publisher’s feed preview. The original may have its own access requirements."}
             </p>
             <a

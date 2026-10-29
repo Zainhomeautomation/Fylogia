@@ -205,6 +205,14 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
   await page.getByRole("button", { name: /NASA Spinoff 2025/ }).click();
   await expect(page.locator("canvas").first()).toBeVisible({ timeout: 60000 });
   await expect(page.locator(".reader-footer")).toContainText(/of \d+/);
+  await page.getByRole("button", { name: "Enter immersive reading" }).click();
+  await expect(
+    page.getByRole("button", { name: "Bookmark page" }),
+  ).not.toBeVisible();
+  await page.getByRole("button", { name: "Exit immersive reading" }).click();
+  await expect(
+    page.getByRole("button", { name: "Bookmark page" }),
+  ).toBeVisible();
   await expect
     .poll(() =>
       page

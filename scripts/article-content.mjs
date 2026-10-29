@@ -32,3 +32,35 @@ export function cleanFeedArticle(html, title) {
   const parsed = new Readability(document, { charThreshold: 150 }).parse();
   return parsed?.content || "";
 }
+
+// Global Voices permits attributed text reuse; third-party media has separate
+// rights. Keep all publisher prose instead of applying an extractive heuristic.
+export function cleanGlobalVoices(html, url, author) {
+  if (!author) return "";
+  const { document } = parseHTML("<html><body>" + html + "</body></html>");
+  document
+    .querySelectorAll(
+      "script,style,iframe,video,audio,form,button,.wp-caption,figure,.gv-rss-footer,.originally-published,img",
+    )
+    .forEach((node) => node.remove());
+  // Item-level notices override the publisher's general CC BY policy. Ignore
+  // removed image captions, but never relabel partner text or another license.
+  if (
+    /all rights reserved|republished|originally (?:published|appeared) (?:in|on|by)/i.test(
+      document.body.textContent,
+    ) ||
+    /creativecommons\.org\/licenses\/by-(?:nc|nd|sa)/i.test(
+      document.body.innerHTML,
+    )
+  )
+    return "";
+  const escape = (value) =>
+    value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll('"', "&quot;");
+  return (
+    `<p>This story by ${escape(author)} originally appeared on <a href="${escape(url)}">Global Voices</a>. Text licensed under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. Reformatted for reading; third-party media omitted.</p>` +
+    document.body.innerHTML
+  );
+}

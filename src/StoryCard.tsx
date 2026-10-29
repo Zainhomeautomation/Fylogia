@@ -69,7 +69,15 @@ export function StoryCard({
             <ArrowUpRight size={32} />
           </div>
         )}
-        <div className="story-category">{article.categories[0]}</div>
+        <div className="story-category">
+          {lead && <span className="cover-label">The cover story · </span>}
+          {article.categories[0]}
+        </div>
+        <span
+          className={`content-label ${article.full ? "complete" : "preview"}`}
+        >
+          {article.full ? "Full article · Read here" : "Publisher preview"}
+        </span>
         <h2>{article.title}</h2>
         {lead && <p>{article.excerpt}</p>}
       </button>

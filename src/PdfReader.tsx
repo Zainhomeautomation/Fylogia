@@ -8,6 +8,8 @@ import {
   ChevronRight,
   ExternalLink,
   Bookmark,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 // Retain one online edition for this tab so reopening a large magazine does
@@ -75,6 +77,7 @@ export default function PdfReader({
   title: string;
   onClose: () => void;
 }) {
+  const [immersive, setImmersive] = useState(false);
   const [pdf, setPdf] = useState<pdfjs.PDFDocumentProxy>(),
     [error, setError] = useState(""),
     [page, setPage] = useState(1),
@@ -146,7 +149,7 @@ export default function PdfReader({
   }, [pdf, spread, onClose]);
   return (
     <div
-      className="reader pdf-reader"
+      className={`reader pdf-reader ${immersive ? "immersive" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -161,6 +164,16 @@ export default function PdfReader({
           <X />
         </button>
         <strong>{title}</strong>
+        <button
+          className="icon-button focus-toggle"
+          aria-label={
+            immersive ? "Exit immersive reading" : "Enter immersive reading"
+          }
+          aria-pressed={immersive}
+          onClick={() => setImmersive(!immersive)}
+        >
+          {immersive ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
         <button
           className="secondary"
           aria-pressed={bookmarked}
