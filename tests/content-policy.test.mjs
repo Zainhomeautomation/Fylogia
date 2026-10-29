@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { cleanGlobalVoices } from "../scripts/article-content.mjs";
 test("licensed feed prose keeps attribution and license while excluding third-party images", () => {
   const body = cleanGlobalVoices(
-    '<p>First paragraph.</p><div class="wp-caption"><img src="https://example.com/photo.jpg"><p>Photo credit.</p></div><h2>Context</h2><p>Last paragraph.</p>',
+    '<p>First paragraph.</p><div class="wp-caption"><img src="https://example.com/photo.jpg"><p>Photo credit.</p></div><h2>Context</h2><p>Last paragraph.</p><div class="gv-rss-footer">Translated by Contributor.</div>',
     "https://globalvoices.org/story/",
     "A & B",
   );
@@ -11,6 +11,7 @@ test("licensed feed prose keeps attribution and license while excluding third-pa
   assert.match(body, /creativecommons.org\/licenses\/by\/3.0/);
   assert.match(body, /<h2>Context<\/h2>/);
   assert.match(body, /Last paragraph/);
+  assert.match(body, /Translated by Contributor/);
   assert.doesNotMatch(body, /<img|photo.jpg/);
 });
 test("missing bylines and explicit republication exceptions stay previews", () => {

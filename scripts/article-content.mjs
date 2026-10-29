@@ -40,7 +40,7 @@ export function cleanGlobalVoices(html, url, author) {
   const { document } = parseHTML("<html><body>" + html + "</body></html>");
   document
     .querySelectorAll(
-      "script,style,iframe,video,audio,form,button,.wp-caption,figure,.gv-rss-footer,.originally-published,img",
+      "script,style,iframe,video,audio,form,button,.wp-caption,figure,.originally-published,img",
     )
     .forEach((node) => node.remove());
   // Item-level notices override the publisher's general CC BY policy. Ignore
