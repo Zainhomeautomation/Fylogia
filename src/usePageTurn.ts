@@ -1,30 +1,119 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 
-function copyCanvas(source: HTMLCanvasElement, target?: HTMLCanvasElement) {
-  if (!target) return;
-  // PDF rendering completes asynchronously after the surface snapshot is made.
-  target.width = source.width;
-  target.height = source.height;
-  target.style.cssText = source.style.cssText;
-  target.getContext("2d")?.drawImage(source, 0, 0);
+function snapshot(surface: HTMLElement) {
+  const image = surface.cloneNode(true) as HTMLElement;
+  image
+    .querySelectorAll(".turn-leaf, .page-turn-controls")
+    .forEach((n) => n.remove());
+  surface.querySelectorAll("canvas").forEach((canvas, i) => {
+    const target = image.querySelectorAll("canvas")[i];
+    if (!target) return;
+    target.width = canvas.width;
+    target.height = canvas.height;
+    target.style.cssText = canvas.style.cssText;
+    target.getContext("2d")?.drawImage(canvas, 0, 0);
+  });
+  image
+    .querySelectorAll(".reader-content")
+    .forEach((n) => (n.className = "turn-content"));
+  image.removeAttribute("id");
+  image.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+  return image;
 }
 
-/** Animate the outgoing paper surface while the live, accessible page updates. */
+// A short-lived cylindrical paper mesh. Each strip carries the actual outgoing
+// text/canvas, with a different tangent: the page bends rather than rotating flat.
+function paper(surface: HTMLElement, image: HTMLElement, forward: boolean) {
+  const w = surface.clientWidth,
+    h = surface.clientHeight;
+  const facing = surface.dataset.spread === "2";
+  const pw = facing ? w / 2 : w;
+  const origin = forward ? (facing ? w / 2 : 0) : facing ? w / 2 : w;
+  const leaf = document.createElement("div");
+  leaf.className = "turn-leaf curl-mesh";
+  leaf.setAttribute("aria-hidden", "true");
+  leaf.inert = true;
+  const strips: HTMLElement[] = [];
+  for (let i = 0; i < 12; i++) {
+    const strip = document.createElement("div");
+    strip.className = "curl-strip";
+    strip.style.width = `${pw / 12 + 0.6}px`;
+    strip.style.height = `${h}px`;
+    const face = image.cloneNode(true) as HTMLElement;
+    image.querySelectorAll("canvas").forEach((c, j) => {
+      const t = face.querySelectorAll("canvas")[j];
+      t.width = c.width;
+      t.height = c.height;
+      t.style.cssText = c.style.cssText;
+      t.getContext("2d")?.drawImage(c, 0, 0);
+    });
+    face.className =
+      "curl-face" +
+      (surface.classList.contains("pdf-spread") ? " pdf-turn-leaf" : "");
+    const sourceX = forward
+      ? origin + (i * pw) / 12
+      : origin - ((i + 1) * pw) / 12;
+    face.style.cssText = `position:absolute;top:0;left:${-sourceX}px;width:${w}px;height:${h}px;max-width:none;margin:0;`;
+    strip.append(face);
+    leaf.append(strip);
+    strips.push(strip);
+  }
+  surface.append(leaf);
+  return {
+    leaf,
+    draw(progress: number) {
+      const bend = Math.sin(progress * Math.PI) * 1.25;
+      const base = progress * Math.PI - bend / 2;
+      let x = origin,
+        z = 0;
+      const sign = forward ? 1 : -1;
+      strips.forEach((strip, i) => {
+        const angle = base + (bend * (i + 0.5)) / 12;
+        const dx = (Math.cos(angle) * pw) / 12;
+        const dz = (Math.sin(angle) * pw) / 12;
+        // Project each adjoining strip into one common camera, avoiding
+        // independent CSS perspective origins (which produce visible seams).
+        const depth = 2200,
+          cx = w / 2,
+          cy = h / 2;
+        const x0 = forward ? x : x - dx;
+        const z0 = forward ? z : z + dz;
+        const dzdu = sign * Math.sin(angle);
+        const denom = 1 - z0 / depth;
+        const a = (Math.cos(angle) - (cx * dzdu) / depth) / denom;
+        const lift = 0.18 * Math.sin(progress * Math.PI);
+        const y0 = ((-(i + (forward ? 0 : 1)) * pw) / 12) * lift;
+        const b = (-sign * lift - (cy * dzdu) / depth) / denom;
+        const g = -dzdu / depth / denom;
+        const e = (x0 - (cx * z0) / depth) / denom;
+        const f = (y0 - (cy * z0) / depth) / denom;
+        strip.style.transformOrigin = "0 0";
+        strip.style.left = "0";
+        strip.style.transform = `matrix3d(${a},${b},0,${g},0,${1 / denom},0,0,0,0,1,0,${e},${f},0,1)`;
+        (strip.firstElementChild as HTMLElement).style.visibility =
+          Math.cos(angle) < 0 ? "hidden" : "visible";
+        strip.style.setProperty(
+          "--shade",
+          String(0.04 + Math.sin(angle) * 0.18),
+        );
+        x += sign * dx;
+        z += dz;
+      });
+      leaf.style.opacity = String(progress > 0.92 ? (1 - progress) / 0.08 : 1);
+    },
+  };
+}
+
 export function usePageTurn(
   ref: RefObject<HTMLDivElement | null>,
   page: number,
   enabled = true,
+  animatePage = true,
 ) {
-  const active = useRef<{ animation: Animation; leaf: HTMLElement } | null>(
-    null,
-  );
-  useLayoutEffect(
-    () => () => {
-      active.current?.animation.cancel();
-      active.current?.leaf.remove();
-    },
-    [],
-  );
+  const state = useRef<ReturnType<typeof paper> | null>(null);
+  const frame = useRef(0),
+    value = useRef(0),
+    skip = useRef(false);
   const previous = useRef<{
     page: number;
     width: number;
@@ -32,23 +121,50 @@ export function usePageTurn(
     image: HTMLElement;
     canvases: HTMLCanvasElement[];
   } | null>(null);
+  function clear() {
+    cancelAnimationFrame(frame.current);
+    state.current?.leaf.remove();
+    state.current = null;
+  }
+  function animate(to: number, done?: () => void) {
+    const from = value.current,
+      start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / 480);
+      value.current = from + (to - from) * (1 - Math.pow(1 - t, 3));
+      state.current?.draw(value.current);
+      if (t < 1) frame.current = requestAnimationFrame(tick);
+      else {
+        clear();
+        done?.();
+      }
+    };
+    frame.current = requestAnimationFrame(tick);
+  }
+  useLayoutEffect(() => {
+    const surface = ref.current;
+    if (!surface) return;
+    const observer = new ResizeObserver(() => {
+      if (state.current) clear();
+    });
+    observer.observe(surface);
+    return () => {
+      observer.disconnect();
+      clear();
+    };
+  }, [ref]);
   useLayoutEffect(() => {
     const surface = ref.current;
     if (!surface) return;
     const old = previous.current;
+    // Snapshot only changes in rendered page/layout, not every progress render.
     if (
-      old &&
-      (old.width !== surface.clientWidth || old.height !== surface.clientHeight)
-    ) {
-      active.current?.animation.cancel();
-      active.current?.leaf.remove();
-    }
-    const image = surface.cloneNode(true) as HTMLElement;
-    image.querySelectorAll(".turn-leaf").forEach((node) => node.remove());
-    surface.querySelectorAll("canvas").forEach((canvas, index) => {
-      const copy = image.querySelectorAll("canvas")[index];
-      copyCanvas(canvas, copy);
-    });
+      old?.page === page &&
+      old.width === surface.clientWidth &&
+      old.height === surface.clientHeight
+    )
+      return;
+    const image = snapshot(surface);
     previous.current = {
       page,
       width: surface.clientWidth,
@@ -60,60 +176,61 @@ export function usePageTurn(
         ),
       ],
     };
+    if (skip.current) {
+      skip.current = false;
+      return;
+    }
     if (
       !enabled ||
+      !animatePage ||
       !old ||
       old.page === page ||
+      old.width !== surface.clientWidth ||
+      old.height !== surface.clientHeight ||
       matchMedia("(prefers-reduced-motion: reduce)").matches
     )
       return;
-    active.current?.animation.cancel();
-    active.current?.leaf.remove();
-    const leaf = old.image;
-    old.canvases.forEach((canvas, index) => {
-      copyCanvas(canvas, leaf.querySelectorAll("canvas")[index]);
+    clear();
+    old.canvases.forEach((canvas, i) => {
+      const target = old.image.querySelectorAll("canvas")[i];
+      if (target) {
+        target.width = canvas.width;
+        target.height = canvas.height;
+        target.style.cssText = canvas.style.cssText;
+        target.getContext("2d")?.drawImage(canvas, 0, 0);
+      }
     });
-    leaf
-      .querySelectorAll(".reader-content")
-      .forEach((node) => (node.className = "turn-content"));
-    leaf.className =
-      "turn-leaf" +
-      (surface.classList.contains("pdf-spread") ? " pdf-turn-leaf" : "");
-    leaf.setAttribute("aria-hidden", "true");
-    leaf.inert = true;
-    leaf.removeAttribute("id");
-    leaf.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
-    const forward = page > old.page;
-    const facing = surface.dataset.spread === "2";
-    if (facing) {
-      leaf.style.clipPath = forward ? "inset(0 0 0 50%)" : "inset(0 50% 0 0)";
-    }
-    leaf.style.transformOrigin = facing
-      ? "center center"
-      : forward
-        ? "left center"
-        : "right center";
-    surface.append(leaf);
-    const animation = leaf.animate(
-      [
-        { transform: "perspective(1800px) rotateY(0deg)", opacity: 1 },
-        {
-          transform: `perspective(1800px) rotateY(${forward ? -78 : 78}deg)`,
-          opacity: 1,
-          offset: 0.85,
-        },
-        {
-          transform: `perspective(1800px) rotateY(${forward ? -90 : 90}deg)`,
-          opacity: 0,
-        },
-      ],
-      {
-        duration: 460,
-        easing: "cubic-bezier(.22,.65,.25,1)",
-        fill: "forwards",
-      },
-    );
-    animation.onfinish = () => leaf.remove();
-    active.current = { animation, leaf };
+    value.current = 0;
+    state.current = paper(surface, old.image, page > old.page);
+    animate(1);
   });
+  return {
+    begin(forward: boolean) {
+      clear();
+      value.current = 0;
+      if (
+        !enabled ||
+        !ref.current ||
+        matchMedia("(prefers-reduced-motion: reduce)").matches
+      )
+        return;
+      state.current = paper(ref.current, snapshot(ref.current), forward);
+      state.current.draw(0);
+    },
+    move(progress: number) {
+      value.current = progress;
+      state.current?.draw(progress);
+    },
+    end(commit: boolean, turn: () => void) {
+      if (!state.current) {
+        if (commit) turn();
+        return;
+      }
+      if (commit) {
+        skip.current = true;
+        turn();
+      }
+      animate(commit ? 1 : 0);
+    },
+  };
 }

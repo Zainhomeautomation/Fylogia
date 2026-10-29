@@ -1947,3 +1947,112 @@ h2 {
     flex-wrap: wrap;
   }
 }
+
+.curl-mesh.turn-leaf {
+  overflow: visible;
+  background: none;
+  box-shadow: none;
+  transform-style: preserve-3d;
+  perspective: none;
+}
+.curl-mesh::after {
+  display: none;
+}
+.curl-strip {
+  position: absolute;
+  top: 0;
+  overflow: hidden;
+  background: var(--paper);
+  backface-visibility: visible;
+  box-shadow: none;
+  will-change: transform;
+}
+.curl-strip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / var(--shade));
+  pointer-events: none;
+}
+.curl-face {
+  overflow: hidden;
+  background: var(--paper);
+}
+.page-turn-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8;
+}
+.page-corner {
+  position: absolute;
+  bottom: 8px;
+  width: 48px;
+  height: 56px;
+  pointer-events: auto;
+  touch-action: none;
+  color: var(--green);
+  background: linear-gradient(
+    135deg,
+    transparent 22%,
+    var(--paper) 24%,
+    var(--wash) 75%,
+    #0002
+  );
+  border: 1px solid var(--line);
+  border-radius: 4px 4px 18px 4px;
+  box-shadow: -3px -2px 9px #0001;
+  cursor: grab;
+}
+.page-corner:active {
+  cursor: grabbing;
+}
+.next-corner {
+  right: 8px;
+}
+.previous-corner {
+  left: 8px;
+  border-radius: 4px 4px 4px 18px;
+}
+.hint-corner {
+  animation: corner-invite 1.6s ease-in-out 3;
+}
+@keyframes corner-invite {
+  50% {
+    transform: translateY(-5px) rotate(-7deg);
+    box-shadow: -5px -4px 12px #0002;
+  }
+}
+.turn-tutorial {
+  position: absolute;
+  bottom: 76px;
+  right: 12px;
+  max-width: min(290px, calc(100% - 24px));
+  padding: 12px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: 0 5px 22px #0002;
+  border-radius: 12px;
+  pointer-events: auto;
+  font:
+    14px/1.5 "DM Sans",
+    sans-serif;
+}
+.turn-tutorial span,
+.turn-tutorial small {
+  display: block;
+}
+.turn-tutorial span {
+  font-weight: 650;
+}
+.turn-tutorial button {
+  margin-top: 8px;
+  color: var(--green);
+  text-decoration: underline;
+  min-height: 32px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint-corner {
+    animation: none;
+  }
+}

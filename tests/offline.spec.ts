@@ -114,7 +114,9 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
         "-offline-article.png",
     });
   await page.getByRole("button", { name: "Save article", exact: true }).click();
-  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Drag or tap to turn forward", exact: true })
+    .click();
   await expect(page.locator(".reader-footer")).toContainText(
     /(?:Page|Spread) 2 of/,
   );
