@@ -750,7 +750,7 @@ h2 {
   margin: 16px 0;
 }
 :is(.reader-content, .turn-content) figure img {
-  object-fit: cover;
+  object-fit: contain;
 }
 :is(.reader-content, .turn-content) figcaption {
   font:
@@ -2395,4 +2395,77 @@ h2 {
   .reader-toolbar
   > :not(.reader-navigation):not(.focus-toggle) {
   display: none;
+}
+/* Original PDF pages fit both dimensions before zooming. Zoomed sheets pan
+   inside this surface, without changing browser zoom or hiding navigation. */
+.pdf-pages {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  margin: auto;
+  align-items: flex-start;
+}
+.pdf-spread {
+  touch-action: pan-x pan-y;
+  justify-content: flex-start;
+}
+.pdf-zoom-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  font-size: 11px;
+  color: var(--muted);
+}
+.pdf-zoom-controls button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.pdf-zoom-controls span {
+  margin-left: 8px;
+}
+@media (max-width: 460px) {
+  .pdf-zoom-controls span {
+    max-width: 130px;
+    font-size: 10px;
+  }
+}
+.magazine-cover.has-original-cover {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  justify-content: flex-end;
+  background: var(--paper);
+}
+.magazine-cover.has-original-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  position: absolute;
+  inset: 0;
+}
+.magazine-cover.has-original-cover > svg,
+.magazine-cover.has-original-cover > span:first-of-type {
+  display: none;
+}
+.magazine-cover.has-original-cover > h2,
+.magazine-cover.has-original-cover > span:last-of-type {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  background: #0a1018e8;
+  color: #f3f0e6;
+}
+.magazine-cover.has-original-cover > h2 {
+  font-size: 22px;
+  padding-bottom: 0;
+}
+.pdf-pages {
+  justify-content: center;
 }

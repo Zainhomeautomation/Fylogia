@@ -7,8 +7,8 @@ import {
   deduplicateArticles,
 } from "../src/source-utils.ts";
 import { feedArticle } from "./feed-content.mjs";
-const pipelineVersion = 3;
-const contentVersion = 1;
+const pipelineVersion = 4;
+const contentVersion = 2;
 const fullOnly = process.argv.includes("--full-only");
 let previous = { articles: [], statuses: [] };
 try {

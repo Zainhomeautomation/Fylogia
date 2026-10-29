@@ -18,6 +18,7 @@ async function codecFiles(directory) {
 }
 const precache = [
   ...(await codecFiles("dist/pdfjs")),
+  ...(await codecFiles("dist/covers")),
   base,
   base + "data/edition.json",
   base + "manifest.webmanifest",
@@ -42,7 +43,7 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 self.addEventListener('fetch',event=>{
  const request=event.request,url=new URL(request.url);if(request.method!=='GET')return;
  if(request.destination==='image'){
-  event.respondWith(caches.open(IMAGES).then(cache=>cache.match(request.url,{ignoreVary:true})).then(cached=>cached||fetch(request)));return;
+  event.respondWith((async()=>{const images=await caches.open(IMAGES);const downloaded=await images.match(request.url,{ignoreVary:true});if(downloaded)return downloaded;const shell=await caches.open(CACHE);const bundled=await shell.match(request,{ignoreSearch:true,ignoreVary:true});return bundled||fetch(request)})());return;
  }
  if(url.origin!==self.location.origin||!url.pathname.startsWith(BASE)||url.pathname.includes('/editions/'))return;
  if(url.pathname===BASE+'data/edition.json'){
