@@ -188,14 +188,27 @@ test("preview stories have an honest single-page presentation and edition metada
   const articles = await fixture(page);
   await open(page);
   const preview = articles.find((a: any) => !a.full);
-  const tocScroll = await page.locator(".daily-magazine-body").evaluate((e) => {
+  await page.evaluate(() => document.fonts.ready);
+  await page.locator(".daily-magazine-body").evaluate((e) => {
     e.scrollTop = e.scrollHeight;
-    return e.scrollTop;
+    // Capture after the browser scrolls its click target, before React opens it.
+    e.addEventListener(
+      "click",
+      () => {
+        e.dataset.testPreviousScroll = String(e.scrollTop);
+      },
+      { once: true, capture: true },
+    );
   });
   await page
     .locator(".daily-contents-story")
     .filter({ hasText: preview.title })
     .click();
+  const tocScroll = Number(
+    await page
+      .locator(".daily-magazine-body")
+      .getAttribute("data-test-previous-scroll"),
+  );
   await expect(page.locator(".preview-reader")).toBeVisible();
   expect(
     await page.evaluate(
