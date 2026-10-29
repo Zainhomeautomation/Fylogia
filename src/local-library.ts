@@ -124,7 +124,7 @@ export async function replaceLocalLibrary(replacement: LibraryData) {
     savedAt: timestamp(),
   }));
   try {
-    // Commit all five sections together before publishing the recovered state.
+    // Commit all library sections together before publishing the recovered state.
     // If IndexedDB is unavailable, keep the current library unchanged.
     try {
       await writeRows(rows);

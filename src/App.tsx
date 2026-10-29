@@ -1,3 +1,10 @@
+import { DailyMagazine } from "./DailyMagazine";
+import {
+  createDailyMagazine,
+  dailyPreferenceKey,
+  localDay,
+  type DailyMagazine as DailyMetadata,
+} from "./daily-magazine";
 import { withCurrentCategories, articleMatchesLibrary } from "./source-utils";
 import { topicMatchesText } from "./interest-taxonomy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -65,6 +72,10 @@ export default function App() {
     "progress",
     {},
   );
+  const [dailyEditions, setDailyEditions, dailyError] = useStored<
+    DailyMetadata[]
+  >("dailyEditions", []);
+  const [dailyOpen, setDailyOpen] = useState<DailyMetadata>();
   const [custom, setCustom, customError] = useStored<Article[]>("custom", []);
   const [view, setView] = useSectionRoute();
   const [edition, setEdition] = useState<Edition>(EMPTY),
@@ -305,6 +316,57 @@ export default function App() {
     query,
     readableOnly,
   ]);
+  const dailyId = `${localDay()}-${dailyPreferenceKey(prefs)}`;
+  const daily = useMemo(
+    () =>
+      dailyEditions.find((e) => e.id === dailyId) ||
+      createDailyMagazine(
+        all.map((a) => withCurrentCategories(a, sourceLabels)),
+        prefs,
+      ),
+    [dailyEditions, dailyId, all, sourceLabels, prefs],
+  );
+  const dailyArticles = useMemo(
+    () => [
+      ...new Map(
+        [
+          ...all,
+          ...saved,
+          ...history,
+          ...offline.items.map((r) => r.article),
+        ].map((a) => [a.id, a]),
+      ).values(),
+    ],
+    [all, saved, history, offline.items],
+  );
+  function rememberDaily(value: DailyMetadata) {
+    setDailyEditions((old) =>
+      [value, ...old.filter((e) => e.id !== value.id)].slice(0, 7),
+    );
+    return value;
+  }
+  function downloadDaily(value: DailyMetadata) {
+    rememberDaily(value);
+    const byId = new Map(dailyArticles.map((a) => [a.id, a]));
+    void offline.download(
+      value.stories.map((s) => byId.get(s.id)).filter((a): a is Article => !!a),
+      readingMetadata,
+    );
+  }
+  const dailyProgress = useCallback(
+    (article: Article, ratio: number) => {
+      updateOfflineMetadata(article.id, { progress: ratio });
+      setProgress((old) =>
+        old[article.id] === ratio ? old : { ...old, [article.id]: ratio },
+      );
+      setHistory((old) =>
+        old[0]?.id === article.id
+          ? old
+          : [article, ...old.filter((a) => a.id !== article.id)].slice(0, 150),
+      );
+    },
+    [setProgress, setHistory, updateOfflineMetadata],
+  );
   function downloadBackup(text: string, name: string) {
     const blob = new Blob([text], { type: "application/json" });
     if (blob.size > 10_000_000)
@@ -496,9 +558,9 @@ export default function App() {
             </button>
           )}
         </div>
-        {(notice || prefsError || savedError || customError) && (
+        {(notice || prefsError || savedError || customError || dailyError) && (
           <p className="notice" role="status">
-            {notice || prefsError || savedError || customError}
+            {notice || prefsError || savedError || customError || dailyError}
           </p>
         )}
         {(offline.error || offline.message || offline.busy) && (
@@ -521,22 +583,45 @@ export default function App() {
           >
             {view === "home" && (
               <div className="edition-intro">
-                <span className="eyebrow">The daily edition</span>
-                <p>A little time. A wider world.</p>
-                <small>Your selected stories, ready to take with you.</small>
+                <span className="eyebrow">Your personal daily magazine</span>
+                <p>Today's Fylogia</p>
+                <small>
+                  {daily.stories.length} stories · A little time. A wider world.
+                </small>
+                <button
+                  className="text-button"
+                  disabled={!daily.stories.length}
+                  onClick={() => setDailyOpen(rememberDaily(daily))}
+                >
+                  Open Today's Fylogia <ArrowRight size={16} />
+                </button>
+                {dailyEditions.some((e) => e.id !== daily.id) && (
+                  <details className="daily-archive">
+                    <summary>Previous editions</summary>
+                    {dailyEditions
+                      .filter((e) => e.id !== daily.id)
+                      .map((e) => (
+                        <button
+                          className="text-button"
+                          key={e.id}
+                          onClick={() => setDailyOpen(e)}
+                        >
+                          {e.day} · {e.stories.length} stories
+                        </button>
+                      ))}
+                  </details>
+                )}
               </div>
             )}
             {view === "home" && (
               <button
                 className="secondary"
-                disabled={!online || offline.busy || !articles.length}
-                onClick={() =>
-                  void offline.download(articles.slice(0, 30), readingMetadata)
-                }
+                disabled={!online || offline.busy || !daily.stories.length}
+                onClick={() => downloadDaily(daily)}
               >
                 <Download size={16} />
-                Download Daily Edition ({Math.min(30, articles.length)}{" "}
-                {articles.length === 1 ? "story" : "stories"})
+                Download Daily Edition ({daily.stories.length}{" "}
+                {daily.stories.length === 1 ? "story" : "stories"})
               </button>
             )}
             <button
@@ -900,9 +985,9 @@ export default function App() {
               <p>
                 Export a backup to recover this library or transfer it to
                 another device. Import replaces preferences, sources, saved
-                stories, history, and progress, while keeping that device’s
-                anonymous identity. Downloads and imported PDFs stay separate on
-                each device.
+                stories, daily editions, history, and progress, while keeping
+                that device’s anonymous identity. Downloads and imported PDFs
+                stay separate on each device.
               </p>
               <div className="form-row">
                 <button
@@ -1004,11 +1089,11 @@ export default function App() {
                 <p>
                   {" "}
                   Use Download on a story or Download Daily Edition for up to 30
-                  stories from the current For You selection. Check Offline
-                  Library before travelling. Only publisher-supplied text is
-                  saved; most publishers supply previews. Images are cached only
-                  under the configured NASA informational-use policy, excluding
-                  APOD and marked copyrighted material.
+                  stories from Today’s Fylogia. Check Offline Library before
+                  travelling. Only publisher-supplied text is saved; most
+                  publishers supply previews. Images are cached only under the
+                  configured NASA informational-use policy, excluding APOD and
+                  marked copyrighted material.
                 </p>
                 <h3>Summaries & content</h3>
                 <p>
@@ -1058,6 +1143,30 @@ export default function App() {
             </button>
           ))}
       </nav>
+      {dailyOpen && (
+        <DailyMagazine
+          edition={dailyOpen}
+          articles={dailyArticles}
+          prefs={prefs}
+          progress={progress}
+          savedIds={saved.map((a) => a.id)}
+          downloadedIds={offline.items.map((r) => r.id)}
+          downloadingIds={offline.working}
+          online={online}
+          busy={offline.busy}
+          onProgress={dailyProgress}
+          onSave={save}
+          onPrefs={patch}
+          onDownload={(stories) => {
+            void offline.download(stories, readingMetadata);
+          }}
+          onClose={() => setDailyOpen(undefined)}
+          onHome={() => {
+            setDailyOpen(undefined);
+            navigate("home");
+          }}
+        />
+      )}
       {reader && (
         <Reader
           article={reader}

@@ -1,3 +1,4 @@
+import { normalizeDailyMagazines, type DailyMagazine } from "./daily-magazine";
 import {
   defaults,
   type Article,
@@ -6,6 +7,7 @@ import {
 } from "./catalog";
 
 export interface LibraryData {
+  dailyEditions: DailyMagazine[];
   preferences: Preferences;
   saved: Article[];
   history: Article[];
@@ -14,6 +16,7 @@ export interface LibraryData {
 }
 export type LibraryKey = keyof LibraryData;
 export const libraryKeys: LibraryKey[] = [
+  "dailyEditions",
   "preferences",
   "saved",
   "history",
@@ -22,6 +25,7 @@ export const libraryKeys: LibraryKey[] = [
 ];
 export function emptyLibrary(): LibraryData {
   return {
+    dailyEditions: [],
     preferences: structuredClone(defaults),
     saved: [],
     history: [],
@@ -175,6 +179,7 @@ export function normalizeLibraryValue(
   key: LibraryKey,
   value: unknown,
 ): LibraryData[LibraryKey] {
+  if (key === "dailyEditions") return normalizeDailyMagazines(value);
   if (key === "preferences") {
     const p = value as Preferences;
     if (
@@ -231,7 +236,11 @@ export function parseLibrary(value: unknown): LibraryData {
       key,
       normalizeLibraryValue(
         key,
-        key === "progress" ? data[key] || {} : data[key],
+        key === "progress"
+          ? data[key] || {}
+          : key === "dailyEditions"
+            ? data[key] || []
+            : data[key],
       ),
     ]),
   ) as unknown as LibraryData;

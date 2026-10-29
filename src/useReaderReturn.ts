@@ -34,9 +34,10 @@ export function isolateReaderLayer(layer: HTMLElement, boundary?: HTMLElement) {
   };
 }
 // Readers overlay the existing section; never rebuild its filters or library.
-export function useReaderReturn(onHome: () => void) {
+export function useReaderReturn(onHome: () => void, enabled = true) {
   const home = useRef(false);
   useEffect(() => {
+    if (!enabled) return;
     const x = window.scrollX,
       y = window.scrollY;
     const previous = document.activeElement as HTMLElement | null;
@@ -54,7 +55,7 @@ export function useReaderReturn(onHome: () => void) {
         });
       });
     };
-  }, []);
+  }, [enabled]);
   return () => {
     home.current = true;
     onHome();
