@@ -11,9 +11,15 @@ export function cleanFeedArticle(html, title) {
     "nav,header,footer,script,style,button,form,.wp-block-nasa-blocks-secondary-navigation",
   ))
     node.remove();
+  // NASA places captions beside (rather than inside) the figure. Keep the
+  // publisher's credit attached when promoting a lead photograph in the reader.
+  for (const figure of document.querySelectorAll("figure")) {
+    if (figure.nextElementSibling?.tagName === "FIGCAPTION")
+      figure.append(figure.nextElementSibling);
+  }
   const blocks = [
     ...document.querySelectorAll(
-      "p.wp-block-paragraph,h2.wp-block-heading,h3.wp-block-heading,ul.wp-block-list,ol.wp-block-list,figure.wp-block-image,blockquote.wp-block-quote",
+      "p.wp-block-paragraph,h2.wp-block-heading,h3.wp-block-heading,h4.wp-block-heading,ul.wp-block-list,ol.wp-block-list,.wp-block-image,blockquote.wp-block-quote,pre.wp-block-code,figure.wp-block-table",
     ),
   ];
   if (blocks.reduce((n, b) => n + b.textContent.length, 0) > 200) {

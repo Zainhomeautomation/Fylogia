@@ -82,6 +82,16 @@ export function Reader({
     navigation.current,
   );
   const position = useRef(initialProgress);
+  const scrollSave = useRef<number | undefined>(undefined);
+  useEffect(
+    () => () => {
+      if (scrollSave.current !== undefined) {
+        clearTimeout(scrollSave.current);
+        onProgress(position.current);
+      }
+    },
+    [onProgress],
+  );
   // Keep a real text location across column reflow; the stored ratio remains
   // compatible with existing bookmarks and exports.
   const anchor = useRef<Range | null>(null);
@@ -184,15 +194,39 @@ export function Reader({
       html = document.body.innerHTML;
     }
   }
+  const measuring = useRef(false);
+  const measurementFrame = useRef(0);
   const measure = () => {
+    cancelAnimationFrame(measurementFrame.current);
     if (!viewport.current || !content.current) return;
     const w = viewport.current.clientWidth;
+    viewport.current.style.setProperty(
+      "--reader-page-height",
+      `${viewport.current.clientHeight}px`,
+    );
+    if (prefs.reading === "scroll") {
+      anchor.current = null;
+      setWidth(w);
+      setSpread(1);
+      setCount(1);
+      measurementFrame.current = requestAnimationFrame(() => {
+        if (viewport.current)
+          viewport.current.scrollTop =
+            position.current *
+            Math.max(
+              0,
+              viewport.current.scrollHeight - viewport.current.clientHeight,
+            );
+      });
+      return;
+    }
     // Width/spread commit before the deferred measurement. Retain the text
     // anchor through both renders, and through repeated fold/unfold changes.
+    measuring.current = true;
     navigation.current = false;
     setWidth(w);
     setSpread(article.full && w >= Math.max(680, prefs.fontSize * 36) ? 2 : 1);
-    requestAnimationFrame(() => {
+    measurementFrame.current = requestAnimationFrame(() => {
       if (content.current) {
         const n = Math.max(
           1,
@@ -210,6 +244,7 @@ export function Reader({
           : Math.round(position.current * (n - 1));
         navigation.current = false;
         setPageState(Math.max(0, Math.min(n - 1, location)));
+        measuring.current = false;
       }
     });
   };
@@ -218,13 +253,17 @@ export function Reader({
     if (viewport.current) observer.observe(viewport.current);
     measure();
     document.fonts.ready.then(measure);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(measurementFrame.current);
+    };
   }, [prefs.reading, prefs.fontSize]);
   useEffect(() => {
+    if (prefs.reading !== "pages" || measuring.current) return;
     position.current = count > 1 ? page / (count - 1) : initialProgress;
     if (restored.current || initialProgress === 0)
       onProgress(count > 1 ? page / (count - 1) : 0);
-  }, [page, count, onProgress, initialProgress]);
+  }, [page, count, onProgress, initialProgress, prefs.reading]);
   useEffect(() => {
     close.current?.focus();
     const old = document.body.style.overflow;
@@ -413,6 +452,19 @@ export function Reader({
           (prefs.reading === "scroll" ? "scrolling" : "paginated")
         }
         data-spread={spread}
+        onScroll={(event) => {
+          if (prefs.reading !== "scroll") return;
+          const element = event.currentTarget;
+          const max = element.scrollHeight - element.clientHeight;
+          if (max > 0) {
+            position.current = element.scrollTop / max;
+            if (scrollSave.current === undefined)
+              scrollSave.current = window.setTimeout(() => {
+                scrollSave.current = undefined;
+                onProgress(position.current);
+              }, 250);
+          }
+        }}
         ref={viewport}
         onTouchStart={(e) => {
           start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -446,6 +498,9 @@ export function Reader({
             {article.source} · {dateLabel(article.published)}
           </div>
           <h1>{article.title}</h1>
+          {article.author && (
+            <p className="article-byline">By {article.author}</p>
+          )}
           {article.full && (
             <p className="reading-detail">
               Full article · Publisher-provided text ·{" "}
@@ -458,12 +513,14 @@ export function Reader({
           )}
           {!article.full && (
             <p className="preview-note">
-              Publisher preview ·{" "}
-              {article.previewReason ||
-                "Full-content republication permission is not verified for this source."}{" "}
-              <a href={article.url} target="_blank" rel="noopener noreferrer">
-                Read the complete story at {article.source}{" "}
-                <ArrowUpRight size={14} />
+              Article preview — Continue reading at the original publisher.
+              <a
+                className="primary continue-reading"
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Continue Reading <ArrowUpRight size={17} />
               </a>
             </p>
           )}

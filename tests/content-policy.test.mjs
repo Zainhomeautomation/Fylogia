@@ -160,3 +160,112 @@ test("item-specific license exceptions override newly enabled feed policies", as
     /Publisher paragraph/,
   );
 });
+
+test("NASA image wrappers keep figures, captions, credits and all prose without sidebar articles", async () => {
+  const { cleanFeedArticle } = await import("../scripts/article-content.mjs");
+  const html =
+    '<div class="wp-block-image"><figure><img src="https://www.nasa.gov/photo.jpg"></figure><figcaption>Mission photograph. NASA/Photographer</figcaption></div>' +
+    '<p class="wp-block-paragraph">' +
+    "Complete original prose. ".repeat(25) +
+    '</p><h4 class="wp-block-heading">More context</h4><p class="wp-block-paragraph">Final original paragraph.</p><div class="wp-block-nasa-blocks-related-articles"><h2>Unrelated sidebar</h2></div>';
+  const body = cleanFeedArticle(html, "Mission");
+  assert.match(
+    body,
+    /<figure>[\s\S]*<figcaption>Mission photograph\. NASA\/Photographer<\/figcaption><\/figure>/,
+  );
+  assert.match(body, /Final original paragraph/);
+  assert.match(body, /More context/);
+  assert.doesNotMatch(body, /Unrelated sidebar/);
+});
+test("retrieved HTML is sanitized before storage without losing headings or caption credit", async () => {
+  const { sanitizePublisherContent } =
+    await import("../scripts/sanitize-content.mjs");
+  const safe = sanitizePublisherContent(
+    '<h2 onclick="evil()">Title</h2><p>Text<script>evil()</script></p><figure><img src="/photo.jpg" onerror="evil()"><figcaption>NASA credit</figcaption></figure><a href="javascript:evil()">Link</a><iframe src="https://evil.example"></iframe>',
+    "https://www.nasa.gov/story",
+  );
+  assert.match(safe, /<h2>Title<\/h2>/);
+  assert.match(safe, /https:\/\/www.nasa.gov\/photo.jpg/);
+  assert.match(safe, /NASA credit/);
+  assert.doesNotMatch(safe, /onclick|onerror|script|iframe|evil\(/);
+});
+test("diagnostics separate supplied bodies, authorization, subscriptions and missing content", async () => {
+  const { feedArticle } = await import("../scripts/feed-content.mjs");
+  const source = {
+    id: "custom",
+    name: "Publisher",
+    url: "https://example.com/feed",
+    categories: ["Technology"],
+    region: "Worldwide",
+  };
+  const entry = {
+    title: "Story",
+    link: "https://example.com/story",
+    description: "Preview",
+  };
+  assert.equal(
+    feedArticle(entry, source).contentDetails.availability,
+    "preview",
+  );
+  const unverified = feedArticle(
+    { ...entry, "content:encoded": "<p>Supplied content</p>" },
+    source,
+  );
+  assert.equal(unverified.full, false);
+  assert.equal(unverified.contentDetails.availability, "body-unverified");
+  assert.equal(unverified.contentDetails.completeness, "unknown");
+  assert.equal(
+    feedArticle({ ...entry, "schema:isAccessibleForFree": false }, source)
+      .contentDetails.availability,
+    "subscription",
+  );
+  assert.equal(
+    feedArticle({ ...entry, description: "" }, source).contentDetails
+      .availability,
+    "unavailable",
+  );
+});
+
+test("video media enclosures never become article photographs", async () => {
+  const { feedArticle } = await import("../scripts/feed-content.mjs");
+  const item = {
+    title: "Story",
+    link: "https://publisher.example/story",
+    "media:content": {
+      "@_url": "https://www.youtube.com/embed/test",
+      "@_medium": "video",
+    },
+    description: '<p>Preview</p><img src="/actual-photo.jpg">',
+  };
+  const source = {
+    id: "preview",
+    name: "Publisher",
+    categories: ["Space"],
+    region: "Worldwide",
+  };
+  assert.equal(
+    feedArticle(item, source).image,
+    "https://publisher.example/actual-photo.jpg",
+  );
+});
+
+test("syntax-highlighting markup never changes publisher code whitespace or string literals", async () => {
+  const { sanitizePublisherContent } =
+    await import("../scripts/sanitize-content.mjs");
+  const { parseHTML } = await import("linkedom");
+  const html =
+    '<pre><code><span>homeassistant</span>:\n  <span>allowlist_external_dirs</span>:\n    - <span>"/config/www"</span>\n</code></pre>';
+  const expected = parseHTML(
+    "<html><body>" + html + "</body></html>",
+  ).document.querySelector("code").textContent;
+  const actual = parseHTML(
+    "<html><body>" +
+      sanitizePublisherContent(html, "https://www.home-assistant.io/story") +
+      "</body></html>",
+  ).document.querySelector("code").textContent;
+  assert.equal(actual, expected);
+  assert.equal(
+    actual,
+    'homeassistant:\n  allowlist_external_dirs:\n    - "/config/www"\n',
+  );
+});

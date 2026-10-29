@@ -283,7 +283,16 @@ export const sources: Source[] = [
   },
   ...expandedSources,
 ];
+export interface ContentDetails {
+  availability:
+    "full" | "body-unverified" | "preview" | "subscription" | "unavailable";
+  authorization: "permitted" | "unverified";
+  method: "rss-content" | "rss-description" | "rss-summary" | "legacy-feed";
+  retrievedAt: string;
+  completeness: "publisher-body" | "excerpt" | "unknown";
+}
 export interface Article {
+  contentDetails?: ContentDetails;
   feedContexts?: { sourceId: string; categories: string[]; region: string }[];
   alsoIn?: string[];
   duplicateCount?: number;
@@ -305,6 +314,9 @@ export interface Article {
   full: boolean;
 }
 export interface FeedStatus {
+  contentVersion?: number;
+  bodyCount?: number;
+  feedEntries?: number;
   latestPublished?: string;
   freshness?: "fresh" | "aging" | "stale" | "unknown";
   lastSuccess?: string;
@@ -321,6 +333,7 @@ export interface FeedStatus {
   error?: string;
 }
 export interface Edition {
+  pipelineVersion?: number;
   duplicatesRemoved?: number;
   generatedAt: string;
   articles: Article[];

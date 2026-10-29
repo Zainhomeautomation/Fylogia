@@ -27,7 +27,11 @@ export function itemLink(item: any) {
 }
 export function parseFeedDocument(xml: string) {
   if (xml.length > 8_000_000) throw new Error("Feed exceeds 8 MB limit");
-  if (/<!DOCTYPE|<!ENTITY/i.test(xml))
+  // Declarations inside CDATA/comments are inert article text, not XML DTDs.
+  const declarations = xml
+    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "");
+  if (/<!DOCTYPE|<!ENTITY/i.test(declarations))
     throw new Error("Feed DTD/entity declarations are unsupported");
   // Some publisher roots omit whitespace before namespace attributes (NASA).
   // Repair only that header token boundary; never rewrite article bodies.

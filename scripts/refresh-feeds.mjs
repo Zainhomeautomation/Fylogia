@@ -7,22 +7,56 @@ import {
   deduplicateArticles,
 } from "../src/source-utils.ts";
 import { feedArticle } from "./feed-content.mjs";
+const pipelineVersion = 3;
+const contentVersion = 1;
+const fullOnly = process.argv.includes("--full-only");
 let previous = { articles: [], statuses: [] };
 try {
   previous = JSON.parse(await readFile("public/data/edition.json", "utf8"));
 } catch {}
+if (
+  fullOnly &&
+  sources.some((s) => !previous.statuses.some((old) => old.id === s.id))
+)
+  throw new Error("A complete existing edition is required for --full-only");
 const now = new Date().toISOString();
 async function refresh(source) {
   const old = previous.statuses.find((s) => s.id === source.id);
-  const cached = previous.articles.filter(
-    (a) => a.sourceId === source.id || a.alsoIn?.includes(source.id),
-  );
+  const cached = previous.articles
+    .filter((a) => a.sourceId === source.id || a.alsoIn?.includes(source.id))
+    .map((a) =>
+      a.contentDetails
+        ? a
+        : {
+            ...a,
+            contentDetails: {
+              availability: a.full ? "full" : "preview",
+              authorization: a.full ? "permitted" : "unverified",
+              method: "legacy-feed",
+              retrievedAt:
+                old?.lastSuccess || old?.checked || previous.generatedAt,
+              completeness: a.full ? "publisher-body" : "excerpt",
+            },
+          },
+    );
+  if (fullOnly && !source.full) return { articles: cached, status: old };
   try {
     const headers = {
       "User-Agent": "Fylogia RSS Reader (+https://fylogia.com/)",
     };
-    if (cached.length && old?.etag) headers["If-None-Match"] = old.etag;
-    if (cached.length && old?.lastModified)
+    if (
+      previous.pipelineVersion === pipelineVersion &&
+      (!source.full || old?.contentVersion === contentVersion) &&
+      cached.length &&
+      old?.etag
+    )
+      headers["If-None-Match"] = old.etag;
+    if (
+      previous.pipelineVersion === pipelineVersion &&
+      (!source.full || old?.contentVersion === contentVersion) &&
+      cached.length &&
+      old?.lastModified
+    )
       headers["If-Modified-Since"] = old.lastModified;
     const response = await fetch(source.url, {
       signal: AbortSignal.timeout(12000),
@@ -61,6 +95,10 @@ async function refresh(source) {
         ok: true,
         count: articles.length,
         fullCount: articles.filter((a) => a.full).length,
+        contentVersion: source.full ? contentVersion : undefined,
+        bodyCount: parsed.items.filter((i) => i["content:encoded"] || i.content)
+          .length,
+        feedEntries: parsed.items.length,
         checked: now,
         lastSuccess: now,
         latestPublished: latest,
@@ -133,6 +171,7 @@ merged.articles.sort((a, b) =>
 if (!results.some((r) => r.status.ok) || !merged.articles.length)
   throw new Error("No content available; refusing empty edition");
 const output = {
+  pipelineVersion,
   generatedAt: now,
   articles: merged.articles,
   statuses: results.map((r) => r.status),

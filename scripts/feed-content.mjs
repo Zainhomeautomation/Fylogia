@@ -4,6 +4,7 @@ import {
   cleanGlobalVoices,
   feedText,
 } from "./article-content.mjs";
+import { sanitizePublisherContent } from "./sanitize-content.mjs";
 import { parseHTML } from "linkedom";
 import {
   feedArray as arr,
@@ -11,7 +12,11 @@ import {
   publicUrl as safe,
 } from "../src/source-utils.ts";
 const text = (value) => feedText(str(value));
-export function feedArticle(item, source) {
+export function feedArticle(
+  item,
+  source,
+  retrievedAt = new Date().toISOString(),
+) {
   const links = arr(item.link);
   const url = safe(
     str(item.link) ||
@@ -21,12 +26,21 @@ export function feedArticle(item, source) {
     item["content:encoded"] || item.content || item.description || item.summary,
   );
   const image = safe(
-    arr(item["media:content"]).find((x) => x["@_url"])?.["@_url"] ||
+    arr(item["media:content"]).find(
+      (x) =>
+        x["@_url"] &&
+        (x["@_medium"] === "image" ||
+          String(x["@_type"] || "").startsWith("image/") ||
+          (!x["@_medium"] &&
+            !x["@_type"] &&
+            /\.(?:jpe?g|png|webp|gif|avif)(?:[?#]|$)/i.test(x["@_url"]))),
+    )?.["@_url"] ||
       arr(item["media:thumbnail"])[0]?.["@_url"] ||
       arr(item.enclosure).find((x) =>
         String(x["@_type"]).startsWith("image"),
       )?.["@_url"] ||
       raw.match(/<img[^>]+src=["']([^"']+)/i)?.[1],
+    url,
   );
   const author =
     text(item["dc:creator"] || item.author?.name) ||
@@ -36,7 +50,7 @@ export function feedArticle(item, source) {
     item.content ||
     (source.fullBodyField === "description" && item.description)
   );
-  const cleaned =
+  const extracted =
     source.full &&
     !!(
       item["content:encoded"] ||
@@ -60,6 +74,7 @@ export function feedArticle(item, source) {
             })
           : cleanFeedArticle(raw, text(item.title))
       : "";
+  const cleaned = extracted ? sanitizePublisherContent(extracted, url) : "";
   const paragraphs = cleaned
     ? parseHTML(
         "<html><body>" + cleaned + "</body></html>",
@@ -88,6 +103,30 @@ export function feedArticle(item, source) {
   );
   return {
     id: url,
+    contentDetails: {
+      availability: cleaned
+        ? "full"
+        : item["schema:isAccessibleForFree"] === false
+          ? "subscription"
+          : bodySupplied
+            ? "body-unverified"
+            : excerpt
+              ? "preview"
+              : "unavailable",
+      authorization: cleaned ? "permitted" : "unverified",
+      method:
+        item["content:encoded"] || item.content
+          ? "rss-content"
+          : item.description
+            ? "rss-description"
+            : "rss-summary",
+      retrievedAt,
+      completeness: cleaned
+        ? "publisher-body"
+        : bodySupplied
+          ? "unknown"
+          : "excerpt",
+    },
     sourceId: source.id,
     offlineImagesAllowed:
       source.id === "nasa" &&
