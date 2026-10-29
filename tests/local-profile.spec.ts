@@ -67,6 +67,8 @@ test("anonymous profile and entire library recover offline from IndexedDB after 
   await page.locator(".story-open").first().click();
   await expect(page.getByRole("button", { name: "Next page" })).toBeEnabled();
   await page.getByRole("button", { name: "Next page" }).click();
+  // A late publisher image load must not restore the previous page before close.
+  await page.locator(".reader-content").dispatchEvent("load");
   await page.getByRole("button", { name: "Close reader" }).click();
   await nav(page, "My Sources");
   await page
