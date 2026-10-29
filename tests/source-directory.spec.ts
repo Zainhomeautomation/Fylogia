@@ -45,7 +45,10 @@ test("expanded source directory searches, filters and preserves follows on mobil
   await page
     .getByLabel("Source content", { exact: true })
     .selectOption("Full text capable");
-  await expect(row).toHaveCount(8);
+  await expect(row).toHaveCount(9);
+  await expect(row.filter({ hasText: "Open Source Initiative" })).toContainText(
+    "Full text where authorized",
+  );
   await expect(row.filter({ hasText: "EFF" })).toContainText(
     "Full text where authorized",
   );

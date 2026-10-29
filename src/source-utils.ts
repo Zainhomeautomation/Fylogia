@@ -1,3 +1,4 @@
+import { topicMatchesText } from "./interest-taxonomy.ts";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import type { Article, Source, Preferences, FeedStatus } from "./catalog";
 export const feedArray = (v: any): any[] =>
@@ -194,11 +195,12 @@ export function deduplicateArticles(
 }
 export function recommendSources(
   all: Source[],
-  prefs: Pick<Preferences, "interests" | "region">,
+  prefs: Pick<Preferences, "interests" | "region"> &
+    Partial<Pick<Preferences, "topics">>,
   statuses: FeedStatus[],
   limit = 12,
 ) {
-  return all
+  const ranked = all
     .filter(
       (s) =>
         s.categories.some((c) => prefs.interests.includes(c)) &&
@@ -213,10 +215,25 @@ export function recommendSources(
       const score = (s: Source) =>
         s.categories.filter((c) => prefs.interests.includes(c)).length * 3 +
         (s.full ? 4 : 0) +
+        (prefs.topics || []).filter((t) =>
+          topicMatchesText(t, (s.topics || []).join(" · ")),
+        ).length *
+          5 +
         (s.region === prefs.region ? 2 : 0);
       return score(b) - score(a) || a.name.localeCompare(b.name);
-    })
-    .slice(0, limit);
+    });
+  const chosen: Source[] = [];
+  // Give each selected interest representation before filling by rank.
+  for (const category of prefs.interests) {
+    if (chosen.length >= limit) break;
+    if (chosen.some((s) => s.categories.includes(category))) continue;
+    const candidate = ranked.find((s) => s.categories.includes(category));
+    if (candidate) chosen.push(candidate);
+  }
+  return [
+    ...chosen,
+    ...ranked.filter((s) => !chosen.some((c) => c.id === s.id)),
+  ].slice(0, Math.max(0, limit));
 }
 export function sourceMatches(
   s: Source,
@@ -227,7 +244,17 @@ export function sourceMatches(
 ) {
   return (
     (!query.trim() ||
-      (s.name + " " + s.categories.join(" ") + " " + s.region + " " + s.site)
+      (
+        s.name +
+        " " +
+        s.categories.join(" ") +
+        " " +
+        (s.topics || []).join(" ") +
+        " " +
+        s.region +
+        " " +
+        s.site
+      )
         .toLowerCase()
         .includes(query.trim().toLowerCase())) &&
     (category === "All categories" || s.categories.includes(category)) &&
@@ -260,4 +287,20 @@ export function articleMatchesLibrary(
         c.region === prefs.region ||
         (c.region === "Worldwide" && !c.categories.includes("World News"))),
   );
+}
+
+// Apply additive taxonomy labels in memory. Saved/offline bodies and stored
+// metadata are never rewritten just because the source directory gained topics.
+export function withCurrentCategories(
+  article: Article,
+  directory: ReadonlyMap<string, Pick<Source, "categories">>,
+): Article {
+  const labels = new Set(article.categories);
+  const previousSize = labels.size;
+  for (const id of [article.sourceId, ...(article.alsoIn || [])])
+    for (const category of directory.get(id)?.categories || [])
+      labels.add(category);
+  return labels.size === previousSize
+    ? article
+    : { ...article, categories: [...labels] };
 }

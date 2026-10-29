@@ -50,6 +50,7 @@ export function feedArticle(
               "eff",
               "fedora-magazine",
               "mozilla-hacks",
+              "open-source-initiative",
             ].includes(source.id)
           ? cleanLicensedFeed(raw, {
               sourceId: source.id,
@@ -74,6 +75,7 @@ export function feedArticle(
         "eff",
         "fedora-magazine",
         "mozilla-hacks",
+        "open-source-initiative",
       ].includes(source.id)
         ? 1
         : 0,
@@ -138,6 +140,7 @@ export function feedArticle(
       "eff",
       "fedora-magazine",
       "mozilla-hacks",
+      "open-source-initiative",
     ].includes(source.id)
       ? ""
       : image,

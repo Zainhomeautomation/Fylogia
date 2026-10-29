@@ -1,3 +1,6 @@
+import { sourceTopics } from "./interest-taxonomy.ts";
+import { interestSources } from "./interest-sources.ts";
+export { interestGroups } from "./interest-taxonomy.ts";
 import { expandedSources } from "./expanded-sources.ts";
 export const categories = [
   "Technology",
@@ -21,6 +24,11 @@ export const categories = [
   "Gaming",
   "Photography",
   "Entertainment",
+  "Computing",
+  "Architecture",
+  "Engineering",
+  "History & Culture",
+  "Marine",
 ] as const;
 export const regions = [
   "Worldwide",
@@ -32,7 +40,7 @@ export const regions = [
 ];
 export const subcategories: Record<string, string[]> = {
   Technology: ["Gadgets", "Software", "Cybersecurity"],
-  Apple: ["iPhone", "iPad", "Mac"],
+  Apple: ["iPhone", "iPad", "Mac", "macOS", "iOS", "iPadOS", "Apple Watch"],
   AI: ["Research", "Tools", "Robotics"],
   "Smart Home": ["Home Assistant", "Automation", "Matter"],
   "3D Printing": ["Printers", "Materials", "Design"],
@@ -52,6 +60,39 @@ export const subcategories: Record<string, string[]> = {
   Gaming: ["PC", "Console", "Indie"],
   Photography: ["Cameras", "Technique"],
   Entertainment: ["Film", "Music", "Books"],
+  Computing: [
+    "Operating systems",
+    "Linux",
+    "Windows",
+    "macOS",
+    "PC hardware",
+    "Laptops",
+    "Networking",
+    "Open source",
+    "Software",
+  ],
+  Architecture: [
+    "Buildings",
+    "Interiors",
+    "Urban design",
+    "Sustainable design",
+  ],
+  Engineering: [
+    "Civil engineering",
+    "Construction",
+    "Materials",
+    "Facades",
+    "Manufacturing",
+    "Robotics",
+  ],
+  "History & Culture": ["History", "Archaeology", "Heritage", "Culture"],
+  Marine: [
+    "Diving",
+    "Sailing",
+    "Marine engineering",
+    "Ocean science",
+    "Boating",
+  ],
 };
 export interface Source {
   id: string;
@@ -59,6 +100,7 @@ export interface Source {
   url: string;
   site: string;
   categories: string[];
+  topics?: string[];
   region: string;
   full?: boolean;
   custom?: boolean;
@@ -67,7 +109,7 @@ export interface Source {
   licenseLabel?: string;
   fullBodyField?: "description";
 }
-export const sources: Source[] = [
+const catalogSources: Source[] = [
   {
     id: "global-voices",
     name: "Global Voices",
@@ -282,7 +324,18 @@ export const sources: Source[] = [
     region: "Worldwide",
   },
   ...expandedSources,
+  ...interestSources,
 ];
+export const sources: Source[] = catalogSources.map((source) => {
+  const detail = sourceTopics[source.id];
+  return detail
+    ? {
+        ...source,
+        categories: [...new Set([...source.categories, ...detail.categories])],
+        topics: [...new Set([...(source.topics || []), ...detail.topics])],
+      }
+    : source;
+});
 export interface ContentDetails {
   availability:
     "full" | "body-unverified" | "preview" | "subscription" | "unavailable";

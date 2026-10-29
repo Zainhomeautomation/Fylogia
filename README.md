@@ -7,7 +7,7 @@ Production target: **https://fylogia.com/**, deployed from the personal [Zainhom
 ## Features
 
 - Three-step onboarding: 21 interests, subtopics, regions, recommended sources and custom RSS/Atom feeds.
-- Real publisher content from 179 curated feeds, refreshed every four hours by GitHub Actions. The app checks for a newer deployed edition every 15 minutes and on Refresh.
+- Real publisher content from 194 curated feeds, refreshed every four hours by GitHub Actions. The app checks for a newer deployed edition every 15 minutes and on Refresh.
 - Editorial home, Explore, Categories, source management, saved articles, magazines, history and settings.
 - Single-page article reading on small screens, two-column spreads on wide screens, swipes, keyboard/page controls, text-size adjustment and optional continuous scrolling. Pagination responds to resizing, rotation and folding.
 - Eight sources support permitted full text when their feed supplies a qualifying article body; other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
@@ -196,7 +196,7 @@ The cover now pairs a prominent photograph with an editorial headline, followed 
 
 Main Settings keeps appearance, reading, interests, offline use and library management visible. Expand **Advanced settings** for encrypted backup controls, storage eviction details and technical content explanations. Ordinary import/export remain on the main screen; enter an encrypted backup's password under Advanced settings before importing it.
 
-[Global Voices RSS](https://globalvoices.org/feed/) adds licensed world-news text under its [republishing guidelines](https://globalvoices.org/about/global-voices-attribution-policy/) and CC BY 3.0. Each full item retains its byline, original-story link and license link at the beginning. Formatting changes and media omissions are disclosed. Third-party images and embeds are excluded, and items with missing bylines or explicit republication exceptions remain previews. No article pages are scraped. This refresh has 26 healthy feeds, 26 full articles (NASA, NASA Science and Global Voices) and 378 previews; counts change as feeds refresh.
+[Global Voices RSS](https://globalvoices.org/feed/) adds licensed world-news text under its [republishing guidelines](https://globalvoices.org/about/global-voices-attribution-policy/) and CC BY 3.0. Each full item retains its byline, original-story link and license link at the beginning. Formatting changes and media omissions are disclosed. Third-party images and embeds are excluded, and items with missing bylines or explicit republication exceptions remain previews. No article pages are scraped. The original 26-feed implementation snapshot is retained in the content review; current coverage and health are documented in the [organized interests release notes](docs/organized-interests.md).
 
 Browser QA covers preview layout, immersive controls, Advanced settings, text anchors through folding, page turns, reduced motion and all existing offline/storage flows in Chromium and WebKit. Viewport simulation does not certify a physical foldable device or iOS Home Screen installation.
 
@@ -228,7 +228,7 @@ Dragging now reveals the destination article columns or an asynchronously render
 
 ## Expanded source directory
 
-The [179-feed validation report](docs/source-catalog.md) records source URLs, categories, freshness, permission evidence and measured refresh results. My Sources now supports search, region/topic/content filters, recommended/followed views and incremental browsing. Recommendations favor relevant permitted full text, while retaining existing follows. Eight source policies support qualifying full articles; the remainder are previews. Source capability does not mean every item qualifies. Automatic refresh uses conditional requests, bounded concurrency and retained last-known stories on outages; no paid infrastructure or article-page scraping is introduced.
+The [initial source validation report](docs/source-catalog.md) records source URLs, categories, freshness, permission evidence and measured refresh results. My Sources now supports search, region/topic/content filters, recommended/followed views and incremental browsing. Recommendations favor relevant permitted full text, while retaining existing follows. Nine source policies support qualifying full articles; the remainder are previews. Source capability does not mean every item qualifies. Automatic refresh uses conditional requests, bounded concurrency and retained last-known stories on outages; no paid infrastructure or article-page scraping is introduced.
 
 ## Full-article reading refinement
 
@@ -239,3 +239,7 @@ The [reading release report](docs/full-article-release.md) includes the refreshe
 PDFs fit the available width and height, use readable portrait spreads, and retain original landscape spreads. Zoom buttons, double-tap/double-click and two-finger pinch support closer reading; zoomed sheets pan inside the reader. Pinch movement transforms the existing canvas and renders at final resolution on release. Rendering is bounded for mobile memory. Automatic PDF progress is keyed by magazine ID independently of legacy bookmarks, so identical filenames do not share progress.
 
 The library displays the actual NASA publication cover and generates private PDF covers locally, including for existing imports when opened. Bundled covers remain available offline. Article figures preserve aspect ratio, and feed processing selects safe, larger publisher-provided media/srcset images without guessing CDN URLs or changing permission policies. See [PDF and media details](docs/pdf-and-media-reading.md) for source attribution, limits and test coverage.
+
+### Organized specialist interests
+
+The source catalog has 194 validated feeds and nine full-text-capable policies. Search grouped interests for computing/operating systems, architecture, engineering/construction, history/culture and marine topics. Recommendations balance interests and match topics without changing existing follows. Saved/history cards gain relevant category labels in memory while stored data remains intact. See [current coverage, publisher permission boundaries and validation](docs/organized-interests.md).
