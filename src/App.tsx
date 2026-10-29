@@ -145,13 +145,25 @@ export default function App() {
   }, [refresh]);
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: dark)");
-    const apply = () =>
-      (document.documentElement.dataset.theme =
+    const apply = () => {
+      const theme =
         prefs.theme === "system"
           ? media.matches
-            ? "dark"
+            ? "navy"
             : "light"
-          : prefs.theme);
+          : prefs.theme;
+      document.documentElement.dataset.theme = theme;
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute(
+          "content",
+          theme === "navy"
+            ? "#0A1018"
+            : theme === "dark"
+              ? "#121a17"
+              : "#f8f6ef",
+        );
+    };
     apply();
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
@@ -776,21 +788,29 @@ export default function App() {
               <h2>Make yourself at home.</h2>
               <p>Choose how Fylogia looks and reads.</p>
               <h3>Appearance</h3>
-              <div className="segmented">
-                {(["light", "dark", "system"] as const).map((theme, i) => {
-                  const Icon = [Sun, Moon, Monitor][i];
-                  return (
-                    <button
-                      className={prefs.theme === theme ? "selected" : ""}
-                      aria-pressed={prefs.theme === theme}
-                      key={theme}
-                      onClick={() => patch({ theme })}
-                    >
-                      <Icon size={17} />
-                      {theme}
-                    </button>
-                  );
-                })}
+              <div className="segmented appearance-options">
+                {(["navy", "dark", "light", "system"] as const).map(
+                  (theme, i) => {
+                    const Icon = [Moon, Moon, Sun, Monitor][i];
+                    const label = [
+                      "Midnight Navy",
+                      "Editorial Green",
+                      "Light",
+                      "System",
+                    ][i];
+                    return (
+                      <button
+                        className={prefs.theme === theme ? "selected" : ""}
+                        aria-pressed={prefs.theme === theme}
+                        key={theme}
+                        onClick={() => patch({ theme })}
+                      >
+                        <Icon size={17} />
+                        {label}
+                      </button>
+                    );
+                  },
+                )}
               </div>
               <h3>Default reading mode</h3>
               <div className="segmented">

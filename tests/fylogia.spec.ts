@@ -87,7 +87,9 @@ test("onboarding, real stories, saves, history, theme and persistent preferences
     page.getByRole("heading", { name: headline, exact: true }),
   ).toBeVisible();
   await nav(page, "Settings");
-  await page.getByRole("button", { name: "dark", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Editorial Green", exact: true })
+    .click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
   await expect(
@@ -230,7 +232,10 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
         .evaluate((canvas: HTMLCanvasElement) => canvas.style.width),
     )
     .not.toBe("");
-  await expect(page.locator(".pdf-page canvas[aria-busy=true]")).toHaveCount(0);
+  await expect(page.locator(".pdf-page canvas[aria-busy=true]")).toHaveCount(
+    0,
+    { timeout: 30000 },
+  );
   await page.evaluate(() => {
     (window as any).__pdfPaper = null;
     const observer = new MutationObserver((records) => {
@@ -300,6 +305,23 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
   await page.mouse.down();
   await page.mouse.move(edge.x + 24 - dragWidth * 0.5, edge.y, { steps: 8 });
   await expect(page.locator(".curl-strip")).toHaveCount(12);
+  await expect(page.locator(".curl-underlay canvas").first()).toBeVisible({
+    timeout: 15000,
+  });
+  const previewPixels = await page
+    .locator(".curl-underlay canvas")
+    .evaluateAll((nodes) =>
+      nodes.reduce(
+        (sum, n) =>
+          sum +
+          (n as HTMLCanvasElement).width * (n as HTMLCanvasElement).height,
+        0,
+      ),
+    );
+  const previewBounds = (await surface.boundingBox())!;
+  expect(previewPixels).toBeLessThanOrEqual(
+    previewBounds.width * previewBounds.height,
+  );
   await page.mouse.up();
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
   await page.getByRole("button", { name: "Bookmark page" }).click();

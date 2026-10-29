@@ -100,8 +100,48 @@ export default function PdfReader({
     [bookmarked, setBookmarked] = useState(false);
   const surface = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
-  const curl = usePageTurn(surface, page);
   const spread = width >= 740 ? 2 : 1;
+  const curl = usePageTurn(
+    surface,
+    page,
+    true,
+    true,
+    async (forward, signal) => {
+      if (!pdf) return;
+      const target = page + (forward ? spread : -spread);
+      if (target < 1 || target > pdf.numPages) return;
+      const wrapper = document.createElement("div");
+      wrapper.style.cssText =
+        "display:flex;gap:12px;justify-content:center;align-items:flex-start;padding:20px 12px";
+      for (let i = 0; i < Math.min(spread, pdf.numPages - target + 1); i++) {
+        if (signal.aborted) return;
+        const pdfPage = await pdf.getPage(target + i);
+        if (signal.aborted) return;
+        const pageWidth = Math.min((width - 50) / spread, 650);
+        const viewport = pdfPage.getViewport({
+          scale: pageWidth / pdfPage.getViewport({ scale: 1 }).width,
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = Math.min(
+          viewport.height,
+          Math.max(1, (surface.current?.clientHeight || viewport.height) - 40),
+        );
+        canvas.style.cssText = `width:${pageWidth}px;height:${canvas.height}px;flex-shrink:0`;
+        const task = pdfPage.render({ canvas, viewport });
+        const cancel = () => task.cancel();
+        signal.addEventListener("abort", cancel, { once: true });
+        try {
+          await task.promise;
+        } finally {
+          signal.removeEventListener("abort", cancel);
+        }
+        if (signal.aborted) return;
+        wrapper.append(canvas);
+      }
+      return wrapper;
+    },
+  );
   // Keep existing magazine page bookmarks across the rebrand.
   const key = "folio.v1.pdf." + title;
   useEffect(() => {
