@@ -369,6 +369,7 @@ export default function App() {
           onComplete={(p) => {
             setPrefs(p);
             setPersonalizing(false);
+            window.scrollTo({ top: 0, behavior: "instant" });
           }}
         />
       </>
@@ -493,7 +494,16 @@ export default function App() {
           </div>
         )}
         {storyView && (
-          <div className="download-toolbar">
+          <div
+            className={`download-toolbar ${view === "home" ? "daily-edition" : ""}`}
+          >
+            {view === "home" && (
+              <div className="edition-intro">
+                <span className="eyebrow">The daily edition</span>
+                <p>A little time. A wider world.</p>
+                <small>Your selected stories, ready to take with you.</small>
+              </div>
+            )}
             {view === "home" && (
               <button
                 className="secondary"
@@ -503,7 +513,8 @@ export default function App() {
                 }
               >
                 <Download size={16} />
-                Download Daily Edition ({Math.min(30, articles.length)} stories)
+                Download Daily Edition ({Math.min(30, articles.length)}{" "}
+                {articles.length === 1 ? "story" : "stories"})
               </button>
             )}
             <button
@@ -827,7 +838,7 @@ export default function App() {
               </p>
             </section>
             <section>
-              <h2>Your anonymous profile</h2>
+              <h2>Library management</h2>
               <p>
                 No registration, email, or sign-in. Your library saves
                 automatically on this device.
@@ -848,10 +859,6 @@ export default function App() {
                   Your library was recovered from its local IndexedDB copy.
                 </p>
               )}
-              <p className="quiet">
-                Cloud sync is not enabled. Secure device pairing is planned for
-                the next phase. No private library data is uploaded.
-              </p>
               <h3>Backup & recovery</h3>
               <p>
                 Export a backup to recover this library or transfer it to
@@ -859,11 +866,6 @@ export default function App() {
                 stories, history, and progress, while keeping that device’s
                 anonymous identity. Downloads and imported PDFs stay separate on
                 each device.
-              </p>
-              <p className="quiet">
-                An ordinary export contains private library data in readable
-                text. Use an encrypted backup when sharing or storing a copy
-                elsewhere.
               </p>
               <div className="form-row">
                 <button
@@ -887,30 +889,6 @@ export default function App() {
                   />
                 </label>
               </div>
-              <label className="field">
-                Backup password (optional)
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  value={backupPassword}
-                  onChange={(event) => setBackupPassword(event.target.value)}
-                  aria-label="Backup password"
-                  disabled={backupBusy}
-                />
-              </label>
-              <button
-                className="secondary"
-                disabled={backupBusy}
-                onClick={() => void exportEncryptedLibrary()}
-              >
-                {backupBusy ? "Working…" : "Export encrypted backup"}
-              </button>
-              <p className="quiet">
-                Use at least 12 characters. Enter the same password here before
-                importing an encrypted file. Keep it separately: without the
-                password, an encrypted backup cannot be recovered. Passwords are
-                never saved or sent to a server.
-              </p>
               <button
                 className="text-button"
                 onClick={() => {
@@ -924,19 +902,9 @@ export default function App() {
             <section>
               <h2>Offline reading</h2>
               <p>
-                Use Download on a story or Download Daily Edition for up to 30
-                stories from the current For You selection. Check Offline
-                Library before travelling. Only publisher-supplied text is
-                saved; most publishers supply previews. Images are cached only
-                under the configured NASA informational-use policy, excluding
-                APOD and marked copyrighted material.
-              </p>
-              <p>
-                iOS can remove website data when storage is low. Add Fylogia to
-                the Home Screen, keep free space, and recheck downloads before
-                Airplane Mode. Persistence is requested where supported but is
-                not guaranteed. If the entire origin is evicted, an offline
-                launch is impossible until you reconnect.
+                Download individual stories or your Daily Edition, then open
+                Offline Library to read without a connection. Check your
+                downloads before travelling.
               </p>
               <h2>Install Fylogia</h2>
               <p>
@@ -952,25 +920,79 @@ export default function App() {
               </p>
             </section>
             <section>
-              <h2>Summaries & content</h2>
-              <p>
-                Summarize uses your browser’s on-device AI when supported.
-                Otherwise Fylogia clearly labels locally extracted key passages.
-                No API key or payment is required.
-              </p>
-              <p>
-                Most publishers supply a preview. NASA feed articles are
-                available in full when supplied. Full stories, image credits,
-                and publisher access conditions remain at the original source.
-                Fylogia never bypasses paywalls.
-              </p>
-              <a
-                href="https://github.com/Zainhomeautomation/Fylogia"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Fylogia on GitHub · MIT License ↗
-              </a>
+              <details className="advanced-settings">
+                <summary>Advanced settings</summary>
+                <h3>Private backups</h3>
+                <p className="quiet">
+                  An ordinary export contains private library data in readable
+                  text. Use an encrypted backup when sharing or storing a copy
+                  elsewhere.
+                </p>
+                <label className="field">
+                  Backup password (optional)
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={backupPassword}
+                    onChange={(event) => setBackupPassword(event.target.value)}
+                    aria-label="Backup password"
+                    disabled={backupBusy}
+                  />
+                </label>
+                <button
+                  className="secondary"
+                  disabled={backupBusy}
+                  onClick={() => void exportEncryptedLibrary()}
+                >
+                  {backupBusy ? "Working…" : "Export encrypted backup"}
+                </button>
+                <p className="quiet">
+                  Use at least 12 characters. Enter the same password here
+                  before importing an encrypted file. Keep it separately:
+                  without the password, an encrypted backup cannot be recovered.
+                  Passwords are never saved or sent to a server.
+                </p>
+                <p className="quiet">
+                  Cloud sync is not enabled. Secure device pairing is planned
+                  for the next phase. No private library data is uploaded.
+                </p>
+                <p>
+                  iOS can remove website data when storage is low. Add Fylogia
+                  to the Home Screen, keep free space, and recheck downloads
+                  before Airplane Mode. Persistence is requested where supported
+                  but is not guaranteed. If the entire origin is evicted, an
+                  offline launch is impossible until you reconnect.
+                </p>
+                <h3>Content and downloads</h3>
+                <p>
+                  {" "}
+                  Use Download on a story or Download Daily Edition for up to 30
+                  stories from the current For You selection. Check Offline
+                  Library before travelling. Only publisher-supplied text is
+                  saved; most publishers supply previews. Images are cached only
+                  under the configured NASA informational-use policy, excluding
+                  APOD and marked copyrighted material.
+                </p>
+                <h3>Summaries & content</h3>
+                <p>
+                  Summarize uses your browser’s on-device AI when supported.
+                  Otherwise Fylogia clearly labels locally extracted key
+                  passages. No API key or payment is required.
+                </p>
+                <p>
+                  Most publishers supply a preview. NASA and licensed Global
+                  Voices feed articles are available in full when supplied. Full
+                  stories, image credits, and publisher access conditions remain
+                  at the original source. Fylogia never bypasses paywalls.
+                </p>
+                <a
+                  href="https://github.com/Zainhomeautomation/Fylogia"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Fylogia on GitHub · MIT License ↗
+                </a>
+              </details>
             </section>
           </div>
         )}

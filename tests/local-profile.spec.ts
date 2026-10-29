@@ -192,7 +192,7 @@ test("encrypted backup restores on another device without cloning identity; wron
   const original = await values(page);
   if (process.env.FYLOGIA_SCREENSHOTS) {
     await page
-      .getByRole("heading", { name: "Your anonymous profile", exact: true })
+      .getByRole("heading", { name: "Library management", exact: true })
       .scrollIntoViewIfNeeded();
     await page.screenshot({
       path:
@@ -202,6 +202,7 @@ test("encrypted backup restores on another device without cloning identity; wron
         "-local-profile.png",
     });
   }
+  await page.getByText("Advanced settings", { exact: true }).click();
   const password = "A private recovery phrase 2026!";
   await page.getByLabel("Backup password", { exact: true }).fill(password);
   const pending = page.waitForEvent("download");
@@ -225,6 +226,7 @@ test("encrypted backup restores on another device without cloning identity; wron
     await fixture(other);
     await onboard(other);
     await saved(other);
+    await other.getByText("Advanced settings", { exact: true }).click();
     const before = await values(other);
     expect(before.profile.id).not.toBe(original.profile.id);
     async function restore(text: string) {

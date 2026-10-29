@@ -14,7 +14,7 @@
     "format": "prettier --write src scripts tests functions *.ts *.json index.html README.md .github/workflows/deploy.yml",
     "format:check": "prettier --check src scripts tests functions *.ts *.json index.html README.md .github/workflows/deploy.yml",
     "build:pages": "npm run build && node scripts/prepare-pages.mjs",
-    "test:server": "node --test tests/pdf-proxy.test.mjs"
+    "test:server": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "dompurify": "^3.4.17",

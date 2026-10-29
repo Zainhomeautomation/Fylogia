@@ -1,4 +1,9 @@
-import { cleanFeedArticle } from "./article-content.mjs";
+import {
+  cleanFeedArticle,
+  cleanGlobalVoices,
+  feedText,
+} from "./article-content.mjs";
+import { parseHTML } from "linkedom";
 import { XMLParser } from "fast-xml-parser";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 // Catalog is shared with the UI. Node's native TypeScript support strips interfaces.
@@ -11,11 +16,7 @@ const parser = new XMLParser({
 });
 const arr = (x) => (!x ? [] : Array.isArray(x) ? x : [x]);
 const str = (x) => (typeof x === "string" ? x : String(x?.["#text"] ?? ""));
-const text = (x) =>
-  str(x)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+const text = (x) => feedText(str(x));
 const safe = (u) => {
   try {
     const url = new URL(String(u).replace(/&(?:amp|#0*38|#x0*26);/gi, "&"));
@@ -76,10 +77,19 @@ const results = await Promise.all(
           );
           const cleaned =
             source.full && !!(item["content:encoded"] || item.content)
-              ? cleanFeedArticle(raw, text(item.title))
+              ? source.id === "global-voices"
+                ? cleanGlobalVoices(raw, url, text(item["dc:creator"]))
+                : cleanFeedArticle(raw, text(item.title))
               : "";
+          const paragraphs = cleaned
+            ? parseHTML(
+                "<html><body>" + cleaned + "</body></html>",
+              ).document.querySelectorAll("p")
+            : [];
+          const opening =
+            paragraphs[source.id === "global-voices" ? 1 : 0]?.innerHTML;
           const excerpt = text(
-            item.description || item.summary || cleaned || raw,
+            opening || cleaned || item.description || item.summary || raw,
           ).slice(0, 600);
           const date = new Date(
             str(
@@ -98,7 +108,7 @@ const results = await Promise.all(
             published: Number.isNaN(date.getTime()) ? "" : date.toISOString(),
             categories: source.categories,
             region: source.region,
-            image,
+            image: source.id === "global-voices" ? "" : image,
             excerpt,
             content:
               cleaned ||
