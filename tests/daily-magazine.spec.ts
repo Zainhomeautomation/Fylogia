@@ -1,6 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import { defaults } from "../src/catalog";
-async function fixture(page: Page, reading: "pages" | "scroll" = "pages") {
+async function fixture(
+  page: Page,
+  reading: "pages" | "scroll" = "pages",
+  images = false,
+) {
   const data = await (await page.request.get("data/edition.json")).json();
   const full = data.articles
     .filter(
@@ -8,7 +12,11 @@ async function fixture(page: Page, reading: "pages" | "scroll" = "pages") {
     )
     .sort((a: any, b: any) => b.content.length - a.content.length)
     .slice(0, 2)
-    .map((a: any) => ({ ...a, image: undefined, offlineImagesAllowed: false }));
+    .map((a: any) => ({
+      ...a,
+      image: images ? a.image : undefined,
+      offlineImagesAllowed: false,
+    }));
   expect(full.length).toBe(2);
   const preview = data.articles.find(
     (a: any) => !a.full && a.sourceId === "bbc-world",
@@ -119,10 +127,20 @@ test("daily cover, contents and continuous stories reuse pagination and preserve
     JSON.parse(localStorage.getItem("folio.v1.saved")!),
   );
   expect(saved.some((a: any) => a.id === stored.stories[0].id)).toBe(true);
+  await page.getByRole("button", { name: "Start reading" }).click();
+  await expect(page.locator(".daily-story-navigation")).toBeVisible();
   await page
     .getByRole("button", { name: "Home — For You", exact: true })
     .click();
   await expect(page.locator(".daily-magazine")).toHaveCount(0);
+  expect(await page.evaluate(() => document.body.style.overflow)).not.toBe(
+    "hidden",
+  );
+  await page.setViewportSize({ width: 390, height: 600 });
+  await page.evaluate(() => window.scrollTo(0, 200));
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
 test("downloaded daily edition reopens offline, turns pages and retains contents across viewport changes", async ({
@@ -170,16 +188,37 @@ test("preview stories have an honest single-page presentation and edition metada
   const articles = await fixture(page);
   await open(page);
   const preview = articles.find((a: any) => !a.full);
+  const tocScroll = await page.locator(".daily-magazine-body").evaluate((e) => {
+    e.scrollTop = e.scrollHeight;
+    return e.scrollTop;
+  });
   await page
     .locator(".daily-contents-story")
     .filter({ hasText: preview.title })
     .click();
   await expect(page.locator(".preview-reader")).toBeVisible();
+  expect(
+    await page.evaluate(
+      (id) =>
+        JSON.parse(localStorage.getItem("folio.v1.history")!).some(
+          (a: any) => a.id === id,
+        ),
+      preview.id,
+    ),
+  ).toBe(true);
   await expect(
     page.getByRole("link", { name: "Continue Reading", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".page-turn-controls")).toHaveCount(0);
   await page.getByRole("button", { name: "Contents", exact: true }).click();
+  await expect
+    .poll(() =>
+      page.locator(".daily-magazine-body").evaluate((e) => e.scrollTop),
+    )
+    .toBe(tocScroll);
+  await expect(
+    page.locator(".daily-contents-story").filter({ hasText: preview.title }),
+  ).toBeFocused();
   const before = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("folio.v1.dailyEditions")!),
   );
@@ -317,4 +356,46 @@ test("advancing a scrolling story flushes pending saves and resumes the next unr
       metadata.stories[0].id,
     ),
   ).toBe(1);
+});
+
+test("online editions retain publisher images after text-only downloads and offline uses the stored fallback", async ({
+  page,
+  context,
+}) => {
+  const articles = await fixture(page, "pages", true);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.getByRole("button", { name: /Download Daily Edition/ }).click();
+  await expect(page.locator(".download-notice")).toContainText(
+    "3 articles downloaded.",
+  );
+  const metadata = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("folio.v1.dailyEditions")!)[0],
+  );
+  const cover = articles.find((a: any) => a.id === metadata.stories[0].id);
+  expect(cover.image).toBeTruthy();
+  await open(page);
+  await expect(page.locator(".daily-cover > img")).toHaveAttribute(
+    "src",
+    cover.image,
+  );
+  await expect(page.locator(".daily-cover > img")).toHaveCSS(
+    "object-fit",
+    "contain",
+  );
+  await page.getByRole("button", { name: "Start reading" }).click();
+  await expect(page.locator(".reader-content > figure > img")).toHaveAttribute(
+    "src",
+    cover.image,
+  );
+  await page
+    .getByRole("button", { name: "Home — For You", exact: true })
+    .click();
+  await context.setOffline(true);
+  await page.reload();
+  await open(page);
+  await expect(page.locator(".daily-cover > img")).toHaveCount(0);
+  await page.getByRole("button", { name: "Start reading" }).click();
+  await expect(page.locator(".article-body")).toBeVisible();
+  await expect(page.locator(".reader-content > figure > img")).toHaveCount(0);
 });

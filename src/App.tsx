@@ -224,12 +224,18 @@ export default function App() {
         : [article, ...old],
     );
   }
+  const recordVisit = useCallback(
+    (article: Article) => {
+      setHistory((old) =>
+        [article, ...old.filter((a) => a.id !== article.id)].slice(0, 150),
+      );
+    },
+    [setHistory],
+  );
   function open(article: Article) {
     const copy = offline.items.find((r) => r.id === article.id);
     setReader(copy && (!online || view === "offline") ? copy.article : article);
-    setHistory((old) =>
-      [article, ...old.filter((a) => a.id !== article.id)].slice(0, 150),
-    );
+    recordVisit(article);
   }
   const onProgress = useCallback(
     (ratio: number) => {
@@ -330,14 +336,15 @@ export default function App() {
     () => [
       ...new Map(
         [
-          ...all,
           ...saved,
           ...history,
-          ...offline.items.map((r) => r.article),
+          ...(online
+            ? [...offline.items.map((r) => r.article), ...all]
+            : [...all, ...offline.items.map((r) => r.article)]),
         ].map((a) => [a.id, a]),
       ).values(),
     ],
-    [all, saved, history, offline.items],
+    [all, saved, history, offline.items, online],
   );
   function rememberDaily(value: DailyMetadata) {
     setDailyEditions((old) =>
@@ -359,13 +366,8 @@ export default function App() {
       setProgress((old) =>
         old[article.id] === ratio ? old : { ...old, [article.id]: ratio },
       );
-      setHistory((old) =>
-        old[0]?.id === article.id
-          ? old
-          : [article, ...old.filter((a) => a.id !== article.id)].slice(0, 150),
-      );
     },
-    [setProgress, setHistory, updateOfflineMetadata],
+    [setProgress, updateOfflineMetadata],
   );
   function downloadBackup(text: string, name: string) {
     const blob = new Blob([text], { type: "application/json" });
@@ -1155,6 +1157,7 @@ export default function App() {
           online={online}
           busy={offline.busy}
           onProgress={dailyProgress}
+          onOpen={recordVisit}
           onSave={save}
           onPrefs={patch}
           onDownload={(stories) => {

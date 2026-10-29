@@ -303,12 +303,14 @@ export function Reader({
   }, [page, count, onProgress, initialProgress, reading]);
   useEffect(() => {
     close.current?.focus();
+    // A containing Daily Magazine owns the lock for the entire issue.
+    if (!manageReturn) return;
     const old = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = old;
     };
-  }, []);
+  }, [manageReturn]);
   useEffect(() => {
     function key(e: KeyboardEvent) {
       if (e.key === "Escape") {

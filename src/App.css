@@ -2641,3 +2641,12 @@ h2 {
     margin-bottom: 6px;
   }
 }
+.daily-issue-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.daily-issue-shell[hidden] {
+  display: none;
+}

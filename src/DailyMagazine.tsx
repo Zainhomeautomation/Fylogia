@@ -22,6 +22,7 @@ export function DailyMagazine({
   online,
   busy,
   onProgress,
+  onOpen,
   onSave,
   onPrefs,
   onDownload,
@@ -38,6 +39,7 @@ export function DailyMagazine({
   online: boolean;
   busy: boolean;
   onProgress: (article: Article, ratio: number) => void;
+  onOpen: (article: Article) => void;
   onSave: (article: Article) => void;
   onPrefs: (patch: Partial<Preferences>) => void;
   onDownload: (articles: Article[]) => void;
@@ -48,6 +50,8 @@ export function DailyMagazine({
   const [index, setIndex] = useState<number | null>(null);
   const [missing, setMissing] = useState("");
   const back = useRef<HTMLButtonElement>(null);
+  const contentsBody = useRef<HTMLDivElement>(null);
+  const contentsScroll = useRef(0);
   const lastStory = useRef<HTMLButtonElement | null>(null);
   const [initialArticles] = useState(
     () =>
@@ -85,6 +89,8 @@ export function DailyMagazine({
   }, []);
   useEffect(() => {
     if (index !== null) return;
+    if (contentsBody.current)
+      contentsBody.current.scrollTop = contentsScroll.current;
     (lastStory.current?.isConnected ? lastStory.current : back.current)?.focus({
       preventScroll: true,
     });
@@ -116,6 +122,9 @@ export function DailyMagazine({
       return;
     }
     setMissing("");
+    if (index === null && contentsBody.current)
+      contentsScroll.current = contentsBody.current.scrollTop;
+    onOpen(a);
     setIndex(i);
   }
   const next =
@@ -135,7 +144,7 @@ export function DailyMagazine({
       aria-modal={current ? undefined : true}
       aria-label={current ? undefined : "Today's Fylogia"}
     >
-      {current ? (
+      {current && (
         <Reader
           key={current.id}
           article={current}
@@ -168,177 +177,177 @@ export function DailyMagazine({
               : undefined
           }
         />
-      ) : (
-        <>
-          <header className="reader-toolbar">
-            <div className="reader-navigation">
+      )}
+      <div className="daily-issue-shell" hidden={!!current} inert={!!current}>
+        <header className="reader-toolbar">
+          <div className="reader-navigation">
+            <button
+              ref={back}
+              className="icon-button"
+              aria-label="Back to previous section"
+              title="Back to previous section (Escape)"
+              onClick={onClose}
+            >
+              <ArrowLeft />
+            </button>
+            <button
+              className="icon-button"
+              aria-label="Home — For You"
+              title="Home — For You"
+              onClick={home}
+            >
+              <House />
+            </button>
+          </div>
+          <span className="wordmark">Fylogia</span>
+          <button
+            className="secondary"
+            disabled={!online || busy || !available.length}
+            onClick={() => onDownload(available)}
+          >
+            <Download size={16} />
+            {busy ? "Downloading…" : "Download edition"}
+          </button>
+        </header>
+        <div className="daily-magazine-body" ref={contentsBody}>
+          <section className="daily-cover" aria-labelledby="daily-title">
+            {cover?.image && (
+              <img
+                src={cover.image}
+                alt=""
+                fetchPriority="high"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.hidden = true;
+                }}
+              />
+            )}
+            <div className="daily-cover-copy">
+              <span className="eyebrow">
+                Your personal daily magazine · {edition.day}
+              </span>
+              <h1 id="daily-title">Today's Fylogia</h1>
+              <p>
+                {edition.stories.length} stories · {edition.region}
+              </p>
+              {cover && (
+                <>
+                  <span className="eyebrow">
+                    The cover story · {cover.source}
+                  </span>
+                  <h2>{cover.title}</h2>
+                  <p>{cover.excerpt.slice(0, 240)}</p>
+                </>
+              )}
               <button
-                ref={back}
-                className="icon-button"
-                aria-label="Back to previous section"
-                title="Back to previous section (Escape)"
-                onClick={onClose}
+                className="primary"
+                disabled={!available.length}
+                onClick={(e) => {
+                  lastStory.current = e.currentTarget;
+                  const resume = edition.stories.findIndex(
+                    (s) =>
+                      (progress[s.id] || 0) > 0 &&
+                      (progress[s.id] || 0) < 0.98 &&
+                      available.some((a) => a.id === s.id),
+                  );
+                  open(
+                    resume >= 0
+                      ? resume
+                      : (() => {
+                          const unread = edition.stories.findIndex(
+                            (s) =>
+                              (progress[s.id] || 0) < 0.98 &&
+                              available.some((a) => a.id === s.id),
+                          );
+                          return unread >= 0
+                            ? unread
+                            : edition.stories.findIndex((s) =>
+                                available.some((a) => a.id === s.id),
+                              );
+                        })(),
+                  );
+                }}
               >
-                <ArrowLeft />
-              </button>
-              <button
-                className="icon-button"
-                aria-label="Home — For You"
-                title="Home — For You"
-                onClick={home}
-              >
-                <House />
+                <BookOpen size={18} />
+                Start reading <ArrowRight size={16} />
               </button>
             </div>
-            <span className="wordmark">Fylogia</span>
-            <button
-              className="secondary"
-              disabled={!online || busy || !available.length}
-              onClick={() => onDownload(available)}
-            >
-              <Download size={16} />
-              {busy ? "Downloading…" : "Download edition"}
-            </button>
-          </header>
-          <div className="daily-magazine-body">
-            <section className="daily-cover" aria-labelledby="daily-title">
-              {cover?.image && (
-                <img
-                  src={cover.image}
-                  alt=""
-                  fetchPriority="high"
-                  decoding="async"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    e.currentTarget.hidden = true;
-                  }}
-                />
-              )}
-              <div className="daily-cover-copy">
-                <span className="eyebrow">
-                  Your personal daily magazine · {edition.day}
-                </span>
-                <h1 id="daily-title">Today's Fylogia</h1>
-                <p>
-                  {edition.stories.length} stories · {edition.region}
-                </p>
-                {cover && (
-                  <>
-                    <span className="eyebrow">
-                      The cover story · {cover.source}
-                    </span>
-                    <h2>{cover.title}</h2>
-                    <p>{cover.excerpt.slice(0, 240)}</p>
-                  </>
-                )}
-                <button
-                  className="primary"
-                  disabled={!available.length}
-                  onClick={() => {
-                    const resume = edition.stories.findIndex(
-                      (s) =>
-                        (progress[s.id] || 0) > 0 &&
-                        (progress[s.id] || 0) < 0.98 &&
-                        available.some((a) => a.id === s.id),
-                    );
-                    open(
-                      resume >= 0
-                        ? resume
-                        : (() => {
-                            const unread = edition.stories.findIndex(
-                              (s) =>
-                                (progress[s.id] || 0) < 0.98 &&
-                                available.some((a) => a.id === s.id),
-                            );
-                            return unread >= 0
-                              ? unread
-                              : edition.stories.findIndex((s) =>
-                                  available.some((a) => a.id === s.id),
-                                );
-                          })(),
-                    );
-                  }}
-                >
-                  <BookOpen size={18} />
-                  Start reading <ArrowRight size={16} />
-                </button>
-              </div>
-            </section>
-            {missing && (
-              <p className="notice" role="status">
-                {missing}
-              </p>
-            )}
-            {!online && (
-              <p className="notice">
-                Offline · {available.length} of {edition.stories.length} stories
-                available on this device.
-              </p>
-            )}
-            <section
-              className="daily-contents"
-              aria-labelledby="daily-contents-title"
-            >
-              <span className="eyebrow">A little time. A wider world.</span>
-              <h2 id="daily-contents-title">In this edition</h2>
-              {sections.map((section) => (
-                <section key={section} aria-label={section}>
-                  <h3>{section}</h3>
-                  <ol>
-                    {edition.stories.map(
-                      (story, i) =>
-                        story.section === section && (
-                          <li key={story.id}>
-                            <button
-                              className="daily-contents-story"
-                              onClick={(e) => {
-                                lastStory.current = e.currentTarget;
-                                open(i);
-                              }}
-                              aria-label={`Read story ${i + 1}: ${story.title}`}
-                            >
-                              <span className="daily-story-number">
-                                {String(i + 1).padStart(2, "0")}
-                              </span>
-                              <span>
-                                <strong>{story.title}</strong>
-                                <small>
-                                  {story.source} ·{" "}
-                                  {story.full
-                                    ? "Complete article"
-                                    : "Publisher preview"}
-                                  {downloadedIds.includes(story.id)
-                                    ? " · Downloaded"
-                                    : ""}
-                                  {!online && !downloadedIds.includes(story.id)
-                                    ? " · Not downloaded"
-                                    : ""}
-                                  {!library.has(story.id)
-                                    ? " · Connect to find this story"
-                                    : ""}
-                                </small>
-                                {(progress[story.id] || 0) > 0 && (
-                                  <progress
-                                    max={1}
-                                    value={progress[story.id]}
-                                    aria-label={`Reading progress for ${story.title}`}
-                                  />
-                                )}
-                              </span>
-                              {savedIds.includes(story.id) && (
-                                <Check size={16} aria-label="Saved" />
+          </section>
+          {missing && (
+            <p className="notice" role="status">
+              {missing}
+            </p>
+          )}
+          {!online && (
+            <p className="notice">
+              Offline · {available.length} of {edition.stories.length} stories
+              available on this device.
+            </p>
+          )}
+          <section
+            className="daily-contents"
+            aria-labelledby="daily-contents-title"
+          >
+            <span className="eyebrow">A little time. A wider world.</span>
+            <h2 id="daily-contents-title">In this edition</h2>
+            {sections.map((section) => (
+              <section key={section} aria-label={section}>
+                <h3>{section}</h3>
+                <ol>
+                  {edition.stories.map(
+                    (story, i) =>
+                      story.section === section && (
+                        <li key={story.id}>
+                          <button
+                            className="daily-contents-story"
+                            onClick={(e) => {
+                              lastStory.current = e.currentTarget;
+                              open(i);
+                            }}
+                            aria-label={`Read story ${i + 1}: ${story.title}`}
+                          >
+                            <span className="daily-story-number">
+                              {String(i + 1).padStart(2, "0")}
+                            </span>
+                            <span>
+                              <strong>{story.title}</strong>
+                              <small>
+                                {story.source} ·{" "}
+                                {story.full
+                                  ? "Complete article"
+                                  : "Publisher preview"}
+                                {downloadedIds.includes(story.id)
+                                  ? " · Downloaded"
+                                  : ""}
+                                {!online && !downloadedIds.includes(story.id)
+                                  ? " · Not downloaded"
+                                  : ""}
+                                {!library.has(story.id)
+                                  ? " · Connect to find this story"
+                                  : ""}
+                              </small>
+                              {(progress[story.id] || 0) > 0 && (
+                                <progress
+                                  max={1}
+                                  value={progress[story.id]}
+                                  aria-label={`Reading progress for ${story.title}`}
+                                />
                               )}
-                            </button>
-                          </li>
-                        ),
-                    )}
-                  </ol>
-                </section>
-              ))}
-            </section>
-          </div>
-        </>
-      )}
+                            </span>
+                            {savedIds.includes(story.id) && (
+                              <Check size={16} aria-label="Saved" />
+                            )}
+                          </button>
+                        </li>
+                      ),
+                  )}
+                </ol>
+              </section>
+            ))}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
