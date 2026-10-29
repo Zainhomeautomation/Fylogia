@@ -81,7 +81,11 @@ export function StoryCard({
         <span
           className={`content-label ${article.full ? "complete" : "preview"}`}
         >
-          {article.full ? "Full article · Read here" : "Publisher preview"}
+          {article.full
+            ? "Full article · Read here"
+            : article.content || article.excerpt
+              ? "Publisher preview"
+              : "Saved link · Open publisher"}
         </span>
         <h2>{article.title}</h2>
         {lead && <p>{article.excerpt}</p>}
@@ -91,7 +95,7 @@ export function StoryCard({
           {article.source} <span aria-hidden="true">·</span>{" "}
           {dateLabel(article.published)}
         </span>
-        {onDownload && (
+        {onDownload && (article.content || article.excerpt) && (
           <button
             className="icon-button"
             disabled={downloading || downloaded}

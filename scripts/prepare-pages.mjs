@@ -6,7 +6,7 @@ await writeFile(
   JSON.stringify(
     {
       version: 1,
-      include: ["/editions/nasa-spinoff-2025.pdf"],
+      include: ["/editions/nasa-spinoff-2025.pdf", "/api/sync"],
       exclude: [],
     },
     null,

@@ -1,3 +1,5 @@
+import { getLibraryValue, setLibraryValue } from "./local-library";
+import type { LibraryData } from "./library-data";
 import { PageTurnControls } from "./PageTurnControls";
 import { useReaderReturn } from "./useReaderReturn";
 import { useEffect, useRef, useState } from "react";
@@ -110,6 +112,14 @@ export default function PdfReader({
   onCover?: (cover: string) => void;
 }) {
   const goHome = useReaderReturn(onHome);
+  const publicMagazine = !url.startsWith("blob:");
+  const [sharedOpening] = useState(() =>
+    publicMagazine
+      ? getLibraryValue<LibraryData["magazineReading"]>("magazineReading", {})[
+          id
+        ]
+      : undefined,
+  );
   const coverCallback = useRef(onCover);
   useEffect(() => {
     coverCallback.current = onCover;
@@ -126,7 +136,10 @@ export default function PdfReader({
     [zoom, setZoom] = useState(1),
     [bookmarkPage, setBookmarkPage] = useState(() => {
       try {
-        return Number(localStorage.getItem("folio.v1.pdf." + title)) || 0;
+        return (
+          sharedOpening?.bookmark ??
+          (Number(localStorage.getItem("folio.v1.pdf." + title)) || 0)
+        );
       } catch {
         return 0;
       }
@@ -227,6 +240,7 @@ export default function PdfReader({
           localStorage.getItem(progressKey) || localStorage.getItem(key),
         ) || 1;
     } catch {}
+    saved = sharedOpening?.page || saved;
     let active = true;
     const local = url.startsWith("blob:");
     if (!local && retainedEdition && retainedEdition.url !== url) {
@@ -269,16 +283,26 @@ export default function PdfReader({
         if (retainedEdition === entry) retainedEdition = undefined;
       }
     };
-  }, [url, key, progressKey]);
+  }, [url, key, progressKey, sharedOpening]);
   useEffect(() => {
     if (pdf) {
+      if (publicMagazine)
+        setLibraryValue<LibraryData["magazineReading"]>(
+          "magazineReading",
+          (old) => {
+            const previous = old[id] || { page: 1, bookmark: bookmarkPage };
+            return old[id] && previous.page === page
+              ? old
+              : { ...old, [id]: { ...previous, page } };
+          },
+        );
       try {
         localStorage.setItem(progressKey, String(page));
       } catch {
         /* Reading remains available if storage is full. */
       }
     }
-  }, [page, pdf, progressKey]);
+  }, [page, pdf, progressKey, id, publicMagazine, bookmarkPage]);
   useEffect(() => {
     const element = surface.current;
     if (!element) return;
@@ -448,6 +472,14 @@ export default function PdfReader({
             try {
               localStorage.setItem(key, String(page));
               setBookmarkPage(page);
+              if (publicMagazine)
+                setLibraryValue<LibraryData["magazineReading"]>(
+                  "magazineReading",
+                  (old) => ({
+                    ...old,
+                    [id]: { page: old[id]?.page || page, bookmark: page },
+                  }),
+                );
             } catch {
               setError(
                 "Could not save this bookmark. Browser storage is full.",

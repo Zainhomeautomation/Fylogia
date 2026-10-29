@@ -46,6 +46,7 @@ export function Reader({
   downloaded = false,
   downloading = false,
   offlineLabel,
+  downloadNotice,
   manageReturn = true,
   nextStory,
   onNextStory,
@@ -70,6 +71,7 @@ export function Reader({
   downloaded?: boolean;
   downloading?: boolean;
   offlineLabel?: string;
+  downloadNotice?: string;
 }) {
   const goHome = useReaderReturn(onHome, manageReturn);
   // Previews stay in one readable column with their publisher action visible.
@@ -115,7 +117,8 @@ export function Reader({
     reading === "pages",
     navigation.current,
   );
-  const position = useRef(initialProgress);
+  const [openingProgress] = useState(initialProgress);
+  const position = useRef(openingProgress);
   const scrollSave = useRef<number | undefined>(undefined);
   useEffect(
     () => () => {
@@ -297,10 +300,10 @@ export function Reader({
   }, [reading, prefs.fontSize]);
   useEffect(() => {
     if (reading !== "pages" || measuring.current) return;
-    position.current = count > 1 ? page / (count - 1) : initialProgress;
-    if (restored.current || initialProgress === 0)
+    position.current = count > 1 ? page / (count - 1) : openingProgress;
+    if (restored.current || openingProgress === 0)
       onProgress(count > 1 ? page / (count - 1) : 0);
-  }, [page, count, onProgress, initialProgress, reading]);
+  }, [page, count, onProgress, openingProgress, reading]);
   useEffect(() => {
     close.current?.focus();
     // A containing Daily Magazine owns the lock for the entire issue.
@@ -527,16 +530,21 @@ export function Reader({
           )}
         </div>
       </header>
-      {onDownload && (
+      {onDownload && (article.content || article.excerpt) && (
         <div className="reader-download-strip">
-          <span title={offlineLabel}>
-            {downloaded
-              ? "Available offline"
-              : downloading
-                ? "Downloading…"
-                : navigator.onLine
-                  ? "Keep for offline"
-                  : "Offline · Download unavailable"}
+          <span
+            className={downloadNotice ? "reader-download-notice" : undefined}
+            role={downloadNotice ? "status" : undefined}
+            title={downloadNotice || offlineLabel}
+          >
+            {downloadNotice ||
+              (downloaded
+                ? "Available offline"
+                : downloading
+                  ? "Downloading…"
+                  : navigator.onLine
+                    ? "Keep for offline"
+                    : "Offline · Download unavailable")}
           </span>
           <button
             className="text-button"
@@ -631,7 +639,9 @@ export function Reader({
           )}
           {!article.full && (
             <p className="preview-note">
-              Article preview — Continue reading at the original publisher.
+              {article.content || article.excerpt
+                ? "Article preview — Continue reading at the original publisher."
+                : "This saved link has no article text on this device. Continue reading at the publisher."}
               <a
                 className="primary continue-reading"
                 href={article.url}

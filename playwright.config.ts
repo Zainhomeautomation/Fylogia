@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 const basePath = process.env.FYLOGIA_BASE_PATH || "/";
-const pagesRuntime = !!process.env.FYLOGIA_PAGES_RUNTIME;
+const pagesRuntime = process.env.FYLOGIA_PAGES_RUNTIME !== "0";
 const origin = pagesRuntime ? "http://127.0.0.1:8788" : "http://127.0.0.1:4173";
 export default defineConfig({
   testDir: "./tests",
@@ -34,7 +34,7 @@ export default defineConfig({
     ? undefined
     : {
         command: pagesRuntime
-          ? "wrangler pages dev dist --ip 127.0.0.1 --port 8788 --compatibility-date 2026-10-29"
+          ? "node scripts/test-pages-runtime.mjs"
           : "npm run preview -- --host 127.0.0.1",
         url: origin + basePath,
         reuseExistingServer: !process.env.CI,

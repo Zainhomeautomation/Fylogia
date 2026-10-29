@@ -7,6 +7,7 @@ import {
 } from "./catalog";
 
 export interface LibraryData {
+  magazineReading: Record<string, { page: number; bookmark: number }>;
   dailyEditions: DailyMagazine[];
   preferences: Preferences;
   saved: Article[];
@@ -16,6 +17,7 @@ export interface LibraryData {
 }
 export type LibraryKey = keyof LibraryData;
 export const libraryKeys: LibraryKey[] = [
+  "magazineReading",
   "dailyEditions",
   "preferences",
   "saved",
@@ -25,6 +27,7 @@ export const libraryKeys: LibraryKey[] = [
 ];
 export function emptyLibrary(): LibraryData {
   return {
+    magazineReading: {},
     dailyEditions: [],
     preferences: structuredClone(defaults),
     saved: [],
@@ -179,6 +182,29 @@ export function normalizeLibraryValue(
   key: LibraryKey,
   value: unknown,
 ): LibraryData[LibraryKey] {
+  if (key === "magazineReading") {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value) ||
+      Object.keys(value).length > 5000
+    )
+      throw new Error("Invalid magazine reading metadata");
+    const entries = Object.entries(value).map(([id, v]) => {
+      const reading = v as { page: number; bookmark: number };
+      if (
+        !id ||
+        ["__proto__", "constructor", "prototype"].includes(id) ||
+        !reading ||
+        ![reading.page, reading.bookmark].every(
+          (p) => Number.isInteger(p) && p >= 0 && p <= 100000,
+        )
+      )
+        throw new Error("Invalid magazine page");
+      return [id, { page: reading.page, bookmark: reading.bookmark }];
+    });
+    return Object.fromEntries(entries);
+  }
   if (key === "dailyEditions") return normalizeDailyMagazines(value);
   if (key === "preferences") {
     const p = value as Preferences;
@@ -236,7 +262,7 @@ export function parseLibrary(value: unknown): LibraryData {
       key,
       normalizeLibraryValue(
         key,
-        key === "progress"
+        key === "progress" || key === "magazineReading"
           ? data[key] || {}
           : key === "dailyEditions"
             ? data[key] || []

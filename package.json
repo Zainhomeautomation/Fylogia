@@ -11,8 +11,8 @@
     "feeds": "node scripts/refresh-feeds.mjs",
     "magazines": "node scripts/fetch-magazines.mjs",
     "test": "playwright test",
-    "format": "prettier --write src scripts tests functions *.ts *.json index.html README.md .github/workflows/deploy.yml",
-    "format:check": "prettier --check src scripts tests functions *.ts *.json index.html README.md .github/workflows/deploy.yml",
+    "format": "prettier --write src scripts tests functions server *.ts *.json index.html README.md .github/workflows/deploy.yml",
+    "format:check": "prettier --check src scripts tests functions server *.ts *.json index.html README.md .github/workflows/deploy.yml",
     "build:pages": "npm run build && node scripts/prepare-pages.mjs",
     "test:server": "node --test tests/*.test.mjs"
   },
@@ -21,6 +21,7 @@
     "fast-xml-parser": "^5.11.2",
     "lucide-react": "^1.63.0",
     "pdfjs-dist": "^6.4.299",
+    "qrcode-generator": "^2.0.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

@@ -1,3 +1,4 @@
+import { initializeCloudSync } from "./cloud-sync";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
@@ -10,7 +11,8 @@ root.render(
     Opening your library…
   </p>,
 );
-void initializeLocalLibrary().then(() => {
+void initializeLocalLibrary().then(async () => {
+  await initializeCloudSync();
   root.render(
     <StrictMode>
       <App />

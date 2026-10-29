@@ -315,6 +315,14 @@ test("advancing a scrolling story flushes pending saves and resumes the next unr
   const metadata = await page.evaluate(
     () => JSON.parse(localStorage.getItem("folio.v1.dailyEditions")!)[0],
   );
+  // Font loading can legitimately reflow the text and change a ratio while
+  // preserving its text anchor. Compare keyboard behavior after layout settles.
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
   await page.locator(".reader-viewport").evaluate((e) => {
     e.scrollTop = (e.scrollHeight - e.clientHeight) / 2;
     e.dispatchEvent(new Event("scroll"));

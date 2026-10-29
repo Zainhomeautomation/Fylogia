@@ -45,6 +45,12 @@ export function useReaderReturn(onHome: () => void, enabled = true) {
     const restore = layer ? isolateReaderLayer(layer) : () => {};
     return () => {
       restore();
+      // Home navigation is already committed by the parent. Do not queue a
+      // second scroll reset that could override the user's next interaction.
+      if (home.current) {
+        window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+        return;
+      }
       requestAnimationFrame(() => {
         if (!home.current && previous?.isConnected)
           previous.focus({ preventScroll: true });

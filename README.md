@@ -6,14 +6,14 @@ Production target: **https://fylogia.com/**, deployed from the personal [Zainhom
 
 ## Features
 
-- Three-step onboarding: 21 interests, subtopics, regions, recommended sources and custom RSS/Atom feeds.
+- Three-step onboarding: grouped interests, subtopics, regions, recommended sources and custom RSS/Atom feeds.
 - Real publisher content from 194 curated feeds, refreshed every four hours by GitHub Actions. The app checks for a newer deployed edition every 15 minutes and on Refresh.
 - Editorial home, Explore, Categories, source management, saved articles, magazines, history and settings.
 - Single-page article reading on small screens, two-column spreads on wide screens, swipes, keyboard/page controls, text-size adjustment and optional continuous scrolling. Pagination responds to resizing, rotation and folding.
-- Eight sources support permitted full text when their feed supplies a qualifying article body; other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
+- Nine sources support permitted full text when their feed supplies a qualifying article body; other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
 - Original NASA Spinoff 2025 PDF with PDF.js page rendering, page turns, spreads and bookmarks. Imported PDFs stay in IndexedDB on your device (50 MB per file).
 - Midnight Navy, Editorial Green, Light and System themes; installable PWA with a cached shell, IndexedDB downloads, and a separate Cache Storage image library. Download individual articles, select several, or use Download Daily Edition (up to 30 stories in Today’s Fylogia). Offline Library shows text/image availability, reading progress, storage use, refresh and delete controls.
-- Automatic anonymous local profiles; preferences, source selections, saved stories and progress persist with IndexedDB and legacy browser storage. JSON transfer/recovery and optional password-encrypted backups. No automatic cloud synchronization.
+- Automatic anonymous local profiles; preferences, source selections, saved stories and progress persist with IndexedDB and legacy browser storage. JSON transfer/recovery, optional password-encrypted backups, and opt-in private device synchronization.
 - Summarize uses supported browsers' on-device Summarizer API. Otherwise extracted key passages are explicitly labeled as not an AI summary.
 
 ## Local setup
@@ -66,7 +66,7 @@ The application is publicly available without registration at **https://fylogia.
 
 Validation passed: all **54 Playwright tests** in the local Cloudflare Pages runtime, all **54 against the public fylogia.com origin**, three server tests, production build/asset validation, formatting and lint (three existing non-blocking React warnings). GitHub CI also passed. Tests cover desktop Chromium and WebKit iPhone/iPad viewports, folded/unfolded resizing, real publisher images/PDFs, saved articles, preferences, offline startup/deep links, single/bulk/Daily Edition downloads, page turns, bookmarks/progress, storage failure/eviction and reconnection. The latest feed refresh returned **24/24 healthy sources**.
 
-**Physical-device testing: NOT RUN.** Browser emulation does not certify an iPhone Duo, iPhone or iPad in actual Airplane Mode, physical Home Screen installation, device hinges or real iOS storage pressure. On iOS, open the HTTPS site in Safari, use Share → Add to Home Screen, launch online once, download an edition and verify Offline Library before travel. Browser storage may be evicted; keep a library backup. Automatic cross-device synchronization is not enabled. Publisher permissions continue to determine full text, previews and offline images.
+**Physical-device testing: NOT RUN.** Browser emulation does not certify an iPhone Duo, iPhone or iPad in actual Airplane Mode, physical Home Screen installation, device hinges or real iOS storage pressure. On iOS, open the HTTPS site in Safari, use Share → Add to Home Screen, launch online once, download an edition and verify Offline Library before travel. Browser storage may be evicted; keep a library backup. Optional device sync is separately validated using isolated browser profiles; it does not transfer offline downloads. Publisher permissions continue to determine full text, previews and offline images.
 
 ## Custom feeds
 
@@ -94,7 +94,7 @@ MIT covers Fylogia code only. Publisher content retains its rights and original 
 
 ## MVP limits
 
-No registration or cloud sync. Feed depth, images and freshness depend on publishers; original sites may have access restrictions. Uncached external images and online PDFs require connectivity. Custom feed conversion and on-device AI are optional and browser/service dependent. Foldable support uses responsive viewport size; physical iPhone Duo hardware has not been tested. Automated WebKit emulation is not proof of behavior on every physical device.
+No mandatory registration. Optional cloud sync uses a free-tier private backend with finite quotas and is not end-to-end encrypted. Feed depth, images and freshness depend on publishers; original sites may have access restrictions. Uncached external images and online PDFs require connectivity. Custom feed conversion and on-device AI are optional and browser/service dependent. Foldable support uses responsive viewport size; physical iPhone Duo hardware has not been tested. Automated WebKit emulation is not proof of behavior on every physical device.
 
 ## License
 
@@ -148,7 +148,7 @@ Assessment after the expanded screening: CAUTION. Obtain targeted professional r
 
 ## Anonymous local profiles and recovery (implemented)
 
-The MVP follows the explicitly authorized local-first fallback for optional synchronization. No connected Supabase project, backend configuration or account suitable for secure device pairing is available in this workspace. Creating a secure service would add anonymous authentication, database policies, private membership, pairing/recovery functions and abuse controls. These are a separate development phase; no fake pairing buttons, shared bearer URLs, public library table or unverified backend is shipped.
+Optional private synchronization is now implemented using the existing Cloudflare Pages Functions and a scoped D1 database. It needs no email, password or mandatory sign-in. See [private device sync](docs/private-device-sync.md) for pairing, recovery, privacy boundaries, free-tier safeguards and release validation. Local reading remains independent of cloud availability.
 
 Every browser creates a cryptographically random local profile automatically, including existing installations migrated from the Folio keys. No email, password, registration or network call is needed for that identity. The ID is a local identifier, **not** a cloud authentication credential or recovery secret. Opening another browser creates a separate identity. Importing a library does not clone the source device's identity.
 
@@ -163,22 +163,15 @@ Recovery steps:
 
 Encrypted recovery uses browser Web Crypto: AES-256-GCM with a fresh 96-bit IV, a fresh 128-bit salt, authenticated format/version context and PBKDF2-HMAC-SHA-256 with 600,000 iterations. Passwords remain in memory only, clear after successful use or leaving Settings, and never enter localStorage, IndexedDB, URLs or server requests. Local browser databases themselves are not application-encrypted. Import/export is bounded at 10 MB, and untrusted URLs, shapes and progress values are validated before any replacement. External article HTML continues to be sanitized by the reader.
 
-## Optional cross-device synchronization — next phase (not enabled)
+## Optional cross-device synchronization
 
-Supabase is a candidate, rather than a configured dependency. Its documented [anonymous authentication](https://supabase.com/docs/guides/auth/auth-anonymous) supports no-email identities, but still requires durable sessions and abuse prevention. An anonymous Auth user is distinct from the public `anon` API role. Private libraries must use [row-level security and restricted grants](https://supabase.com/docs/guides/database/postgres/row-level-security). Public/publishable configuration is not a substitute for per-device authorization; secret/service-role keys must never be shipped in the PWA.
+Settings → Sync my devices connects an anonymous private library using the existing Cloudflare Pages/D1 infrastructure. A second device scans a locally generated QR code or enters a five-minute single-use code, checks a matching number, and receives approval on the original device. No mandatory account, email or password is introduced.
 
-A concrete implementation must provide:
+Only preferences, source selections, saved-link bibliographic metadata, history, article/PDF progress, bookmarks and Daily Edition metadata synchronize. Article bodies, images, imported PDFs, downloads and custom-feed proxy choices stay local. Synced saved links can use authorized content already present in the current feed; otherwise the publisher remains one clear action away. Sync is private and encrypted in transit/at rest, but **not end-to-end encrypted**.
 
-- **Opt-in cloud use:** continue creating local profiles for everyone; create an anonymous Supabase Auth identity for a device only when cloud sync is enabled. The free/local app must work if the service sleeps, reaches quota, loses authorization or is removed. Verify a personal project and current free-tier limits before provisioning; do not enable paid infrastructure.
-- **Private membership:** separate `libraries`, `devices/memberships` and versioned library records. Use each device's own Auth identity and revocable membership checks on every read/write, including Realtime authorization. Deny public access and cross-library reads/writes by default. Do not make libraries accessible merely by knowing a random ID, and do not store membership authority in user-editable Auth metadata.
-- **Short-lived pairing:** server-generated high-entropy QR invitations or at least 12 random Base32 characters for manual codes; store only a hash, expire within five minutes, bind to a proposed destination device and consume atomically once. Rate-limit guesses by device and IP, cap attempts, use generic errors, and require approval on an existing device with a matching confirmation phrase. Submit codes in request bodies; never include permanent device tokens or recovery secrets in shareable URLs or analytics. Codes must not directly confer membership before approval. Handle replay and simultaneous redemption.
-- **Device unlinking:** let an authorized device list and revoke linked devices; revoke server membership and pending invitations immediately and reject queued writes from revoked devices even while their old JWT is unexpired. Remove that device's cloud session when it learns it was revoked. Unlinking cannot remotely erase already-downloaded offline material; local deletion is separate. A revoked device must not silently rejoin via an old invitation or queued operation.
-- **Recovery without email:** offer a high-entropy offline recovery kit, store only a server-side verifier, protect recovery attempts with rate limits, and rotate recovery/pairing authority after use. Explain that losing every linked device and the recovery kit makes the anonymous cloud library unrecoverable. A local profile ID or a plain exported library must never authorize cloud-account recovery. Do not copy long-lived access/refresh tokens between devices.
-- **Offline conflict handling:** a local outbox, idempotent operation IDs, optimistic server revisions and per-field preference updates. Bookmarks/source removals need tombstones so old offline devices do not resurrect deletions. Reading progress needs an explicit latest-intent rule, including intentional resets, rather than always taking the maximum. Test reconnect/retry/backoff and concurrent edits before choosing the final merge policy. Avoid relying solely on client wall clocks. Ordinary recovery import remains a replacement action, not a hidden cloud merge.
-- **Local offline assets:** synchronize library metadata and only content legally permitted for cloud storage. Images, PDFs and downloaded article bodies remain independent per device by default; do not upload publisher material or credentials from custom-feed URLs. Keep private API responses out of public service-worker caches. Existing article reading must never wait for cloud availability.
-- **Release evidence:** tests with unrelated users/devices proving library isolation through direct REST and Realtime access; pair expiry/replay/brute-force/dual-redemption tests; revocation with an existing JWT and pending offline writes; recovery rotation; concurrent deletion/edit/progress tests; offline startup without the backend; and free-tier quota/failure behavior. Only then expose pairing and claim cross-device synchronization works.
+The client uses a durable metadata outbox, interrupted-request retries, cross-tab serialization, deletion tombstones, and reconnection/foreground updates. Before merging, a local backup preserves the previous library. Settings provides device revocation, rotating recovery keys, local merge-backup export and private cloud-library deletion. Losing all linked devices and the recovery key makes the anonymous cloud library unrecoverable.
 
-Cloud synchronization remains a documented future phase; local reading, offline downloads and encrypted recovery work independently of any cloud identity service.
+See [private sync architecture, safeguards and deployment](docs/private-device-sync.md). Provider quotas may pause cloud updates; all local reading and downloads remain usable. The lazily loaded QR encoder is `qrcode-generator` 2.0.4, MIT licensed; its [license](public/licenses/qrcode-generator.txt) is retained with distributed assets.
 
 ## Premium reader upgrade
 

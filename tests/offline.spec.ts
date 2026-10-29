@@ -298,3 +298,73 @@ test("browser eviction is detected without deleting bookmarks", async ({
     }),
   ).toBeVisible();
 });
+
+test("download failures remain visible inside article and Daily Magazine readers without blocking page turns", async ({
+  page,
+}) => {
+  await fixture(page);
+  await onboard(page);
+  await page.evaluate(() => {
+    const original = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (value: any, ...args: any[]) {
+      if (value?.article)
+        throw new DOMException("Simulated browser quota", "QuotaExceededError");
+      return original.call(this, value, ...(args as [IDBValidKey]));
+    };
+  });
+  await page.locator(".story-open").first().click();
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  const pageHeight = await page
+    .locator(".reader-viewport")
+    .evaluate((e) => e.clientHeight);
+  await page
+    .getByRole("button", { name: "Download current article", exact: true })
+    .click();
+  await expect(page.locator(".reader-download-notice")).toContainText(
+    "Storage is full",
+  );
+  await expect
+    .poll(() =>
+      page.locator(".reader-viewport").evaluate((e) => e.clientHeight),
+    )
+    .toBe(pageHeight);
+  await expect(
+    page.getByRole("button", { name: "Previous page", exact: true }),
+  ).toBeEnabled();
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
+  // A visible error banner legitimately changes pagination while retaining the
+  // text anchor. Turn one page back from that measured position.
+  const footer = page.locator('.reader-footer [role="status"]');
+  const before = Number(
+    (await footer.innerText()).match(/(?:Page|Spread) (\d+) of/)![1],
+  );
+  await page
+    .getByRole("button", { name: "Previous page", exact: true })
+    .click();
+  await expect(footer).toContainText(
+    new RegExp(`(?:Page|Spread) ${before - 1} of`),
+  );
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Open Today's Fylogia", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Download edition", exact: true })
+    .click();
+  await expect(
+    page.locator(".daily-magazine-body").getByRole("status"),
+  ).toContainText("Storage is full");
+  await page
+    .getByRole("button", { name: "Start reading", exact: true })
+    .click();
+  await expect(page.locator(".reader-download-notice")).toContainText(
+    "Storage is full",
+  );
+});
