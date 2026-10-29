@@ -7,6 +7,10 @@ test("paper turns, facing pages, intact text and reduced motion", async ({
   const article = edition.articles
     .filter((a: any) => a.full)
     .sort((a: any, b: any) => b.content.length - a.content.length)[0];
+  // Isolate text reflow from asynchronous publisher image sizing. Cached image
+  // rendering is covered separately by the offline suite.
+  article.image = undefined;
+  article.content = article.content.replace(/<img[^>]*>/gi, "");
   await page.route("**/data/edition.json*", (route) =>
     route.fulfill({ json: { ...edition, articles: [article] } }),
   );
@@ -23,9 +27,52 @@ test("paper turns, facing pages, intact text and reduced motion", async ({
     "true",
   );
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
+  const readingAnchor = await body.evaluateHandle((element) => {
+    const bounds = element.closest(".reader-viewport")!.getBoundingClientRect();
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if (!node.textContent?.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      if (
+        ![...range.getClientRects()].some(
+          (r) => r.left >= bounds.left - 1 && r.left < bounds.right,
+        )
+      )
+        continue;
+      for (let i = 0; i < node.textContent.length; i++) {
+        range.setStart(node, i);
+        range.setEnd(node, i + 1);
+        const r = range.getBoundingClientRect();
+        if (
+          r.width &&
+          r.left >= bounds.left - 1 &&
+          r.left < bounds.right &&
+          r.top >= bounds.top - 1
+        )
+          return range;
+      }
+    }
+    throw new Error("No visible text anchor");
+  });
+  const anchorIsVisible = () =>
+    readingAnchor.evaluate((range) => {
+      const bounds = document
+        .querySelector(".reader-viewport")!
+        .getBoundingClientRect();
+      const r = range.getBoundingClientRect();
+      return (
+        r.left >= bounds.left - 1 &&
+        r.right <= bounds.right + 1 &&
+        r.top >= bounds.top - 1 &&
+        r.bottom <= bounds.bottom + 1
+      );
+    });
   await page.setViewportSize({ width: 820, height: 1100 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "2");
   expect(await body.innerText()).toBe(text);
+  await expect.poll(anchorIsVisible).toBe(true);
   const clipped = await body.evaluate((element) => {
     const bounds = element.closest(".reader-viewport")!.getBoundingClientRect();
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
@@ -53,6 +100,7 @@ test("paper turns, facing pages, intact text and reduced motion", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");
   expect(await body.innerText()).toBe(text);
+  await expect.poll(anchorIsVisible).toBe(true);
   if (process.env.FYLOGIA_SCREENSHOTS)
     await page.screenshot({
       path: `${process.env.FYLOGIA_SCREENSHOTS}/premium-folded-${testInfo.project.name}.png`,
@@ -74,4 +122,13 @@ test("paper turns, facing pages, intact text and reduced motion", async ({
   await page.getByRole("button", { name: "Next page", exact: true }).click();
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
   await expect(page.locator(".reader-footer")).toContainText(/Page \d+ of/);
+  for (let turn = 0; turn < 2; turn++) {
+    const before = await page
+      .locator(".reader-footer [role=status]")
+      .innerText();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator(".reader-footer [role=status]")).not.toHaveText(
+      before,
+    );
+  }
 });

@@ -75,7 +75,8 @@ export function Reader({
       !content.current ||
       !viewport.current ||
       prefs.reading !== "pages" ||
-      count <= 1
+      count <= 1 ||
+      (!navigation.current && anchor.current?.startContainer.isConnected)
     )
       return;
     const bounds = viewport.current.getBoundingClientRect();
@@ -155,6 +156,9 @@ export function Reader({
   const measure = () => {
     if (!viewport.current || !content.current) return;
     const w = viewport.current.clientWidth;
+    // Width/spread commit before the deferred measurement. Retain the text
+    // anchor through both renders, and through repeated fold/unfold changes.
+    navigation.current = false;
     setWidth(w);
     setSpread(w >= Math.max(680, prefs.fontSize * 36) ? 2 : 1);
     requestAnimationFrame(() => {
@@ -229,7 +233,7 @@ export function Reader({
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [count, onClose, summary]);
+  }, [count, onClose, summary, setPage]);
   useEffect(() => {
     if (!summary) return;
     const previous = document.activeElement as HTMLElement;
