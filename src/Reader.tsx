@@ -11,6 +11,8 @@ import {
   Sparkles,
   Minus,
   Plus,
+  Download,
+  Check,
 } from "lucide-react";
 import type { Article, Preferences } from "./catalog";
 import { dateLabel } from "./storage";
@@ -24,6 +26,10 @@ export function Reader({
   onPrefs,
   onProgress,
   onClose,
+  onDownload,
+  downloaded = false,
+  downloading = false,
+  offlineLabel,
 }: {
   article: Article;
   prefs: Preferences;
@@ -33,6 +39,10 @@ export function Reader({
   onPrefs: (p: Partial<Preferences>) => void;
   onProgress: (ratio: number) => void;
   onClose: () => void;
+  onDownload?: () => void;
+  downloaded?: boolean;
+  downloading?: boolean;
+  offlineLabel?: string;
 }) {
   const viewport = useRef<HTMLDivElement>(null),
     content = useRef<HTMLDivElement>(null),
@@ -190,7 +200,7 @@ export function Reader({
         >
           <X />
         </button>
-        <span className="wordmark">Folio</span>
+        <span className="wordmark">Fyllora</span>
         <div className="reader-actions">
           <button
             className="icon-button"
@@ -245,6 +255,27 @@ export function Reader({
           </button>
         </div>
       </header>
+      {onDownload && (
+        <div className="reader-download-strip">
+          <span>
+            {offlineLabel ||
+              "Download this feed article or preview to read without a connection."}
+          </span>
+          <button
+            className="text-button"
+            disabled={downloaded || downloading || !navigator.onLine}
+            onClick={onDownload}
+            aria-label="Download current article"
+          >
+            {downloaded ? <Check size={15} /> : <Download size={15} />}{" "}
+            {downloaded
+              ? "Downloaded"
+              : downloading
+                ? "Downloading…"
+                : "Download"}
+          </button>
+        </div>
+      )}
       <div
         className={
           "reader-viewport " +
@@ -325,7 +356,7 @@ export function Reader({
             <p>
               {article.full
                 ? "Article content supplied by the publisher’s RSS feed. NASA material may include third-party credits."
-                : "Folio displays this publisher’s feed preview. The original may have its own access requirements."}
+                : "Fyllora displays this publisher’s feed preview. The original may have its own access requirements."}
             </p>
             <a
               className="primary"

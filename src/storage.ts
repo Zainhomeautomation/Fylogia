@@ -1,3 +1,4 @@
+// Keep the original storage namespace so the rebrand preserves existing libraries.
 import { useState, useCallback } from "react";
 export function useStored<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {

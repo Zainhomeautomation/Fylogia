@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Home,
   Compass,
@@ -33,6 +33,8 @@ import { Reader } from "./Reader";
 import { Sources } from "./Sources";
 import { Magazines } from "./Magazines";
 import { loadCustom } from "./feeds";
+import { useOfflineLibrary } from "./useOfflineLibrary";
+import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
 const navigation = [
   { id: "home", label: "For You", icon: Home },
@@ -40,6 +42,7 @@ const navigation = [
   { id: "categories", label: "Categories", icon: LayoutGrid },
   { id: "sources", label: "My Sources", icon: Rss },
   { id: "saved", label: "Saved Articles", icon: Bookmark },
+  { id: "offline", label: "Offline Library", icon: Download },
   { id: "magazines", label: "Magazines", icon: BookOpen },
   { id: "history", label: "History", icon: History },
   { id: "settings", label: "Settings", icon: Settings },
@@ -67,6 +70,29 @@ export default function App() {
     [menu, setMenu] = useState(false),
     [personalizing, setPersonalizing] = useState(false),
     [online, setOnline] = useState(navigator.onLine);
+  const offline = useOfflineLibrary();
+  const {
+    ready: offlineReady,
+    refreshText,
+    metadata: updateOfflineMetadata,
+  } = offline;
+  const [selecting, setSelecting] = useState(false),
+    [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const readingRef = useRef({ saved, progress });
+  useEffect(() => {
+    readingRef.current = { saved, progress };
+  }, [saved, progress]);
+  const readingMetadata = useCallback(
+    (article: Article) => ({
+      bookmarked: readingRef.current.saved.some((a) => a.id === article.id),
+      progress: readingRef.current.progress[article.id] || 0,
+    }),
+    [],
+  );
+  useEffect(() => {
+    if (online && offlineReady && edition.articles.length)
+      void refreshText(edition.articles);
+  }, [online, edition, offlineReady, refreshText]);
   const patch = useCallback(
     (p: Partial<Preferences>) => setPrefs((v) => ({ ...v, ...p })),
     [setPrefs],
@@ -149,9 +175,14 @@ export default function App() {
     setFilter("All stories");
     setQuery("");
     setMenu(false);
+    setSelecting(false);
+    setSelectedIds([]);
     window.scrollTo(0, 0);
   }
   function save(article: Article) {
+    offline.metadata(article.id, {
+      bookmarked: !saved.some((a) => a.id === article.id),
+    });
     setSaved((old) =>
       old.some((a) => a.id === article.id)
         ? old.filter((a) => a.id !== article.id)
@@ -159,24 +190,28 @@ export default function App() {
     );
   }
   function open(article: Article) {
-    setReader(article);
+    const copy = offline.items.find((r) => r.id === article.id);
+    setReader(copy && (!online || view === "offline") ? copy.article : article);
     setHistory((old) =>
       [article, ...old.filter((a) => a.id !== article.id)].slice(0, 150),
     );
   }
   const onProgress = useCallback(
     (ratio: number) => {
-      if (reader)
+      if (reader) {
+        updateOfflineMetadata(reader.id, { progress: ratio });
         setProgress((old) =>
           old[reader.id] === ratio ? old : { ...old, [reader.id]: ratio },
         );
+      }
     },
-    [reader, setProgress],
+    [reader, setProgress, updateOfflineMetadata],
   );
   const all = useMemo(
     () => [
       ...new Map(
         [
+          ...(!online ? offline.items.map((r) => r.article) : []),
           ...edition.articles,
           ...custom.filter((a) =>
             prefs.customSources.some((s) => s.id === a.sourceId),
@@ -184,7 +219,7 @@ export default function App() {
         ].map((a) => [a.id, a]),
       ).values(),
     ],
-    [edition, custom, prefs.customSources],
+    [edition, custom, prefs.customSources, online, offline.items],
   );
   const articles = useMemo(() => {
     let result = view === "saved" ? saved : view === "history" ? history : all;
@@ -253,7 +288,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "folio-library.json";
+    a.download = "fyllora-library.json";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -308,11 +343,25 @@ export default function App() {
       setSaved(data.saved);
       setHistory(data.history.slice(0, 150));
       setCustom(data.custom);
-      setProgress({});
+      const importedProgress = Object.fromEntries(
+        Object.entries(data.progress || {}).filter(
+          (entry): entry is [string, number] =>
+            typeof entry[1] === "number" &&
+            Number.isFinite(entry[1]) &&
+            entry[1] >= 0 &&
+            entry[1] <= 1,
+        ),
+      );
+      setProgress(importedProgress);
+      for (const record of offline.items)
+        offline.metadata(record.id, {
+          bookmarked: data.saved.some((a: Article) => a.id === record.id),
+          progress: importedProgress[record.id] || 0,
+        });
       setNotice("Library imported successfully.");
     } catch {
       setNotice(
-        "That file is not a valid Folio library export. No changes were made.",
+        "That file is not a valid Fyllora library export. No changes were made.",
       );
     }
   }
@@ -348,7 +397,7 @@ export default function App() {
         >
           <Menu />
         </button>
-        <span className="wordmark">Folio</span>
+        <span className="wordmark">Fyllora</span>
         <button
           className="icon-button"
           aria-label="Search stories"
@@ -359,7 +408,7 @@ export default function App() {
       </header>
       <aside className={"sidebar " + (menu ? "open" : "")}>
         <div className="sidebar-brand">
-          <span className="wordmark">Folio</span>
+          <span className="wordmark">Fyllora</span>
           <button
             className="icon-button mobile-close"
             aria-label="Close navigation"
@@ -414,7 +463,9 @@ export default function App() {
             })}
           </span>
           <span>
-            {online ? "Your personal edition" : "Offline · cached edition"}
+            {online
+              ? "Your personal edition"
+              : `Offline · ${offline.items.length} downloads available`}
           </span>
         </div>
         <div className="page-heading">
@@ -435,6 +486,59 @@ export default function App() {
           <p className="notice" role="status">
             {notice || prefsError || savedError || customError}
           </p>
+        )}
+        {(offline.error || offline.message || offline.busy) && (
+          <div className="download-notice" role="status">
+            {offline.busy
+              ? `Downloading ${Math.min(offline.batch.done + 1, offline.batch.total)} of ${offline.batch.total}…`
+              : offline.error || offline.message}
+            {offline.busy && (
+              <progress
+                aria-label="Download progress"
+                max={offline.batch.total}
+                value={offline.batch.done}
+              />
+            )}
+          </div>
+        )}
+        {storyView && (
+          <div className="download-toolbar">
+            {view === "home" && (
+              <button
+                className="secondary"
+                disabled={!online || offline.busy || !articles.length}
+                onClick={() =>
+                  void offline.download(articles.slice(0, 30), readingMetadata)
+                }
+              >
+                <Download size={16} />
+                Download Daily Edition ({Math.min(30, articles.length)} stories)
+              </button>
+            )}
+            <button
+              className="text-button"
+              onClick={() => {
+                setSelecting(!selecting);
+                setSelectedIds([]);
+              }}
+            >
+              {selecting ? "Done selecting" : "Select stories"}
+            </button>
+            {selecting && (
+              <button
+                className="secondary"
+                disabled={!online || offline.busy || !selectedIds.length}
+                onClick={() =>
+                  void offline.download(
+                    articles.filter((a) => selectedIds.includes(a.id)),
+                    readingMetadata,
+                  )
+                }
+              >
+                Download selected ({selectedIds.length})
+              </button>
+            )}
+          </div>
         )}
         {storyView ? (
           <>
@@ -518,6 +622,22 @@ export default function App() {
                       article={a}
                       lead={i === 0}
                       saved={saved.some((s) => s.id === a.id)}
+                      onDownload={() =>
+                        void offline.download([a], readingMetadata)
+                      }
+                      downloaded={offline.items.some((r) => r.id === a.id)}
+                      downloading={offline.working.includes(a.id)}
+                      onSelect={
+                        selecting
+                          ? () =>
+                              setSelectedIds((old) =>
+                                old.includes(a.id)
+                                  ? old.filter((id) => id !== a.id)
+                                  : [...old, a.id],
+                              )
+                          : undefined
+                      }
+                      selected={selectedIds.includes(a.id)}
                       onSave={() => save(a)}
                       onOpen={() => open(a)}
                     />
@@ -541,6 +661,22 @@ export default function App() {
                           key={a.id}
                           article={a}
                           saved={saved.some((s) => s.id === a.id)}
+                          onDownload={() =>
+                            void offline.download([a], readingMetadata)
+                          }
+                          downloaded={offline.items.some((r) => r.id === a.id)}
+                          downloading={offline.working.includes(a.id)}
+                          onSelect={
+                            selecting
+                              ? () =>
+                                  setSelectedIds((old) =>
+                                    old.includes(a.id)
+                                      ? old.filter((id) => id !== a.id)
+                                      : [...old, a.id],
+                                  )
+                              : undefined
+                          }
+                          selected={selectedIds.includes(a.id)}
                           onSave={() => save(a)}
                           onOpen={() => open(a)}
                         />
@@ -606,12 +742,26 @@ export default function App() {
             </div>
           </>
         )}
+        {view === "offline" && (
+          <OfflineLibrary
+            library={offline}
+            online={online}
+            onOpen={open}
+            onRefresh={(a) =>
+              void offline.download(
+                [all.find((item) => item.id === a.id) || a],
+                readingMetadata,
+                true,
+              )
+            }
+          />
+        )}
         {view === "magazines" && <Magazines />}
         {view === "settings" && (
           <div className="settings">
             <section>
               <h2>Make yourself at home.</h2>
-              <p>Choose how Folio looks and reads.</p>
+              <p>Choose how Fyllora looks and reads.</p>
               <h3>Appearance</h3>
               <div className="segmented">
                 {(["light", "dark", "system"] as const).map((theme, i) => {
@@ -717,37 +867,54 @@ export default function App() {
               </button>
             </section>
             <section>
-              <h2>Install Folio</h2>
+              <h2>Offline reading</h2>
               <p>
-                On iPhone or iPad, open Folio in Safari, tap Share, then Add to
-                Home Screen. On Mac, use Safari’s Add to Dock or your browser’s
-                Install option.
+                Use Download on a story or Download Daily Edition for up to 30
+                stories from the current For You selection. Check Offline
+                Library before travelling. Only publisher-supplied text is
+                saved; most publishers supply previews. Images are cached only
+                under the configured NASA informational-use policy, excluding
+                APOD and marked copyrighted material.
               </p>
               <p>
-                Saved articles and the last cached edition work offline after an
-                initial online visit. External images and online PDFs need a
-                connection; imported PDFs stay available locally.
+                iOS can remove website data when storage is low. Add Fyllora to
+                the Home Screen, keep free space, and recheck downloads before
+                Airplane Mode. Persistence is requested where supported but is
+                not guaranteed. If the entire origin is evicted, an offline
+                launch is impossible until you reconnect.
+              </p>
+              <h2>Install Fyllora</h2>
+              <p>
+                On iPhone or iPad, open Fyllora in Safari, tap Share, then Add
+                to Home Screen. On Mac, use Safari’s Add to Dock or your
+                browser’s Install option.
+              </p>
+              <p>
+                Downloaded stories and their stored images work offline after
+                installation. Missing or excluded images are marked in Offline
+                Library. Online PDFs need a connection; imported PDFs stay
+                available locally.
               </p>
             </section>
             <section>
               <h2>Summaries & content</h2>
               <p>
                 Summarize uses your browser’s on-device AI when supported.
-                Otherwise Folio clearly labels locally extracted key passages.
+                Otherwise Fyllora clearly labels locally extracted key passages.
                 No API key or payment is required.
               </p>
               <p>
                 Most publishers supply a preview. NASA feed articles are
                 available in full when supplied. Full stories, image credits,
                 and publisher access conditions remain at the original source.
-                Folio never bypasses paywalls.
+                Fyllora never bypasses paywalls.
               </p>
               <a
                 href="https://github.com/Zainhomeautomation/Folio"
                 target="_blank"
                 rel="noreferrer"
               >
-                Folio on GitHub · MIT License ↗
+                Fyllora on GitHub · MIT License ↗
               </a>
             </section>
           </div>
@@ -783,6 +950,19 @@ export default function App() {
           prefs={prefs}
           saved={saved.some((a) => a.id === reader.id)}
           initialProgress={progress[reader.id] || 0}
+          onDownload={() =>
+            void offline.download(
+              [all.find((a) => a.id === reader.id) || reader],
+              readingMetadata,
+            )
+          }
+          downloaded={offline.items.some((r) => r.id === reader.id)}
+          downloading={offline.working.includes(reader.id)}
+          offlineLabel={
+            offline.items.some((r) => r.id === reader.id)
+              ? "Offline copy stored on this device. Missing or excluded publisher images may be omitted."
+              : undefined
+          }
           onSave={() => save(reader)}
           onPrefs={patch}
           onProgress={onProgress}

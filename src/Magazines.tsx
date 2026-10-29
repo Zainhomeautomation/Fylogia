@@ -19,6 +19,7 @@ const editions: Magazine[] = [
 ];
 function db() {
   return new Promise<IDBDatabase>((resolve, reject) => {
+    // Keep the original database name to preserve imported PDFs.
     const req = indexedDB.open("folio-magazines", 1);
     req.onupgradeneeded = () =>
       req.result.createObjectStore("pdfs", { keyPath: "id" });

@@ -9,7 +9,7 @@ async function setup(page: Page) {
     page.getByRole("heading", { name: "Good reading starts here." }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "Create My Folio" }).click();
+  await page.getByRole("button", { name: "Create My Fyllora" }).click();
   await expect(
     page.getByRole("heading", { name: "Your daily perspective." }),
   ).toBeVisible();
@@ -29,7 +29,7 @@ test("onboarding, real stories, saves, history, theme and persistent preferences
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await setup(page);
-  await expect(page).toHaveTitle("Folio — Read your world");
+  await expect(page).toHaveTitle("Fyllora — Read your world");
   await expect
     .poll(
       () =>
@@ -41,12 +41,12 @@ test("onboarding, real stories, saves, history, theme and persistent preferences
       { timeout: 25000 },
     )
     .toBeTruthy();
-  if (process.env.FOLIO_SCREENSHOTS)
+  if (process.env.FYLLORA_SCREENSHOTS)
     await page.screenshot({
       animations: "disabled",
       scale: "css",
       path:
-        process.env.FOLIO_SCREENSHOTS +
+        process.env.FYLLORA_SCREENSHOTS +
         "/" +
         test.info().project.name +
         "-home.png",
@@ -126,24 +126,24 @@ test("full article pagination, resize, summaries and scrolling", async ({
   await page.setViewportSize({ width: 360, height: 740 });
   await expect(page.locator(".reader-footer")).toContainText("Page");
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");
-  if (process.env.FOLIO_SCREENSHOTS)
+  if (process.env.FYLLORA_SCREENSHOTS)
     await page.screenshot({
       animations: "disabled",
       scale: "css",
       path:
-        process.env.FOLIO_SCREENSHOTS +
+        process.env.FYLLORA_SCREENSHOTS +
         "/" +
         test.info().project.name +
         "-reader-mobile.png",
     });
   await page.setViewportSize({ width: 1200, height: 900 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "2");
-  if (process.env.FOLIO_SCREENSHOTS)
+  if (process.env.FYLLORA_SCREENSHOTS)
     await page.screenshot({
       animations: "disabled",
       scale: "css",
       path:
-        process.env.FOLIO_SCREENSHOTS +
+        process.env.FYLLORA_SCREENSHOTS +
         "/" +
         test.info().project.name +
         "-reader-spread.png",
@@ -255,10 +255,10 @@ test("custom RSS file, library export/import and sanitized article content", asy
     .fill("NASA custom import");
   await page
     .getByRole("textbox", { name: "Feed URL" })
-    .fill("https://www.nasa.gov/feed/?folio-custom=1");
+    .fill("https://www.nasa.gov/feed/?fyllora-custom=1");
   const escape = (s: string) =>
     s.replaceAll("&", "&amp;").replaceAll("<", "&lt;");
-  const xml = `<rss version="2.0"><channel><title>NASA</title><item><title>${escape(article.title)}</title><link>${escape(article.url + "?folio-import=1")}</link><description>${escape(article.excerpt)}</description></item></channel></rss>`;
+  const xml = `<rss version="2.0"><channel><title>NASA</title><item><title>${escape(article.title)}</title><link>${escape(article.url + "?fyllora-import=1")}</link><description>${escape(article.excerpt)}</description></item></channel></rss>`;
   await page.locator("input[type=file]").setInputFiles({
     name: "nasa.xml",
     mimeType: "application/xml",
@@ -271,7 +271,7 @@ test("custom RSS file, library export/import and sanitized article content", asy
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export library" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("folio-library.json");
+  expect(download.suggestedFilename()).toBe("fyllora-library.json");
   const exported = await page.evaluate(() => ({
     version: 1,
     preferences: JSON.parse(localStorage.getItem("folio.v1.preferences")!),
@@ -284,7 +284,7 @@ test("custom RSS file, library export/import and sanitized article content", asy
       ...article,
       content:
         article.content +
-        '<script>window.folioUnsafe=true</script><img src="x" onerror="window.folioUnsafe=true"><a href="javascript:alert(1)">Unsafe test link</a>',
+        '<script>window.fylloraUnsafe=true</script><img src="x" onerror="window.fylloraUnsafe=true"><a href="javascript:alert(1)">Unsafe test link</a>',
     },
   ];
   await page.locator("input[type=file]").setInputFiles({
@@ -300,7 +300,7 @@ test("custom RSS file, library export/import and sanitized article content", asy
   await expect(page.locator(".article-body script")).toHaveCount(0);
   await expect(page.locator(".article-body [onerror]")).toHaveCount(0);
   expect(
-    await page.evaluate(() => Boolean((window as any).folioUnsafe)),
+    await page.evaluate(() => Boolean((window as any).fylloraUnsafe)),
   ).toBeFalsy();
 });
 
@@ -309,7 +309,7 @@ test("private PDF import survives reload and opens original page layout", async 
 }) => {
   await setup(page);
   await nav(page, "Magazines");
-  const content = "BT /F1 24 Tf 50 700 Td (Folio PDF import test) Tj ET";
+  const content = "BT /F1 24 Tf 50 700 Td (Fyllora PDF import test) Tj ET";
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -331,17 +331,89 @@ test("private PDF import survives reload and opens original page layout", async 
       "\n",
     )}\ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
   await page.locator("input[type=file]").setInputFiles({
-    name: "Folio local PDF test.pdf",
+    name: "Fyllora local PDF test.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.from(pdf),
   });
   await expect(
-    page.getByRole("button", { name: /Folio local PDF test/ }),
+    page.getByRole("button", { name: /Fyllora local PDF test/ }),
   ).toBeVisible();
   await page.reload();
   await nav(page, "Magazines");
-  await page.getByRole("button", { name: /Folio local PDF test/ }).click();
+  await page.getByRole("button", { name: /Fyllora local PDF test/ }).click();
   await expect(page.locator("canvas")).toBeVisible();
   await expect(page.locator(".reader-footer")).toContainText("Page 1 of 1");
   await page.getByRole("button", { name: "Close magazine" }).click();
+});
+
+test("Fyllora branding preserves legacy libraries and installation identity", async ({
+  page,
+}) => {
+  const edition = await (await page.request.get("data/edition.json")).json();
+  const article = edition.articles.find((a: any) => a.full);
+  await page.addInitScript(
+    ({ article }) => {
+      localStorage.setItem(
+        "folio.v1.preferences",
+        JSON.stringify({
+          complete: true,
+          interests: ["Space"],
+          topics: [],
+          region: "Worldwide",
+          sourceIds: ["nasa"],
+          customSources: [],
+          theme: "light",
+          reading: "pages",
+          fontSize: 19,
+          converter: false,
+        }),
+      );
+      localStorage.setItem("folio.v1.saved", JSON.stringify([article]));
+      localStorage.setItem("folio.v1.history", JSON.stringify([article]));
+    },
+    { article },
+  );
+  await page.goto("./");
+  await expect(page).toHaveTitle("Fyllora — Read your world");
+  await expect(
+    page.getByRole("heading", { name: "Your daily perspective." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "What draws you in?" }),
+  ).toHaveCount(0);
+  await expect(page.locator('meta[name="application-name"]')).toHaveAttribute(
+    "content",
+    "Fyllora",
+  );
+  await expect(
+    page.locator('meta[name="apple-mobile-web-app-title"]'),
+  ).toHaveAttribute("content", "Fyllora");
+  const manifest = await (
+    await page.request.get("manifest.webmanifest")
+  ).json();
+  expect(manifest.name).toBe("Fyllora — Read your world");
+  expect(manifest.short_name).toBe("Fyllora");
+  expect(manifest.id).toBe(new URL("./", page.url()).pathname);
+  expect(manifest.start_url).toBe(new URL("./", page.url()).pathname);
+  expect(await (await page.request.get("icon.svg")).text()).toContain(
+    "Fyllora",
+  );
+  await nav(page, "Saved Articles");
+  await expect(
+    page.getByRole("heading", { name: article.title, exact: true }),
+  ).toBeVisible();
+  await page.locator(".story-open").click();
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.querySelector(".reader-toolbar")!.scrollWidth <=
+        window.innerWidth,
+    ),
+  ).toBeTruthy();
+  await page.getByRole("button", { name: "Close reader" }).click();
+  await nav(page, "History");
+  await expect(
+    page.getByRole("heading", { name: article.title, exact: true }),
+  ).toBeVisible();
 });

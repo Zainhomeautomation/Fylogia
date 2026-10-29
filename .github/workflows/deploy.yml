@@ -1,4 +1,4 @@
-name: Validate, refresh feeds, and publish Folio
+name: Validate Fyllora and prepare publication
 on:
   push:
     branches: [main]
@@ -8,10 +8,11 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: folio-pages
+  group: fyllora-pages
   cancel-in-progress: false
 jobs:
   build:
+    if: github.repository == 'Zainhomeautomation/Folio'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -30,6 +31,8 @@ jobs:
         with:
           path: dist
   deploy:
+    # Provisional name: publishing stays disabled until availability is confirmed.
+    if: github.repository == 'Zainhomeautomation/Folio' && vars.FYLLORA_NAME_CONFIRMED == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:

@@ -258,6 +258,7 @@ export const sources: Source[] = [
   },
 ];
 export interface Article {
+  offlineImagesAllowed?: boolean;
   id: string;
   sourceId: string;
   source: string;

@@ -44,7 +44,7 @@ export function Onboarding({
   return (
     <main className="onboarding">
       <div className="onboard-brand">
-        Folio<span>Read your world.</span>
+        Fyllora<span>Read your world.</span>
       </div>
       <div className="onboard-layout">
         <aside>
@@ -62,7 +62,7 @@ export function Onboarding({
         </aside>
         <section className="onboard-panel">
           <div className="steps" aria-label={`Step ${step + 1} of 3`}>
-            {["Your interests", "Your sources", "Your Folio"].map(
+            {["Your interests", "Your sources", "Your Fyllora"].map(
               (label, i) => (
                 <span key={label} className={i <= step ? "active" : ""}>
                   {i < step ? <Check size={14} /> : i + 1} {label}
@@ -179,7 +179,7 @@ export function Onboarding({
               <BookOpen size={56} strokeWidth={1} />
               <h2>Make room for discovery.</h2>
               <p>
-                Your Folio brings together {draft.sourceIds.length} sources,
+                Your Fyllora brings together {draft.sourceIds.length} sources,
                 shaped around {draft.interests.length} interests.
               </p>
               <div className="ready-list">{draft.interests.join(" · ")}</div>
@@ -211,7 +211,7 @@ export function Onboarding({
                 step === 2 ? onComplete({ ...draft, complete: true }) : next()
               }
             >
-              {step === 2 ? "Create My Folio" : "Continue"}
+              {step === 2 ? "Create My Fyllora" : "Continue"}
               <ArrowRight size={17} />
             </button>
           </footer>

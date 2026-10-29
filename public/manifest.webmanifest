@@ -1,1 +1,30 @@
-{"id":"/Folio/","name":"Folio — Read your world","short_name":"Folio","description":"Your personal news and magazine reader","start_url":"/Folio/","scope":"/Folio/","display":"standalone","background_color":"#ffffff","theme_color":"#456657","lang":"en","icons":[{"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},{"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}],"categories":["news","books"]}
+{
+  "id": "/Folio/",
+  "name": "Fyllora \u2014 Read your world",
+  "short_name": "Fyllora",
+  "description": "Fyllora: your personal news and magazine reader",
+  "start_url": "/Folio/",
+  "scope": "/Folio/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#456657",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "news",
+    "books"
+  ]
+}

@@ -80,6 +80,7 @@ export default function PdfReader({
     [width, setWidth] = useState(window.innerWidth),
     [bookmarked, setBookmarked] = useState(false);
   const spread = width >= 950 ? 2 : 1;
+  // Keep existing magazine page bookmarks across the rebrand.
   const key = "folio.v1.pdf." + title;
   useEffect(() => {
     let saved = 1;

@@ -1,4 +1,10 @@
-import { Bookmark, ArrowUpRight } from "lucide-react";
+import {
+  Bookmark,
+  ArrowUpRight,
+  Download,
+  Check,
+  LoaderCircle,
+} from "lucide-react";
 import type { Article } from "./catalog";
 import { dateLabel } from "./storage";
 export function StoryCard({
@@ -7,15 +13,44 @@ export function StoryCard({
   onSave,
   onOpen,
   lead = false,
+  onDownload,
+  downloaded = false,
+  downloading = false,
+  onSelect,
+  selected = false,
 }: {
   article: Article;
   saved: boolean;
   onSave: () => void;
   onOpen: () => void;
   lead?: boolean;
+  onDownload?: () => void;
+  downloaded?: boolean;
+  downloading?: boolean;
+  onSelect?: () => void;
+  selected?: boolean;
 }) {
   return (
     <article className={"story " + (lead ? "lead" : "")}>
+      <div className="story-offline-tools">
+        {onSelect && (
+          <label className="story-select">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={onSelect}
+              aria-label={`Select ${article.title}`}
+            />
+            Select story
+          </label>
+        )}
+        {downloaded && (
+          <span className="download-badge">
+            <Check size={12} />
+            Downloaded
+          </span>
+        )}
+      </div>
       <button className="story-open" onClick={onOpen}>
         {article.image ? (
           <img
@@ -43,6 +78,22 @@ export function StoryCard({
           {article.source} <span aria-hidden="true">·</span>{" "}
           {dateLabel(article.published)}
         </span>
+        {onDownload && (
+          <button
+            className="icon-button"
+            disabled={downloading || downloaded}
+            aria-label={`${downloaded ? "Downloaded" : downloading ? "Downloading" : "Download offline"} ${article.title}`}
+            onClick={onDownload}
+          >
+            {downloading ? (
+              <LoaderCircle className="spinning" size={18} />
+            ) : downloaded ? (
+              <Check size={18} />
+            ) : (
+              <Download size={18} />
+            )}
+          </button>
+        )}
         <button
           className={"icon-button " + (saved ? "is-saved" : "")}
           aria-label={`${saved ? "Unsave" : "Save"} ${article.title}`}

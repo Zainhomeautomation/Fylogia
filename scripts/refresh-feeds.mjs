@@ -40,7 +40,7 @@ const results = await Promise.all(
         signal: AbortSignal.timeout(25000),
         headers: {
           "User-Agent":
-            "Folio RSS Reader (+https://github.com/Zainhomeautomation/Folio)",
+            "Fyllora RSS Reader (+https://github.com/Zainhomeautomation/Folio)",
         },
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -88,6 +88,9 @@ const results = await Promise.all(
           return {
             id: url,
             sourceId: source.id,
+            offlineImagesAllowed:
+              source.id === "nasa" &&
+              !/APOD|copyright|©|&copy;|&#169;/i.test(text(item.title) + raw),
             source: source.name,
             title: text(item.title),
             url,
