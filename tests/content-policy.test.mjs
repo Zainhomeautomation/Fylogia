@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cleanGlobalVoices } from "../scripts/article-content.mjs";
+import { cleanGlobalVoices, feedText } from "../scripts/article-content.mjs";
 test("licensed feed prose keeps attribution and license while excluding third-party images", () => {
   const body = cleanGlobalVoices(
     '<p>First paragraph.</p><div class="wp-caption"><img src="https://example.com/photo.jpg"><p>Photo credit.</p></div><h2>Context</h2><p>Last paragraph.</p><div class="gv-rss-footer">Translated by Contributor.</div>',
@@ -45,5 +45,40 @@ test("partner bylines and alternate licenses override the general source license
       "Author",
     ),
     "",
+  );
+});
+
+test("notice containers cannot hide a partner or alternate-license exception", () => {
+  assert.equal(
+    cleanGlobalVoices(
+      '<div class="originally-published">Originally published by Partner.</div><p>Story text.</p>',
+      "https://globalvoices.org/story/",
+      "Author",
+    ),
+    "",
+  );
+  assert.equal(
+    cleanGlobalVoices(
+      '<div class="gv-rss-footer">CC BY-NC 4.0</div><p>Story text.</p>',
+      "https://globalvoices.org/story/",
+      "Author",
+    ),
+    "",
+  );
+  assert.match(
+    cleanGlobalVoices(
+      '<p class="originally-published">Originally published on <a href="https://globalvoices.org/story/">Global Voices</a></p><p>Story text.</p>',
+      "https://globalvoices.org/story/",
+      "Author",
+    ),
+    /Story text/,
+  );
+});
+test("feed excerpts preserve block and line-break word boundaries and decode entities", () => {
+  assert.equal(
+    feedText(
+      "<p>Walks</p><p>The vital moment &amp; more.</p>Rice<br>Here are <strong>two</strong> things.",
+    ),
+    "Walks The vital moment & more. Rice Here are two things.",
   );
 });

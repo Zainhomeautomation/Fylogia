@@ -1,4 +1,8 @@
-import { cleanFeedArticle, cleanGlobalVoices } from "./article-content.mjs";
+import {
+  cleanFeedArticle,
+  cleanGlobalVoices,
+  feedText,
+} from "./article-content.mjs";
 import { parseHTML } from "linkedom";
 import { XMLParser } from "fast-xml-parser";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
@@ -12,10 +16,7 @@ const parser = new XMLParser({
 });
 const arr = (x) => (!x ? [] : Array.isArray(x) ? x : [x]);
 const str = (x) => (typeof x === "string" ? x : String(x?.["#text"] ?? ""));
-const text = (x) =>
-  parseHTML("<html><body>" + str(x) + "</body></html>")
-    .document.body.textContent.replace(/\s+/g, " ")
-    .trim();
+const text = (x) => feedText(str(x));
 const safe = (u) => {
   try {
     const url = new URL(String(u).replace(/&(?:amp|#0*38|#x0*26);/gi, "&"));

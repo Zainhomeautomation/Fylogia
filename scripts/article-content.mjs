@@ -38,15 +38,20 @@ export function cleanFeedArticle(html, title) {
 export function cleanGlobalVoices(html, url, author) {
   if (!author) return "";
   const { document } = parseHTML("<html><body>" + html + "</body></html>");
-  document
-    .querySelectorAll(
-      "script,style,iframe,video,audio,form,button,.wp-caption,figure,.originally-published,img",
+  // Only remove the publisher's exact self-attribution. Inspect all other
+  // notices before stripping media/markup, so their evidence cannot disappear.
+  for (const notice of document.querySelectorAll(".originally-published")) {
+    if (
+      /^Originally published on Global Voices$/i.test(
+        notice.textContent.trim(),
+      ) &&
+      notice.querySelector("a")?.getAttribute("href") === url
     )
-    .forEach((node) => node.remove());
-  // Item-level notices override the publisher's general CC BY policy. Ignore
-  // removed image captions, but never relabel partner text or another license.
+      notice.remove();
+    else return "";
+  }
   if (
-    /all rights reserved|republished|originally (?:published|appeared) (?:in|on|by)/i.test(
+    /all rights reserved|republished|originally (?:published|appeared) (?:in|on|by)|CC\s*BY[-\s](?:NC|ND|SA)/i.test(
       document.body.textContent,
     ) ||
     /creativecommons\.org\/licenses\/by-(?:nc|nd|sa)/i.test(
@@ -54,6 +59,11 @@ export function cleanGlobalVoices(html, url, author) {
     )
   )
     return "";
+  document
+    .querySelectorAll(
+      "script,style,iframe,video,audio,form,button,.wp-caption,figure,img",
+    )
+    .forEach((node) => node.remove());
   const escape = (value) =>
     value
       .replaceAll("&", "&amp;")
@@ -63,4 +73,16 @@ export function cleanGlobalVoices(html, url, author) {
     `<p>This story by ${escape(author)} originally appeared on <a href="${escape(url)}">Global Voices</a>. Text licensed under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. Reformatted for reading; third-party media omitted.</p>` +
     document.body.innerHTML
   );
+}
+
+export function feedText(html) {
+  const { document } = parseHTML("<html><body>" + html + "</body></html>");
+  document.querySelectorAll("script,style").forEach((node) => node.remove());
+  for (const node of document.querySelectorAll(
+    "p,div,br,hr,h1,h2,h3,h4,h5,h6,li,ul,ol,blockquote,figure,figcaption,section,article,table,tr,td,th,dl,dt,dd,pre",
+  )) {
+    node.before(document.createTextNode(" "));
+    node.after(document.createTextNode(" "));
+  }
+  return document.body.textContent.replace(/\s+/g, " ").trim();
 }

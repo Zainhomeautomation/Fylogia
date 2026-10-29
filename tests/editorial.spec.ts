@@ -11,7 +11,12 @@ test("editorial cover, readable preview, immersive controls and advanced setting
   );
   expect(preview).toBeTruthy();
   await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...edition, articles: [preview] } }),
+    r.fulfill({
+      json: {
+        ...edition,
+        articles: [preview, { ...preview, id: preview.id + "#second" }],
+      },
+    }),
   );
   await page.goto("./");
   await expect(page).toHaveTitle(/Fylogia/);
@@ -21,13 +26,22 @@ test("editorial cover, readable preview, immersive controls and advanced setting
   await expect(page.locator(".daily-edition")).toContainText(
     "A little time. A wider world.",
   );
-  await expect(page.locator(".content-label")).toHaveText("Publisher preview");
+  await expect(page.locator(".content-label").first()).toHaveText(
+    "Publisher preview",
+  );
   if (process.env.FYLOGIA_SCREENSHOTS)
     await page.screenshot({
       path: `${process.env.FYLOGIA_SCREENSHOTS}/editorial-${testInfo.project.name}.png`,
       fullPage: false,
     });
-  await page.locator(".story-open").click();
+  const initialSize = page.viewportSize()!;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".story:not(.lead) h2").first()).toHaveCSS(
+    "grid-column-start",
+    "2",
+  );
+  await page.setViewportSize(initialSize);
+  await page.locator(".story-open").first().click();
   await page.setViewportSize({ width: 1100, height: 1000 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");
   await expect(page.locator(".preview-note")).toContainText(
