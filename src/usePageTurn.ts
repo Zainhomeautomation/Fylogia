@@ -121,7 +121,9 @@ export function usePageTurn(
     image: HTMLElement;
     canvases: HTMLCanvasElement[];
   } | null>(null);
+  const deadline = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   function clear() {
+    clearTimeout(deadline.current);
     cancelAnimationFrame(frame.current);
     state.current?.leaf.remove();
     state.current = null;
@@ -140,6 +142,12 @@ export function usePageTurn(
       }
     };
     frame.current = requestAnimationFrame(tick);
+    // WebKit can suspend animation frames while a PDF canvas is repainting or
+    // a tab loses visibility. A visual layer must never outlive navigation.
+    deadline.current = setTimeout(() => {
+      clear();
+      done?.();
+    }, 900);
   }
   useLayoutEffect(() => {
     const surface = ref.current;

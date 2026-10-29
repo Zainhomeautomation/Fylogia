@@ -18,7 +18,10 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
   await expect(page.getByLabel("Page turning guide")).toBeVisible();
   const status = page.locator(".reader-footer [role=status]");
   const before = await status.innerText();
-  async function drag(fraction: number, cancel = false) {
+  async function drag(
+    fraction: number,
+    cancel: false | "pointercancel" | "lostpointercapture" = false,
+  ) {
     const corner = page.getByRole("button", {
       name: "Drag or tap to turn forward",
     });
@@ -32,7 +35,7 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
     await page.mouse.move(x, y);
     await page.mouse.down();
     await page.mouse.move(x - w * fraction, y - 30, { steps: 8 });
-    if (cancel) await corner.dispatchEvent("pointercancel", { pointerId: 1 });
+    if (cancel) await corner.dispatchEvent(cancel, { pointerId: 1 });
     else {
       await expect(page.locator(".curl-strip")).toHaveCount(12);
       const transforms = await page
@@ -51,7 +54,9 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
   }
   await drag(0.15);
   await expect(status).toHaveText(before);
-  await drag(0.55, true);
+  await drag(0.55, "pointercancel");
+  await expect(status).toHaveText(before);
+  await drag(0.55, "lostpointercapture");
   await expect(status).toHaveText(before);
   await drag(0.55);
   await expect(status).not.toHaveText(before);

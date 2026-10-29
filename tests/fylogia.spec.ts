@@ -199,6 +199,15 @@ test("all category and regional controls, source follow, search and no horizonta
 test("real original PDF renders, turns pages, bookmarks and persists", async ({
   page,
 }) => {
+  const decodeWarnings: string[] = [];
+  page.on("console", (message) => {
+    if (
+      /Unable to decode image|OpenJPEG failed|wasmUrl.*provided/.test(
+        message.text(),
+      )
+    )
+      decodeWarnings.push(message.text());
+  });
   test.setTimeout(120000);
   await setup(page);
   await nav(page, "Magazines");
@@ -267,6 +276,7 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
   await page.getByRole("button", { name: /NASA Spinoff 2025/ }).click();
   await expect(page.locator("canvas").first()).toBeVisible();
   await expect(page.locator(".reader-footer [role=status]")).toHaveText(text);
+  expect(decodeWarnings).toEqual([]);
 });
 test("install manifest, service worker and offline saved reading", async ({
   page,

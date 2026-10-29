@@ -108,7 +108,10 @@ export default function PdfReader({
     }
     const entry = (!local && retainedEdition) || {
       url,
-      task: pdfjs.getDocument({ url }),
+      task: pdfjs.getDocument({
+        url,
+        wasmUrl: `${import.meta.env.BASE_URL}pdfjs/${pdfjs.version}/`,
+      }),
       loaded: false,
     };
     if (!local) retainedEdition = entry;
