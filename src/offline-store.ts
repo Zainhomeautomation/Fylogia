@@ -231,6 +231,10 @@ export async function downloadArticle(
 ) {
   if (!navigator.onLine)
     throw new Error("Connect to the internet to download new articles.");
+  if (!article.content && !article.excerpt)
+    throw new Error(
+      "This saved link has no article text on this device. Open the publisher to read it.",
+    );
   await storageRoom();
   const existing = (await listDownloads()).find((r) => r.id === article.id);
   const candidates = articleImages(article),

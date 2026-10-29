@@ -1,3 +1,6 @@
+import { lazy, Suspense } from "react";
+import { incomingPairCode } from "./pair-link";
+const SyncPanel = lazy(() => import("./SyncPanel"));
 import { DailyMagazine } from "./DailyMagazine";
 import {
   createDailyMagazine,
@@ -89,6 +92,12 @@ export default function App() {
     [personalizing, setPersonalizing] = useState(false),
     [online, setOnline] = useState(navigator.onLine);
   const profile = useLocalProfile();
+  const [syncOpen, setSyncOpen] = useState(Boolean(incomingPairCode));
+  const syncPanel = syncOpen ? (
+    <Suspense fallback={<p role="status">Opening device sync…</p>}>
+      <SyncPanel onClose={() => setSyncOpen(false)} />
+    </Suspense>
+  ) : null;
   const [backupPassword, setBackupPassword] = useState("");
   const [backupBusy, setBackupBusy] = useState(false);
   const offline = useOfflineLibrary();
@@ -97,6 +106,15 @@ export default function App() {
     refreshText,
     metadata: updateOfflineMetadata,
   } = offline;
+  useEffect(() => {
+    const savedIds = new Set(saved.map((article) => article.id));
+    for (const item of offline.items) {
+      const bookmarked = savedIds.has(item.id);
+      const ratio = progress[item.id] ?? item.progress;
+      if (item.bookmarked !== bookmarked || item.progress !== ratio)
+        updateOfflineMetadata(item.id, { bookmarked, progress: ratio });
+    }
+  }, [saved, progress, offline.items, updateOfflineMetadata]);
   const [selecting, setSelecting] = useState(false),
     [selectedIds, setSelectedIds] = useState<string[]>([]);
   const readingRef = useRef({ saved, progress });
@@ -212,7 +230,7 @@ export default function App() {
     setMenu(false);
     setSelecting(false);
     setSelectedIds([]);
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }
   function save(article: Article) {
     offline.metadata(article.id, {
@@ -269,7 +287,12 @@ export default function App() {
   const articles = useMemo(() => {
     let result = (
       view === "saved" ? saved : view === "history" ? history : all
-    ).map((a) => withCurrentCategories(a, sourceLabels));
+    ).map((a) =>
+      withCurrentCategories(
+        a.content || a.excerpt ? a : all.find((item) => item.id === a.id) || a,
+        sourceLabels,
+      ),
+    );
     if (view === "home")
       result = result.filter((a) => articleMatchesLibrary(a, prefs));
     if (readableOnly) result = result.filter((a) => a.full);
@@ -443,6 +466,13 @@ export default function App() {
             {profile.error}
           </p>
         )}
+        <button
+          className="secondary onboarding-sync"
+          onClick={() => setSyncOpen(true)}
+        >
+          Link an existing device
+        </button>
+        {syncPanel}
         <Onboarding
           onArticles={(items) =>
             setCustom((old) => [
@@ -464,6 +494,7 @@ export default function App() {
   const storyView = ["home", "explore", "saved", "history"].includes(view);
   return (
     <>
+      {syncPanel}
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -878,6 +909,16 @@ export default function App() {
         {view === "settings" && (
           <div className="settings">
             <section>
+              <h2>Your devices</h2>
+              <p>
+                Read locally, or optionally link your private library across
+                devices.
+              </p>
+              <button className="secondary" onClick={() => setSyncOpen(true)}>
+                Sync my devices
+              </button>
+            </section>
+            <section>
               <h2>Make yourself at home.</h2>
               <p>Choose how Fylogia looks and reads.</p>
               <h3>Appearance</h3>
@@ -1147,6 +1188,7 @@ export default function App() {
       </nav>
       {dailyOpen && (
         <DailyMagazine
+          downloadNotice={offline.error || offline.message}
           edition={dailyOpen}
           articles={dailyArticles}
           prefs={prefs}
@@ -1172,6 +1214,7 @@ export default function App() {
       )}
       {reader && (
         <Reader
+          downloadNotice={offline.error || offline.message}
           article={reader}
           prefs={prefs}
           saved={saved.some((a) => a.id === reader.id)}

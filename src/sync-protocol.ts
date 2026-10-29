@@ -31,7 +31,9 @@ function text(value: unknown, max = 2000, empty = false): string {
     typeof value !== "string" ||
     value.length > max ||
     (!empty && !value.trim()) ||
-    /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value)
+    Array.from(value).some(
+      (c) => c.charCodeAt(0) < 32 && ![9, 10, 13].includes(c.charCodeAt(0)),
+    )
   )
     throw new Error("Invalid text");
   return value;
@@ -41,12 +43,28 @@ function texts(value: unknown, max = 100): string[] {
     throw new Error("Invalid list");
   return value.map((v) => text(v));
 }
-function url(value: unknown, https = false): string {
+export function deviceLocalUrl(value: string, feed = false): boolean {
+  try {
+    const u = new URL(value);
+    return Boolean(
+      u.username ||
+      u.password ||
+      (feed && (u.search || u.hash)) ||
+      [...u.searchParams.keys()].some((key) =>
+        /^(?:access[-_]?token|refresh[-_]?token|token|api[-_]?key|key|secret|password|auth|authorization|signature|sig|x-amz-.+)$/i.test(
+          key,
+        ),
+      ),
+    );
+  } catch {
+    return true;
+  }
+}
+function url(value: unknown, https = false, feed = false): string {
   const s = text(value, 4000);
   const u = new URL(s);
   if (
-    u.username ||
-    u.password ||
+    deviceLocalUrl(s, feed) ||
     !(https ? ["https:"] : ["https:", "http:"]).includes(u.protocol)
   )
     throw new Error("Invalid URL");
@@ -94,7 +112,8 @@ export function validateSyncValue(
   if (
     colon < 1 ||
     !id ||
-    ["__proto__", "constructor", "prototype"].includes(id)
+    ["__proto__", "constructor", "prototype"].includes(id) ||
+    (id.startsWith("http") && deviceLocalUrl(id))
   )
     throw new Error("Invalid record key");
   if (
@@ -107,6 +126,8 @@ export function validateSyncValue(
       "saved",
       "history",
       "progress",
+      "magazine-progress",
+      "magazine-bookmark",
       "daily",
     ].includes(kind)
   )
@@ -142,6 +163,10 @@ export function validateSyncValue(
   } else if (kind === "saved" || kind === "history") {
     result = article(value);
     if (result.id !== id) throw new Error("Mismatched article");
+  } else if (["magazine-progress", "magazine-bookmark"].includes(kind)) {
+    if (!Number.isInteger(value) || Number(value) < 0 || Number(value) > 100000)
+      throw new Error("Invalid magazine page");
+    result = value as number;
   } else if (kind === "progress") {
     if (
       typeof value !== "number" ||
@@ -158,7 +183,7 @@ export function validateSyncValue(
     result = {
       id: text(v.id),
       name: text(v.name, 200),
-      url: url(v.url, true),
+      url: url(v.url, true, true),
       site: url(v.site),
       categories: texts(v.categories, 100),
       region: text(v.region, 100),

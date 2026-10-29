@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+test.use({ trace: "off" });
 // This exercises actual Pages Functions and D1, independently of the SQLite unit adapter.
 test("private worker pairs independent browser profiles and stores only authorized library metadata", async ({
   browser,

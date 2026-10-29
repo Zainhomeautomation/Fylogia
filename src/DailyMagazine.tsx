@@ -21,6 +21,7 @@ export function DailyMagazine({
   downloadingIds,
   online,
   busy,
+  downloadNotice,
   onProgress,
   onOpen,
   onSave,
@@ -38,6 +39,7 @@ export function DailyMagazine({
   downloadingIds: string[];
   online: boolean;
   busy: boolean;
+  downloadNotice?: string;
   onProgress: (article: Article, ratio: number) => void;
   onOpen: (article: Article) => void;
   onSave: (article: Article) => void;
@@ -69,7 +71,10 @@ export function DailyMagazine({
   const available = edition.stories
     .map((s) => library.get(s.id))
     .filter(
-      (a): a is Article => !!a && (online || downloadedIds.includes(a.id)),
+      (a): a is Article =>
+        !!a &&
+        !!(a.content || a.excerpt) &&
+        (online || downloadedIds.includes(a.id)),
     );
   const cover = library.get(edition.stories[0]?.id);
   const current =
@@ -167,6 +172,7 @@ export function DailyMagazine({
                 }
               : undefined
           }
+          downloadNotice={downloadNotice}
           nextStory={next >= 0 ? edition.stories[next].title : undefined}
           downloaded={downloadedIds.includes(current.id)}
           downloading={downloadingIds.includes(current.id)}
@@ -210,6 +216,11 @@ export function DailyMagazine({
           </button>
         </header>
         <div className="daily-magazine-body" ref={contentsBody}>
+          {downloadNotice && (
+            <p className="notice" role="status">
+              {downloadNotice}
+            </p>
+          )}
           <section className="daily-cover" aria-labelledby="daily-title">
             {cover?.image && (
               <img
