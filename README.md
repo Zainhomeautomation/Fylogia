@@ -60,6 +60,14 @@ npx wrangler pages dev dist --port 8788
 FYLOGIA_TEST_URL=http://127.0.0.1:8788/ npm test
 ```
 
+## Production verification — 29 October 2026
+
+The application is publicly available without registration at **https://fylogia.com/** through the `fylogia` Cloudflare Pages project. Both the personal repository integration and automatic production deployments use `main`; non-production branch builds are disabled. The domain-specific `Fylogia www to HTTPS apex` 301 rule preserves paths and query strings. Only the requested apex/www DNS records and this site's settings were configured.
+
+Validation passed: all **54 Playwright tests** in the local Cloudflare Pages runtime, all **54 against the public fylogia.com origin**, three server tests, production build/asset validation, formatting and lint (three existing non-blocking React warnings). GitHub CI also passed. Tests cover desktop Chromium and WebKit iPhone/iPad viewports, folded/unfolded resizing, real publisher images/PDFs, saved articles, preferences, offline startup/deep links, single/bulk/Daily Edition downloads, page turns, bookmarks/progress, storage failure/eviction and reconnection. The latest feed refresh returned **24/24 healthy sources**.
+
+**Physical-device testing: NOT RUN.** Browser emulation does not certify an iPhone Duo, iPhone or iPad in actual Airplane Mode, physical Home Screen installation, device hinges or real iOS storage pressure. On iOS, open the HTTPS site in Safari, use Share → Add to Home Screen, launch online once, download an edition and verify Offline Library before travel. Browser storage may be evicted; keep a library backup. Automatic cross-device synchronization is not enabled. Publisher permissions continue to determine full text, previews and offline images.
+
 ## Custom feeds
 
 Add a public HTTPS RSS/Atom URL in My Sources. Direct browser access requires publisher CORS permission. You can opt into the free [rss2json](https://rss2json.com/docs) converter; the feed URL is then shared with that third party, and service quotas/availability apply. Never add private or credential-bearing URLs. An RSS/Atom file import also works without the converter. Custom sources refresh at startup or after source/converter changes and are stored locally.
