@@ -56,59 +56,62 @@ export function Reader({
     [summaryBusy, setSummaryBusy] = useState(false);
   const navigation = useRef(true);
   const setPage: typeof setPageState = (next) => {
+    const nextPage = typeof next === "function" ? next(page) : next;
     navigation.current = true;
-    setPageState(next);
+    anchor.current = null;
+    position.current = count > 1 ? nextPage / (count - 1) : 0;
+    // Persist deliberate navigation before a close or an asynchronous image
+    // measurement can overtake the next effect.
+    onProgress(position.current);
+    setPageState(nextPage);
   };
   usePageTurn(viewport, page, prefs.reading === "pages" && navigation.current);
   const position = useRef(initialProgress);
   // Keep a real text location across column reflow; the stored ratio remains
   // compatible with existing bookmarks and exports.
   const anchor = useRef<Range | null>(null);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
+  useLayoutEffect(() => {
+    if (
+      !content.current ||
+      !viewport.current ||
+      prefs.reading !== "pages" ||
+      count <= 1
+    )
+      return;
+    const bounds = viewport.current.getBoundingClientRect();
+    const walker = document.createTreeWalker(
+      content.current,
+      NodeFilter.SHOW_TEXT,
+    );
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if (!node.textContent?.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
       if (
-        !content.current ||
-        !viewport.current ||
-        prefs.reading !== "pages" ||
-        count <= 1
-      )
-        return;
-      const bounds = viewport.current.getBoundingClientRect();
-      const walker = document.createTreeWalker(
-        content.current,
-        NodeFilter.SHOW_TEXT,
-      );
-      while (walker.nextNode()) {
-        const node = walker.currentNode;
-        if (!node.textContent?.trim()) continue;
-        const range = document.createRange();
-        range.selectNodeContents(node);
-        if (
-          ![...range.getClientRects()].some(
-            (r) =>
-              r.left >= bounds.left - 1 &&
-              r.left < bounds.right &&
-              r.bottom > bounds.top,
-          )
-        )
-          continue;
-        for (let i = 0; i < node.textContent.length; i++) {
-          range.setStart(node, i);
-          range.setEnd(node, i + 1);
-          const r = range.getBoundingClientRect();
-          if (
-            r.width &&
+        ![...range.getClientRects()].some(
+          (r) =>
             r.left >= bounds.left - 1 &&
             r.left < bounds.right &&
-            r.top >= bounds.top - 1
-          ) {
-            anchor.current = range.cloneRange();
-            return;
-          }
+            r.bottom > bounds.top,
+        )
+      )
+        continue;
+      for (let i = 0; i < node.textContent.length; i++) {
+        range.setStart(node, i);
+        range.setEnd(node, i + 1);
+        const r = range.getBoundingClientRect();
+        if (
+          r.width &&
+          r.left >= bounds.left - 1 &&
+          r.left < bounds.right &&
+          r.top >= bounds.top - 1
+        ) {
+          anchor.current = range.cloneRange();
+          return;
         }
       }
-    });
-    return () => cancelAnimationFrame(frame);
+    }
   }, [page, width, spread, count, prefs.reading]);
   const start = useRef<{ x: number; y: number } | null>(null),
     restored = useRef(false);
