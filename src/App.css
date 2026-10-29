@@ -1687,7 +1687,7 @@ h2 {
 }
 .content-label.complete {
   color: var(--green);
-  border-bottom: 1px solid var(--sage);
+  border-bottom: 1px solid var(--line);
   font-weight: 600;
 }
 .editorial-grid {
