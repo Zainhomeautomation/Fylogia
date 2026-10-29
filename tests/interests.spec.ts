@@ -1,3 +1,4 @@
+import { mockEdition } from "./edition-fixture";
 import { test, expect, type Page } from "@playwright/test";
 async function nav(page: Page, name: string) {
   await expect(page.locator(".mobile-header")).toBeAttached();
@@ -19,18 +20,14 @@ test("grouped searchable interests select niche topics and recommend relevant so
 }) => {
   const data = await (await page.request.get("data/edition.json")).json();
   // Stable recommendation inputs; actual feed validation is tested separately.
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({
-      json: {
-        ...data,
-        statuses: data.statuses.map((s: any) =>
-          ["padi-blog", "fedora-magazine"].includes(s.id)
-            ? { ...s, ok: true, freshness: "fresh" }
-            : s,
-        ),
-      },
-    }),
-  );
+  await mockEdition(page, {
+    ...data,
+    statuses: data.statuses.map((s: any) =>
+      ["padi-blog", "fedora-magazine"].includes(s.id)
+        ? { ...s, ok: true, freshness: "fresh" }
+        : s,
+    ),
+  });
   await page.goto("./");
   for (const dimensions of [
     { width: 390, height: 844 },
@@ -184,9 +181,7 @@ test("authorized OSI feed text opens as a complete paginated article with attrib
     article,
     "committed edition includes permitted OSI staff text",
   ).toBeTruthy();
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...data, articles: [article] } }),
-  );
+  await mockEdition(page, { ...data, articles: [article] });
   await page.addInitScript(() =>
     localStorage.setItem(
       "folio.v1.preferences",
@@ -232,9 +227,7 @@ test("unavailable images fail gracefully while offline reading and page navigati
     image: undefined,
     content: item.content.replace(/<img\b[^>]*>/gi, ""),
   };
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...data, articles: [article] } }),
-  );
+  await mockEdition(page, { ...data, articles: [article] });
   await page.addInitScript(
     (id) =>
       localStorage.setItem(

@@ -1,3 +1,4 @@
+import { mockEdition } from "./edition-fixture";
 import { test, expect } from "@playwright/test";
 test("curl drag cancellation, tutorial persistence and offline turns", async ({
   page,
@@ -7,9 +8,7 @@ test("curl drag cancellation, tutorial persistence and offline turns", async ({
   const article = edition.articles
     .filter((a: any) => a.full)
     .sort((a: any, b: any) => b.content.length - a.content.length)[0];
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...edition, articles: [article] } }),
-  );
+  await mockEdition(page, { ...edition, articles: [article] });
   await page.goto("./");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -122,9 +121,7 @@ test("single-page publisher preview has no misleading curl hint", async ({
     .filter((a: any) => !a.full && a.sourceId === "bbc-science")
     .sort((a: any, b: any) => a.content.length - b.content.length)[0];
   await page.setViewportSize({ width: 1100, height: 1400 });
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...edition, articles: [article] } }),
-  );
+  await mockEdition(page, { ...edition, articles: [article] });
   await page.goto("./");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();

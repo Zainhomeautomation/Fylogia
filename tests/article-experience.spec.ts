@@ -1,3 +1,4 @@
+import { mockEdition } from "./edition-fixture";
 import { readerOption } from "./reader-controls";
 import { test, expect, type Page } from "@playwright/test";
 async function openFixture(page: Page, full = true, media = false) {
@@ -32,9 +33,7 @@ async function openFixture(page: Page, full = true, media = false) {
     previewReason:
       "Internal permission diagnostics must remain out of reader UI.",
   };
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...edition, articles: [article] } }),
-  );
+  await mockEdition(page, { ...edition, articles: [article] });
   await page.addInitScript(() =>
     localStorage.setItem(
       "folio.v1.preferences",

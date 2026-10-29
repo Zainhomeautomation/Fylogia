@@ -1,3 +1,4 @@
+import { mockEdition } from "./edition-fixture";
 import { test, expect, type Page } from "@playwright/test";
 async function open(page: Page) {
   const edition = await (await page.request.get("data/edition.json")).json();
@@ -5,9 +6,7 @@ async function open(page: Page) {
     .filter((a: any) => a.full && a.sourceId === "mit-ai")
     .sort((a: any, b: any) => b.content.length - a.content.length)[0];
   article.image = undefined;
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...edition, articles: [article] } }),
-  );
+  await mockEdition(page, { ...edition, articles: [article] });
   await page.addInitScript(
     (id) =>
       localStorage.setItem(

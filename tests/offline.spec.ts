@@ -1,3 +1,4 @@
+import { mockEdition, restoreEdition } from "./edition-fixture";
 import { test, expect, type Page } from "@playwright/test";
 import type { Edition } from "../src/catalog";
 async function nav(page: Page, label: string) {
@@ -32,11 +33,7 @@ async function fixture(page: Page, images = false) {
     .map((a) => ({ ...a, offlineImagesAllowed: images }));
   expect(articles.length).toBeGreaterThan(1);
   const state = { edition: { ...edition, articles }, original: edition };
-  await page
-    .context()
-    .route("**/data/edition.json*", (route) =>
-      route.fulfill({ json: state.edition }),
-    );
+  await mockEdition(page, state.edition);
   return state;
 }
 async function downloadFirst(page: Page) {
@@ -59,6 +56,7 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
   const state = await fixture(page, true);
   const article = state.edition.articles[0];
   state.edition.articles = [article];
+  await mockEdition(page, state.edition);
   // Use the real publisher's photo, with CORS deliberately absent to exercise
   // Cache Storage's opaque-image path rather than inventing production imagery.
   const image = await page.request.get(article.image!);
@@ -156,7 +154,7 @@ test("downloaded article and permitted opaque image survive offline relaunch, pa
   await expect(page.locator(".offline-row")).toContainText(
     "some images missing",
   );
-  await page.context().unroute("**/data/edition.json*");
+  await restoreEdition(page);
   const onlineEdition = page.waitForResponse(
     (response) =>
       response.request().method() === "GET" &&

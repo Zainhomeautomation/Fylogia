@@ -1,3 +1,4 @@
+import { mockEdition } from "./edition-fixture";
 import { test, expect } from "@playwright/test";
 
 test("editorial cover, readable preview, immersive controls and advanced settings", async ({
@@ -10,14 +11,10 @@ test("editorial cover, readable preview, immersive controls and advanced setting
     (a: any) => !a.full && a.sourceId === "bbc-science",
   );
   expect(preview).toBeTruthy();
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({
-      json: {
-        ...edition,
-        articles: [preview, { ...preview, id: preview.id + "#second" }],
-      },
-    }),
-  );
+  await mockEdition(page, {
+    ...edition,
+    articles: [preview, { ...preview, id: preview.id + "#second" }],
+  });
   await page.goto("./");
   await expect(page).toHaveTitle(/Fylogia/);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

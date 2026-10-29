@@ -1,3 +1,4 @@
+import { mockEdition } from "./edition-fixture";
 import { test, expect, type Page } from "@playwright/test";
 async function nav(page: Page) {
   if (await page.getByRole("button", { name: "Open navigation" }).isVisible())
@@ -99,9 +100,7 @@ test("merged stories remain visible to readers following the alternate feed", as
     alsoIn: ["nasa-science"],
     duplicateCount: 2,
   };
-  await page.route("**/data/edition.json*", (route) =>
-    route.fulfill({ json: { ...edition, articles: [article] } }),
-  );
+  await mockEdition(page, { ...edition, articles: [article] });
   await page.addInitScript(() =>
     localStorage.setItem(
       "folio.v1.preferences",
