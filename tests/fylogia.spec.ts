@@ -230,26 +230,58 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
         .evaluate((canvas: HTMLCanvasElement) => canvas.style.width),
     )
     .not.toBe("");
-  const dimensions = await page
-    .locator("canvas")
-    .first()
-    .evaluate((canvas: HTMLCanvasElement) => ({
-      width: canvas.width,
-      height: canvas.height,
-      display: canvas.style.cssText,
-    }));
+  await expect(page.locator(".pdf-page canvas[aria-busy=true]")).toHaveCount(0);
+  await page.evaluate(() => {
+    (window as any).__pdfPaper = null;
+    const observer = new MutationObserver((records) => {
+      for (const record of records)
+        for (const node of record.addedNodes) {
+          if (
+            !(node instanceof HTMLElement) ||
+            !node.classList.contains("turn-leaf")
+          )
+            continue;
+          const canvases = [...node.querySelectorAll("canvas")];
+          let ink = false;
+          for (const canvas of canvases) {
+            const ctx = canvas.getContext("2d")!;
+            const { data } = ctx.getImageData(
+              0,
+              0,
+              canvas.width,
+              canvas.height,
+            );
+            for (let i = 0; i < data.length; i += 64 * 4)
+              if (
+                data[i + 3] &&
+                Math.min(data[i], data[i + 1], data[i + 2]) < 150
+              ) {
+                ink = true;
+                break;
+              }
+          }
+          const surface = document.querySelector(".pdf-spread")!;
+          (window as any).__pdfPaper = {
+            hidden: node.inert && node.getAttribute("aria-hidden") === "true",
+            ink,
+            pixels: canvases.reduce((n, c) => n + c.width * c.height, 0),
+            max: surface.clientWidth * surface.clientHeight * 1.1,
+          };
+          observer.disconnect();
+        }
+    });
+    observer.observe(document.querySelector(".pdf-spread")!, {
+      childList: true,
+    });
+  });
   await page.getByRole("button", { name: "Next magazine page" }).click();
-  await expect(page.locator(".pdf-turn-leaf canvas").first()).toBeAttached();
-  expect(
-    await page
-      .locator(".pdf-turn-leaf canvas")
-      .first()
-      .evaluate((canvas: HTMLCanvasElement) => ({
-        width: canvas.width,
-        height: canvas.height,
-        display: canvas.style.cssText,
-      })),
-  ).toEqual(dimensions);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__pdfPaper))
+    .not.toBeNull();
+  const paper = await page.evaluate(() => (window as any).__pdfPaper);
+  expect(paper.hidden).toBe(true);
+  expect(paper.ink).toBe(true);
+  expect(paper.pixels).toBeLessThanOrEqual(paper.max);
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
   await expect(page.locator(".reader-footer")).not.toContainText("Page 1 ");
   await page.getByRole("button", { name: "Bookmark page" }).click();

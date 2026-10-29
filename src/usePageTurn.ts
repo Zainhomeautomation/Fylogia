@@ -33,27 +33,61 @@ function paper(surface: HTMLElement, image: HTMLElement, forward: boolean) {
   leaf.className = "turn-leaf curl-mesh";
   leaf.setAttribute("aria-hidden", "true");
   leaf.inert = true;
+  // Rasterize only the visible PDF viewport once. Each moving strip gets a
+  // cropped slice, so its backing pixels sum to at most one screen-sized page.
+  let raster: HTMLCanvasElement | undefined;
+  if (surface.classList.contains("pdf-spread")) {
+    raster = document.createElement("canvas");
+    raster.width = w;
+    raster.height = h;
+    const ctx = raster.getContext("2d")!;
+    ctx.fillStyle = getComputedStyle(surface).backgroundColor;
+    ctx.fillRect(0, 0, w, h);
+    const pages = [...image.querySelectorAll("canvas")];
+    const widths = pages.map((c) => parseFloat(c.style.width) || c.width);
+    let left =
+      (w -
+        widths.reduce((sum, n) => sum + n, 0) -
+        Math.max(0, pages.length - 1) * 12) /
+      2;
+    pages.forEach((canvas, i) => {
+      ctx.drawImage(
+        canvas,
+        left,
+        20 - surface.scrollTop,
+        widths[i],
+        parseFloat(canvas.style.height) || canvas.height,
+      );
+      left += widths[i] + 12;
+    });
+  }
   const strips: HTMLElement[] = [];
   for (let i = 0; i < 12; i++) {
     const strip = document.createElement("div");
     strip.className = "curl-strip";
     strip.style.width = `${pw / 12 + 0.6}px`;
     strip.style.height = `${h}px`;
-    const face = image.cloneNode(true) as HTMLElement;
-    image.querySelectorAll("canvas").forEach((c, j) => {
-      const t = face.querySelectorAll("canvas")[j];
-      t.width = c.width;
-      t.height = c.height;
-      t.style.cssText = c.style.cssText;
-      t.getContext("2d")?.drawImage(c, 0, 0);
-    });
-    face.className =
-      "curl-face" +
-      (surface.classList.contains("pdf-spread") ? " pdf-turn-leaf" : "");
     const sourceX = forward
       ? origin + (i * pw) / 12
       : origin - ((i + 1) * pw) / 12;
-    face.style.cssText = `position:absolute;top:0;left:${-sourceX}px;width:${w}px;height:${h}px;max-width:none;margin:0;`;
+    let face: HTMLElement;
+    if (raster) {
+      face = document.createElement("div");
+      face.className = "curl-face pdf-turn-leaf";
+      face.style.cssText = `position:absolute;inset:0;width:100%;height:100%;`;
+      const crop = document.createElement("canvas");
+      crop.width = Math.ceil(pw / 12 + 0.6);
+      crop.height = h;
+      crop.style.cssText = "width:100%;height:100%";
+      crop
+        .getContext("2d")!
+        .drawImage(raster, sourceX, 0, crop.width, h, 0, 0, crop.width, h);
+      face.append(crop);
+    } else {
+      face = image.cloneNode(true) as HTMLElement;
+      face.className = "curl-face";
+      face.style.cssText = `position:absolute;top:0;left:${-sourceX}px;width:${w}px;height:${h}px;max-width:none;margin:0;`;
+    }
     strip.append(face);
     leaf.append(strip);
     strips.push(strip);
