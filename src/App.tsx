@@ -26,7 +26,9 @@ import {
   type Edition,
   type Preferences,
 } from "./catalog";
-import { useStored } from "./storage";
+import { useStored, useLocalProfile } from "./storage";
+import { decodeLibrary, encryptLibrary } from "./library-backup";
+import { replaceLocalLibrary, snapshotLibrary } from "./local-library";
 import { Onboarding } from "./Onboarding";
 import { StoryCard } from "./StoryCard";
 import { Reader } from "./Reader";
@@ -70,6 +72,9 @@ export default function App() {
     [menu, setMenu] = useState(false),
     [personalizing, setPersonalizing] = useState(false),
     [online, setOnline] = useState(navigator.onLine);
+  const profile = useLocalProfile();
+  const [backupPassword, setBackupPassword] = useState("");
+  const [backupBusy, setBackupBusy] = useState(false);
   const offline = useOfflineLibrary();
   const {
     ready: offlineReady,
@@ -171,6 +176,7 @@ export default function App() {
     };
   }, [prefs.complete, prefs.customSources, prefs.converter, setCustom]);
   function navigate(id: string) {
+    setBackupPassword("");
     setView(id);
     setFilter("All stories");
     setQuery("");
@@ -274,113 +280,95 @@ export default function App() {
     filter,
     query,
   ]);
-  function exportLibrary() {
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          { version: 1, preferences: prefs, saved, history, progress, custom },
-          null,
-          2,
-        ),
-      ],
-      { type: "application/json" },
-    );
+  function downloadBackup(text: string, name: string) {
+    const blob = new Blob([text], { type: "application/json" });
+    if (blob.size > 10_000_000)
+      throw new Error(
+        "The backup exceeds the 10 MB restore limit. Remove some saved stories and try again.",
+      );
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "fylogia-library.json";
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = name;
+    anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  async function importLibrary(file?: File) {
-    if (!file) return;
+  function exportLibrary() {
     try {
-      if (file.size > 10_000_000) throw new Error();
-      const data = JSON.parse(await file.text());
-      if (data.version !== 1 || !data.preferences || !Array.isArray(data.saved))
-        throw new Error();
-      const p = data.preferences;
-      if (
-        !Array.isArray(p.interests) ||
-        !p.interests.every((v: unknown) => typeof v === "string") ||
-        !Array.isArray(p.sourceIds) ||
-        !p.sourceIds.every((v: unknown) => typeof v === "string") ||
-        !Array.isArray(p.customSources) ||
-        p.customSources.some(
-          (s: any) =>
-            !s.id ||
-            !s.name ||
-            !Array.isArray(s.categories) ||
-            !/^https:\/\//.test(s.url),
-        ) ||
-        !["system", "light", "dark"].includes(p.theme)
-      )
-        throw new Error();
-      const valid = (a: any) =>
-        typeof a.id === "string" &&
-        typeof a.title === "string" &&
-        typeof a.source === "string" &&
-        typeof a.content === "string" &&
-        typeof a.excerpt === "string" &&
-        Array.isArray(a.categories) &&
-        /^https?:\/\//.test(a.url);
-      if (
-        !data.saved.every(valid) ||
-        !Array.isArray(data.history) ||
-        !data.history.every(valid) ||
-        !Array.isArray(data.custom) ||
-        !data.custom.every(valid)
-      )
-        throw new Error();
-      setPrefs({
-        ...defaults,
-        ...p,
-        fontSize: Math.min(26, Math.max(16, Number(p.fontSize) || 19)),
-        topics: Array.isArray(p.topics) ? p.topics : [],
-        reading: p.reading === "scroll" ? "scroll" : "pages",
-        complete: true,
-      });
-      setSaved(data.saved);
-      setHistory(data.history.slice(0, 150));
-      setCustom(data.custom);
-      const importedProgress = Object.fromEntries(
-        Object.entries(data.progress || {}).filter(
-          (entry): entry is [string, number] =>
-            typeof entry[1] === "number" &&
-            Number.isFinite(entry[1]) &&
-            entry[1] >= 0 &&
-            entry[1] <= 1,
-        ),
+      downloadBackup(
+        JSON.stringify(snapshotLibrary(), null, 2),
+        "fylogia-library.json",
       );
-      setProgress(importedProgress);
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  }
+  async function exportEncryptedLibrary() {
+    setBackupBusy(true);
+    setNotice("");
+    try {
+      const encrypted = await encryptLibrary(snapshotLibrary(), backupPassword);
+      downloadBackup(encrypted, "fylogia-library.encrypted.json");
+      setBackupPassword("");
+      setNotice(
+        "Encrypted backup exported. Keep your password separately; it cannot be reset.",
+      );
+    } catch (error) {
+      setNotice((error as Error).message || "Could not create a backup.");
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+  async function importLibrary(file?: File) {
+    if (!file || backupBusy) return;
+    setBackupBusy(true);
+    setNotice("");
+    try {
+      if (file.size > 10_000_000)
+        throw new Error("Backup exceeds the 10 MB restore limit.");
+      const data = await decodeLibrary(await file.text(), backupPassword);
+      await replaceLocalLibrary(data);
       for (const record of offline.items)
         offline.metadata(record.id, {
-          bookmarked: data.saved.some((a: Article) => a.id === record.id),
-          progress: importedProgress[record.id] || 0,
+          bookmarked: data.saved.some((article) => article.id === record.id),
+          progress: data.progress[record.id] || 0,
         });
+      setBackupPassword("");
       setNotice("Library imported successfully.");
-    } catch {
+    } catch (error) {
+      const message = (error as Error).message;
       setNotice(
-        "That file is not a valid Fylogia library export. No changes were made.",
+        message.includes("backup") || message.includes("IndexedDB")
+          ? message
+          : "That file is not a valid Fylogia library export. No changes were made.",
       );
+    } finally {
+      setBackupBusy(false);
     }
   }
   if (!prefs.complete || personalizing)
     return (
-      <Onboarding
-        onArticles={(items) =>
-          setCustom((old) => [
-            ...items,
-            ...old.filter((a) => !items.some((b) => b.id === a.id)),
-          ])
-        }
-        initial={prefs}
-        statuses={edition.statuses}
-        onComplete={(p) => {
-          setPrefs(p);
-          setPersonalizing(false);
-        }}
-      />
+      <>
+        {profile.error && (
+          <p className="notice" role="alert">
+            {profile.error}
+          </p>
+        )}
+        <Onboarding
+          onArticles={(items) =>
+            setCustom((old) => [
+              ...items,
+              ...old.filter((a) => !items.some((b) => b.id === a.id)),
+            ])
+          }
+          initial={prefs}
+          statuses={edition.statuses}
+          onComplete={(p) => {
+            setPrefs(p);
+            setPersonalizing(false);
+          }}
+        />
+      </>
     );
   const current = navigation.find((n) => n.id === view)!;
   const storyView = ["home", "explore", "saved", "history"].includes(view);
@@ -811,7 +799,10 @@ export default function App() {
               <p>{prefs.interests.join(" · ")}</p>
               <button
                 className="secondary"
-                onClick={() => setPersonalizing(true)}
+                onClick={() => {
+                  setBackupPassword("");
+                  setPersonalizing(true);
+                }}
               >
                 Edit interests & sources
               </button>
@@ -833,14 +824,50 @@ export default function App() {
               </p>
             </section>
             <section>
-              <h2>Your library, on your terms.</h2>
+              <h2>Your anonymous profile</h2>
               <p>
-                Preferences, bookmarks, and history stay on this browser. Export
-                your library to transfer it to another device. Imported PDFs are
-                stored separately on each device.
+                No registration, email, or sign-in. Your library saves
+                automatically on this device.
+              </p>
+              <p
+                className="local-save-state"
+                data-testid="local-save-state"
+                aria-live="polite"
+              >
+                {profile.saving
+                  ? "Saving on this device…"
+                  : profile.durable
+                    ? "Saved on this device"
+                    : "Changes are only in this tab"}
+              </p>
+              {profile.recovered && (
+                <p className="quiet">
+                  Your library was recovered from its local IndexedDB copy.
+                </p>
+              )}
+              <p className="quiet">
+                Cloud sync is not enabled. Secure device pairing is planned for
+                the next phase. No private library data is uploaded.
+              </p>
+              <h3>Backup & recovery</h3>
+              <p>
+                Export a backup to recover this library or transfer it to
+                another device. Import replaces preferences, sources, saved
+                stories, history, and progress, while keeping that device’s
+                anonymous identity. Downloads and imported PDFs stay separate on
+                each device.
+              </p>
+              <p className="quiet">
+                An ordinary export contains private library data in readable
+                text. Use an encrypted backup when sharing or storing a copy
+                elsewhere.
               </p>
               <div className="form-row">
-                <button className="secondary" onClick={exportLibrary}>
+                <button
+                  className="secondary"
+                  onClick={exportLibrary}
+                  disabled={backupBusy}
+                >
                   <Download size={16} />
                   Export library
                 </button>
@@ -849,6 +876,7 @@ export default function App() {
                   <input
                     type="file"
                     accept="application/json,.json"
+                    disabled={backupBusy}
                     onChange={(e) => {
                       void importLibrary(e.target.files?.[0]);
                       e.target.value = "";
@@ -856,6 +884,30 @@ export default function App() {
                   />
                 </label>
               </div>
+              <label className="field">
+                Backup password (optional)
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={backupPassword}
+                  onChange={(event) => setBackupPassword(event.target.value)}
+                  aria-label="Backup password"
+                  disabled={backupBusy}
+                />
+              </label>
+              <button
+                className="secondary"
+                disabled={backupBusy}
+                onClick={() => void exportEncryptedLibrary()}
+              >
+                {backupBusy ? "Working…" : "Export encrypted backup"}
+              </button>
+              <p className="quiet">
+                Use at least 12 characters. Enter the same password here before
+                importing an encrypted file. Keep it separately: without the
+                password, an encrypted backup cannot be recovered. Passwords are
+                never saved or sent to a server.
+              </p>
               <button
                 className="text-button"
                 onClick={() => {

@@ -1,34 +1,24 @@
 // Keep the original storage namespace so the rebrand preserves existing libraries.
-import { useState, useCallback } from "react";
+import { useCallback, useSyncExternalStore } from "react";
+import {
+  getLibraryValue,
+  getPersistenceStatus,
+  setLibraryValue,
+  subscribeLibrary,
+} from "./local-library";
 export function useStored<T>(key: string, initial: T) {
-  const [value, setValue] = useState<T>(() => {
-    try {
-      const raw = localStorage.getItem("folio.v1." + key);
-      return raw ? JSON.parse(raw) : initial;
-    } catch {
-      return initial;
-    }
-  });
-  const [error, setError] = useState("");
+  const value = useSyncExternalStore(subscribeLibrary, () =>
+    getLibraryValue(key, initial),
+  );
+  const status = useSyncExternalStore(subscribeLibrary, getPersistenceStatus);
   const update = useCallback(
-    (next: T | ((v: T) => T)) =>
-      setValue((current) => {
-        const result =
-          typeof next === "function" ? (next as (v: T) => T)(current) : next;
-        try {
-          localStorage.setItem("folio.v1." + key, JSON.stringify(result));
-          setError("");
-        } catch {
-          setError(
-            "Your browser could not save changes. Free some storage or export your library in Settings.",
-          );
-        }
-        return result;
-      }),
+    (next: T | ((value: T) => T)) => setLibraryValue(key, next),
     [key],
   );
-  return [value, update, error] as const;
+  return [value, update, status.error] as const;
 }
+export const useLocalProfile = () =>
+  useSyncExternalStore(subscribeLibrary, getPersistenceStatus);
 export function safeUrl(value: string) {
   try {
     const url = new URL(value.replace(/&(?:amp|#0*38|#x0*26);/gi, "&"));

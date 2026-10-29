@@ -2,7 +2,7 @@
 
 A free, open-source personal news and magazine reader. No account, ads, paid subscription, or API key required.
 
-**Proposed final brand:** FYLOGIA (Fylogia). Preliminary availability screening on 29 October 2026 found no significant conflict in the checks completed; this is not worldwide trademark clearance. The existing personal repository has been renamed with its history preserved. Publication and domain purchases remain blocked until the owner approves the availability results.
+**Proposed final brand:** FYLOGIA (Fylogia). The broader 29 October 2026 screening identified registered PHILOZIA and FYLGIA marks with software/publishing overlap; do not treat this name as cleared. The existing personal repository has been renamed with its history preserved. Publication and domain purchases remain blocked until the owner approves the availability results.
 
 **Publication on hold:** the former GitHub Pages URL was `https://zainhomeautomation.github.io/Folio/`. GitHub does not redirect project-site URLs on repository rename; do not treat the old URL as the renamed app. The publication workflow is disabled, and no Fylogia site has been deployed.
 
@@ -15,7 +15,7 @@ A free, open-source personal news and magazine reader. No account, ads, paid sub
 - Full NASA articles when supplied in the feed. Other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
 - Original NASA Spinoff 2025 PDF with PDF.js page rendering, page turns, spreads and bookmarks. Imported PDFs stay in IndexedDB on your device (50 MB per file).
 - Light/dark/system themes; installable PWA with a cached shell, IndexedDB downloads, and a separate Cache Storage image library. Download individual articles, select several, or use Download Daily Edition (up to 30 stories from the current For You selection). Offline Library shows text/image availability, reading progress, storage use, refresh and delete controls.
-- Local library and JSON export/import for device transfer. No automatic cloud synchronization.
+- Automatic anonymous local profiles; preferences, source selections, saved stories and progress persist with IndexedDB and legacy browser storage. JSON transfer/recovery and optional password-encrypted backups. No automatic cloud synchronization.
 - Summarize uses supported browsers' on-device Summarizer API. Otherwise extracted key passages are explicitly labeled as not an AI summary.
 
 ## Local setup
@@ -62,10 +62,11 @@ React, TypeScript, Vite, Lucide icons, DOMPurify, fast-xml-parser and lazy-loade
 - `scripts/refresh-feeds.mjs`: bounded concurrent feed ingestion, timeouts, timestamps, original images, source health.
 - `src/Reader.tsx`: CSS multi-column pagination measured by ResizeObserver; sanitized publisher HTML.
 - `src/PdfReader.tsx`: original PDF pages rendered on canvas.
-- `src/storage.ts`: versioned browser storage with visible storage failures.
+- `src/storage.ts` and `src/local-library.ts`: reactive library state, anonymous device identity, IndexedDB persistence, legacy-storage migration/recovery and visible save failures.
+- `src/library-data.ts` and `src/library-backup.ts`: validated, transactional restore and optional AES-GCM encrypted recovery files.
 - `scripts/write-sw.mjs`: versioned app-shell cache and network-first edition refresh; excludes large online PDFs.
 
-The main bundle is about 123 KB gzipped. PDF code/worker are loaded only when opening a magazine. No analytics or server database. Google Fonts and publisher image CDNs receive normal network metadata; images send no referrer. Browser storage is not an encrypted cloud backup. Clearing browser data removes the local library.
+The main bundle is about 126 KB gzipped. PDF code/worker are loaded only when opening a magazine. No analytics or server database. Google Fonts and publisher image CDNs receive normal network metadata; images send no referrer. Browser storage is not an encrypted cloud backup. Clearing browser data removes the local library.
 
 ## Content rights
 
@@ -137,13 +138,47 @@ No DNS purchase or domain registration is needed. Local storage is origin-specif
 
 ## FYLOGIA availability screening — 29 October 2026
 
-- `fylogia.com`: Verisign registry RDAP returned HTTP 404; no registered domain record found. [Registry query](https://rdap.verisign.com/com/v1/domain/fylogia.com).
-- `fylogia.app`: Google Registry RDAP returned HTTP 404 with “fylogia.app not found”. [Registry query](https://pubapi.registry.google/rdap/domain/fylogia.app). Both appear unregistered; registrability, premium/reserved status and price remain unverified until a registrar checks. Nothing was purchased or reserved.
+- `fylogia.com`: the earlier Verisign registry query returned HTTP 404, but a later check confirmed registration at 2026-10-29 07:33:40 UTC. Ownership was not established; the agent did not register or purchase it. [Registry query](https://rdap.verisign.com/com/v1/domain/fylogia.com).
+- `fylogia.app`: Google Registry RDAP returned HTTP 404 with “fylogia.app not found”. [Registry query](https://pubapi.registry.google/rdap/domain/fylogia.app). The `.app` result is a point-in-time observation; registrability, premium/reserved status and price remain unverified until a registrar checks. The `.com` is now registered as noted above. Nothing was purchased or reserved by the agent.
 - Personal repository: `Zainhomeautomation/Fylogia` returned 404 before rename; GitHub public repository-name search returned zero results. The existing repository was renamed in place, preserving repository ID 1438014070.
 - [USPTO](https://tmsearch.uspto.gov/): Wordmark searches FYLOGIA, FILOGIA, PHYLOGIA and prefix FYLOG* returned “No results found”, with live and dead statuses included and no class restriction.
 - [TMview](https://www.tmdn.org/tmview/): Contains searches FYLOGIA, FILOGIA and PHYLOGIA returned no rows. No software, news or publishing trademark record was identified in the completed searches. TMview is an aggregator, not a legal clearance certificate.
-- WIPO direct search was blocked by an automated challenge and was not completed. Oman and other national registers were not comprehensively cleared. A worldwide phonetic/translation/logo and unregistered-rights review has not been performed.
+- The initial WIPO attempt was blocked by an automated challenge. Subsequent broader screening completed the exact search and reviewed fuzzy/phonetic matches. It confirmed [PHILOZIA, France 5151558](https://data.inpi.fr/marques/FR5151558), including electronic books/periodicals in class 41 and software development in 42, and [Advokatfirman FYLGIA, Sweden 537532](https://www.tmdn.org/tmview/#/tmview/detail/SE500000201606120), including software and online publishing. These material review flags supersede the preliminary no-significant-conflict assessment. Oman national-register clearance remains incomplete; a worldwide phonetic/translation/logo and unregistered-rights review has not been completed.
 - Apple US Search API for FYLOGIA returned four unrelated fuzzy results and no exact app name. [Apple search](https://itunes.apple.com/search?term=fylogia&entity=software&limit=25&country=us). [Google Play US search](https://play.google.com/store/search?q=fylogia&c=apps&hl=en&gl=US) displayed “No results for fylogia”. Other storefronts and developer-console name reservation are unverified.
 - Similar-name web results: FILOGIA, a French agricultural/nutrition-products business ([public business record](https://entreprises.lefigaro.fr/filogia-49/entreprise-847919685)); a historical biotech reference to Phylogia ([2012 report](https://www.businessnews.com.au/article/Phylogia-licences-technology-to-Janssen-Biotech)). Neither establishes a software/news/publishing conflict; current rights and any legal likelihood of confusion are unverified.
 
-Assessment: no significant conflict identified in this preliminary screening. The code/repository rename is authorized by the owner’s conditional instruction; domain purchase and public deployment still require their approval of these results.
+Assessment after the expanded screening: CAUTION. Obtain targeted professional review of the similar publishing/software marks and an Oman national search before adopting the brand publicly. Domain purchase and public deployment still require the owner’s approval; no subsequent rename or publication was performed by the screening.
+
+## Anonymous local profiles and recovery (implemented)
+
+The MVP follows the explicitly authorized local-first fallback for optional synchronization. No connected Supabase project, backend configuration or account suitable for secure device pairing is available in this workspace. Creating a secure service would add anonymous authentication, database policies, private membership, pairing/recovery functions and abuse controls. These are a separate development phase; no fake pairing buttons, shared bearer URLs, public library table or unverified backend is shipped.
+
+Every browser creates a cryptographically random local profile automatically, including existing installations migrated from the Folio keys. No email, password, registration or network call is needed for that identity. The ID is a local identifier, **not** a cloud authentication credential or recovery secret. Opening another browser creates a separate identity. Importing a library does not clone the source device's identity.
+
+`folio-personal-library` is an IndexedDB database with one `records` store. Preferences, followed/custom sources, bookmarks/saved articles, history and reading progress are saved as versioned records. Existing `folio.v1.*` keys are retained as a synchronous secondary copy. The app restores a missing/corrupt primary copy from valid IndexedDB data before onboarding renders. A storage event updates other tabs on the same browser origin; this is not cross-device cloud synchronization or a conflict-resolution protocol. The Settings save status waits for the attempted writes and shows when changes exist only in the current tab. The two local stores share the browser's origin and eviction policy: this redundancy cannot survive complete browser-data deletion or iOS origin eviction.
+
+Recovery steps:
+
+1. In Settings, choose **Export library** for a readable JSON copy. That file contains private library data; keep it private.
+2. For an encrypted file, enter a password of at least 12 characters in **Backup password**, then choose **Export encrypted backup**. The optional password protects this backup only; it is not an account or sign-in requirement. Keep it separately. Lost passwords cannot be reset.
+3. On a new device, complete the short onboarding and open Settings. Enter the backup password if the file is encrypted, then choose **Import library**. Restore replaces the five library sections together only after schema validation and a successful IndexedDB transaction. A wrong password, tampered file, invalid section or failed transaction leaves the current library unchanged. Restore requires writable IndexedDB; ordinary online reading can still use localStorage if IndexedDB is unavailable.
+4. Re-download offline articles/images and separately re-import PDFs on the destination device. Recovery exports do not contain image/PDF binaries or cloud credentials. There is no automatic merge or ongoing synchronization after file transfer.
+
+Encrypted recovery uses browser Web Crypto: AES-256-GCM with a fresh 96-bit IV, a fresh 128-bit salt, authenticated format/version context and PBKDF2-HMAC-SHA-256 with 600,000 iterations. Passwords remain in memory only, clear after successful use or leaving Settings, and never enter localStorage, IndexedDB, URLs or server requests. Local browser databases themselves are not application-encrypted. Import/export is bounded at 10 MB, and untrusted URLs, shapes and progress values are validated before any replacement. External article HTML continues to be sanitized by the reader.
+
+## Optional cross-device synchronization — next phase (not enabled)
+
+Supabase is a candidate, rather than a configured dependency. Its documented [anonymous authentication](https://supabase.com/docs/guides/auth/auth-anonymous) supports no-email identities, but still requires durable sessions and abuse prevention. An anonymous Auth user is distinct from the public `anon` API role. Private libraries must use [row-level security and restricted grants](https://supabase.com/docs/guides/database/postgres/row-level-security). Public/publishable configuration is not a substitute for per-device authorization; secret/service-role keys must never be shipped in the PWA.
+
+A concrete implementation must provide:
+
+- **Opt-in cloud use:** continue creating local profiles for everyone; create an anonymous Supabase Auth identity for a device only when cloud sync is enabled. The free/local app must work if the service sleeps, reaches quota, loses authorization or is removed. Verify a personal project and current free-tier limits before provisioning; do not enable paid infrastructure.
+- **Private membership:** separate `libraries`, `devices/memberships` and versioned library records. Use each device's own Auth identity and revocable membership checks on every read/write, including Realtime authorization. Deny public access and cross-library reads/writes by default. Do not make libraries accessible merely by knowing a random ID, and do not store membership authority in user-editable Auth metadata.
+- **Short-lived pairing:** server-generated high-entropy QR invitations or at least 12 random Base32 characters for manual codes; store only a hash, expire within five minutes, bind to a proposed destination device and consume atomically once. Rate-limit guesses by device and IP, cap attempts, use generic errors, and require approval on an existing device with a matching confirmation phrase. Submit codes in request bodies; never include permanent device tokens or recovery secrets in shareable URLs or analytics. Codes must not directly confer membership before approval. Handle replay and simultaneous redemption.
+- **Device unlinking:** let an authorized device list and revoke linked devices; revoke server membership and pending invitations immediately and reject queued writes from revoked devices even while their old JWT is unexpired. Remove that device's cloud session when it learns it was revoked. Unlinking cannot remotely erase already-downloaded offline material; local deletion is separate. A revoked device must not silently rejoin via an old invitation or queued operation.
+- **Recovery without email:** offer a high-entropy offline recovery kit, store only a server-side verifier, protect recovery attempts with rate limits, and rotate recovery/pairing authority after use. Explain that losing every linked device and the recovery kit makes the anonymous cloud library unrecoverable. A local profile ID or a plain exported library must never authorize cloud-account recovery. Do not copy long-lived access/refresh tokens between devices.
+- **Offline conflict handling:** a local outbox, idempotent operation IDs, optimistic server revisions and per-field preference updates. Bookmarks/source removals need tombstones so old offline devices do not resurrect deletions. Reading progress needs an explicit latest-intent rule, including intentional resets, rather than always taking the maximum. Test reconnect/retry/backoff and concurrent edits before choosing the final merge policy. Avoid relying solely on client wall clocks. Ordinary recovery import remains a replacement action, not a hidden cloud merge.
+- **Local offline assets:** synchronize library metadata and only content legally permitted for cloud storage. Images, PDFs and downloaded article bodies remain independent per device by default; do not upload publisher material or credentials from custom-feed URLs. Keep private API responses out of public service-worker caches. Existing article reading must never wait for cloud availability.
+- **Release evidence:** tests with unrelated users/devices proving library isolation through direct REST and Realtime access; pair expiry/replay/brute-force/dual-redemption tests; revocation with an existing JWT and pending offline writes; recovery rotation; concurrent deletion/edit/progress tests; offline startup without the backend; and free-tier quota/failure behavior. Only then expose pairing and claim cross-device synchronization works.
+
+**Publication remains on hold.** This optional-feature work does not approve the FYLOGIA name or resolve the existing Sites source-repository binding prerequisite. No deployment or paid service is created by this implementation.

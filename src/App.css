@@ -1563,3 +1563,13 @@ h2 {
     padding: 7px;
   }
 }
+
+.startup-message {
+  padding: 2rem;
+  color: var(--muted);
+  font-family: inherit;
+}
+.local-save-state {
+  color: var(--green);
+  font-weight: 600;
+}
