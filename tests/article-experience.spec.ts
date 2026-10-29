@@ -158,7 +158,7 @@ test("preview has prominent original-publisher action without technical licensin
     "data-spread",
     "1",
   );
-  await expect(page.locator(".page-turn-tutorial")).toHaveCount(0);
+  await expect(page.locator(".turn-tutorial")).toHaveCount(0);
 });
 
 test("multiple permitted figures and captions remain readable after font and viewport changes", async ({
