@@ -9,6 +9,11 @@ import {
   Bookmark,
 } from "lucide-react";
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+// Retain one online edition for this tab so reopening a large magazine does
+// not repeat its download. Local files are released when the reader closes.
+let retainedEdition:
+  | { url: string; task: pdfjs.PDFDocumentLoadingTask; loaded: boolean }
+  | undefined;
 function Canvas({
   pdf,
   num,
@@ -81,19 +86,39 @@ export default function PdfReader({
     try {
       saved = Number(localStorage.getItem(key)) || 1;
     } catch {}
-    const task = pdfjs.getDocument({ url });
+    let active = true;
+    const local = url.startsWith("blob:");
+    if (!local && retainedEdition && retainedEdition.url !== url) {
+      void retainedEdition.task.destroy();
+      retainedEdition = undefined;
+    }
+    const entry = (!local && retainedEdition) || {
+      url,
+      task: pdfjs.getDocument({ url }),
+      loaded: false,
+    };
+    if (!local) retainedEdition = entry;
+    const { task } = entry;
     task.promise
       .then((p) => {
+        entry.loaded = true;
+        if (!active) return;
         setPdf(p);
         setPage(Math.min(saved, p.numPages));
       })
-      .catch(() =>
-        setError(
-          "This PDF could not be loaded. The publisher may block browser access. Open the original or download it and import the PDF in your library.",
-        ),
-      );
+      .catch(() => {
+        if (active)
+          setError(
+            "This PDF could not be loaded. Open the original publication or try again with a connection.",
+          );
+        if (retainedEdition === entry) retainedEdition = undefined;
+      });
     return () => {
-      void task.destroy();
+      active = false;
+      if (local || !entry.loaded) {
+        void task.destroy();
+        if (retainedEdition === entry) retainedEdition = undefined;
+      }
     };
   }, [url, key]);
   useEffect(() => {
