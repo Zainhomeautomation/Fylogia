@@ -90,7 +90,7 @@ export function Magazines({
 }: {
   onHome: () => void;
   initialCategory?: string;
-  onBrowseSource: (name: string) => void;
+  onBrowseSource: (id: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(initialCategory);
@@ -313,7 +313,7 @@ export function Magazines({
             </p>
             <button
               className="text-button"
-              onClick={() => onBrowseSource(source.name)}
+              onClick={() => onBrowseSource(source.id)}
             >
               Browse articles
             </button>

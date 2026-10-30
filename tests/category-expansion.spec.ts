@@ -95,9 +95,10 @@ test("category-linked magazine directory distinguishes real issues from fashion 
     gq.getByRole("link", { name: "Official publication" }),
   ).toHaveAttribute("href", "https://www.gq.com");
   await gq.getByRole("button", { name: "Browse articles" }).click();
+  await expect(page.locator(".publication-selection")).toContainText("GQ");
   await expect(
     page.getByPlaceholder("Search stories, sources, ideas…"),
-  ).toHaveValue("GQ");
+  ).toHaveValue("");
   await expect(page.locator(".story-open").first()).toBeVisible();
   await nav(page, "Magazines");
   await page
@@ -141,4 +142,41 @@ test("new categories and publication filters remain usable across folded and unf
       path: `${process.env.FYLOGIA_SCREENSHOTS}/categories-${info.project.name}.png`,
       fullPage: false,
     });
+});
+test("publication browsing selects exact contributing stories and retains its filter after reader Back", async ({
+  page,
+}) => {
+  await start(page);
+  const edition = await (await page.request.get("data/edition.json")).json();
+  for (const id of ["elle", "bbc-world"]) {
+    await nav(page, "Magazines");
+    await page
+      .getByLabel("Find a publication", { exact: true })
+      .fill(id === "elle" ? "ELLE" : "BBC");
+    const publication = page.locator(`[data-publication-id="${id}"]`);
+    await publication
+      .getByRole("button", { name: "Browse articles", exact: true })
+      .click();
+    const expected = edition.articles.filter(
+      (article: any) =>
+        article.sourceId === id ||
+        article.alsoIn?.includes(id) ||
+        article.feedContexts?.some((context: any) => context.sourceId === id),
+    );
+    await expect(page.locator(".story-open h2")).toHaveCount(expected.length);
+    expect(
+      (await page.locator(".story-open h2").allTextContents()).sort(),
+    ).toEqual(expected.map((article: any) => article.title).sort());
+    await page.locator(".story-open").first().click();
+    await page
+      .getByRole("button", { name: "Back to previous section", exact: true })
+      .click();
+    await expect(page.locator(".story-open")).toHaveCount(expected.length);
+    await page
+      .getByRole("button", { name: "Clear publication filter", exact: true })
+      .click();
+    await expect(page.locator(".story-open")).toHaveCount(
+      Math.min(75, edition.articles.length),
+    );
+  }
 });

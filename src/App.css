@@ -3011,3 +3011,15 @@ html[data-theme="light"] .brand-mark-light {
   color: var(--ink);
   font: inherit;
 }
+.publication-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  color: var(--green);
+  font-size: 0.875rem;
+}
+.publication-selection button {
+  min-height: 44px;
+}

@@ -113,6 +113,7 @@ export default function App() {
   const [edition, setEdition] = useState<Edition>(EMPTY),
     [filter, setFilter] = useState("All stories"),
     [magazineCategory, setMagazineCategory] = useState("All categories"),
+    [publicationId, setPublicationId] = useState(""),
     [query, setQuery] = useState(""),
     [readableOnly, setReadableOnly] = useState(false),
     [reader, setReader] = useState<Article>(),
@@ -297,6 +298,7 @@ export default function App() {
   function navigate(id: string) {
     setBackupPassword("");
     setMagazineCategory("All categories");
+    setPublicationId("");
     setView(id);
     setFilter("All stories");
     setReadableOnly(false);
@@ -373,6 +375,13 @@ export default function App() {
     );
     if (view === "home")
       result = result.filter((a) => articleMatchesLibrary(a, prefs));
+    if (view === "explore" && publicationId)
+      result = result.filter(
+        (a) =>
+          a.sourceId === publicationId ||
+          a.alsoIn?.includes(publicationId) ||
+          a.feedContexts?.some((context) => context.sourceId === publicationId),
+      );
     if (readableOnly) result = result.filter((a) => a.full);
     if (filter !== "All stories")
       result = result.filter((a) => a.categories.includes(filter));
@@ -422,6 +431,7 @@ export default function App() {
     filter,
     query,
     readableOnly,
+    publicationId,
   ]);
   const dailyId = `${localDay()}-${dailyPreferenceKey(prefs)}`;
   const daily = useMemo(
@@ -807,6 +817,19 @@ export default function App() {
             >
               Full articles only
             </button>
+            {view === "explore" && publicationId && (
+              <div className="publication-selection" role="status">
+                Articles from{" "}
+                {sourceLabels.get(publicationId)?.name || "this publication"}
+                <button
+                  className="text-button"
+                  onClick={() => setPublicationId("")}
+                  aria-label="Clear publication filter"
+                >
+                  All publications <X size={15} />
+                </button>
+              </div>
+            )}
             <label className="search-field">
               <Search size={17} />
               <input
@@ -1003,9 +1026,9 @@ export default function App() {
           <Magazines
             onHome={() => navigate("home")}
             initialCategory={magazineCategory}
-            onBrowseSource={(name) => {
+            onBrowseSource={(id) => {
               navigate("explore");
-              setQuery(name);
+              setPublicationId(id);
             }}
           />
         )}
