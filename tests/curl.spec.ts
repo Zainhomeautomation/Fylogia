@@ -1,5 +1,5 @@
-import { mockEdition } from "./edition-fixture";
-import { test, expect } from "@playwright/test";
+import { test, mockEdition } from "./edition-fixture";
+import { expect } from "@playwright/test";
 test("curl drag cancellation, tutorial persistence and offline turns", async ({
   page,
   context,

@@ -1,6 +1,6 @@
 # Private device sync
 
-Optional sync is implemented as a release candidate. Production publication remains gated on the complete browser suite, CI, review and live verification. The original local profile, storage keys, offline databases and public Pages integration are retained.
+Optional sync is published and was verified using isolated production test profiles, including pairing, offline edits, revocation and recovery. The final release audit records the latest validation. The original local profile, storage keys, offline databases and public Pages integration are retained.
 
 ## Architecture and boundaries
 

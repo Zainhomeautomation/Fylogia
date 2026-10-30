@@ -1,3 +1,4 @@
+import { mediaImage } from "./media-rights";
 import {
   Bookmark,
   ArrowUpRight,
@@ -30,6 +31,7 @@ export function StoryCard({
   onSelect?: () => void;
   selected?: boolean;
 }) {
+  const image = mediaImage(article);
   return (
     <article className={"story " + (lead ? "lead" : "")}>
       <div className="story-offline-tools">
@@ -57,9 +59,9 @@ export function StoryCard({
         </span>
       )}
       <button className="story-open" onClick={onOpen}>
-        {article.image ? (
+        {image ? (
           <img
-            src={article.image}
+            src={image}
             alt=""
             loading={lead ? "eager" : "lazy"}
             referrerPolicy="no-referrer"

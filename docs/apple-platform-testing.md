@@ -33,3 +33,7 @@ The shared article/PDF page-corner controls separate taps from drags. Touch moti
 A fresh XcodeBuildMCP inventory again found no usable simulator because full Xcode and `simctl` are missing. The Swift command-line compiler and macOS SDK are available. Apple's native Vision framework decoded a QR image produced by Fylogia's QR encoder and recovered the exact public dummy pairing URL. This is a native macOS software decoder test, not a camera or physical-device test.
 
 Further native Safari PDF zoom/offline interaction checks were interrupted when the Mac auto-locked. Native UI automation explicitly refused access while locked. No lock bypass or Safari automation permission change was attempted. Previous successful native Safari reader checks are scoped above; the complete automated Chromium/WebKit suites cover offline, zoom, pagination and responsive regressions independently.
+
+## Release recheck — 30 October 2026
+
+Full Xcode remains absent; only Command Line Tools are selected. `simctl` and `devicectl` remain unavailable, and USB enumeration found no connected iPhone/iPad. Wireless devices are unverified. XcodeBuildMCP is no longer exposed in the current tool inventory. Safari 27.2 remains installed, but the current native UI attempt failed with `cgWindowNotFound`; no additional native UI result is claimed. Earlier successful desktop Safari checks remain historical, partial evidence. The current production release was exercised in Chromium and Playwright WebKit, including offline content and real PDF rendering, with no physical iPhone Duo claim.

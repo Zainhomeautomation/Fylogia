@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { defaults } from "../src/catalog";
-import { mockEdition, restoreEdition } from "./edition-fixture";
+import { test, mockEdition, restoreEdition } from "./edition-fixture";
 test("real worker sees fixture updates, offline cached responses, and restored publisher news on every engine", async ({
   page,
   context,

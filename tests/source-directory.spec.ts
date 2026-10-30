@@ -1,5 +1,5 @@
-import { mockEdition } from "./edition-fixture";
-import { test, expect, type Page } from "@playwright/test";
+import { test, mockEdition } from "./edition-fixture";
+import { expect, type Page } from "@playwright/test";
 async function nav(page: Page) {
   if (await page.getByRole("button", { name: "Open navigation" }).isVisible())
     await page.getByRole("button", { name: "Open navigation" }).click();

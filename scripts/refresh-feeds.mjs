@@ -8,7 +8,7 @@ import {
 } from "../src/source-utils.ts";
 import { feedArticle } from "./feed-content.mjs";
 const pipelineVersion = 4;
-const contentVersion = 2;
+const contentVersion = 3;
 const fullOnly = process.argv.includes("--full-only");
 let previous = { articles: [], statuses: [] };
 try {

@@ -1,3 +1,4 @@
+import { omitRestrictedFigures } from "../src/media-rights.ts";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 
@@ -17,6 +18,7 @@ export function cleanFeedArticle(html, title) {
     if (figure.nextElementSibling?.tagName === "FIGCAPTION")
       figure.append(figure.nextElementSibling);
   }
+  omitRestrictedFigures(document);
   const blocks = [
     ...document.querySelectorAll(
       "p.wp-block-paragraph,h2.wp-block-heading,h3.wp-block-heading,h4.wp-block-heading,ul.wp-block-list,ol.wp-block-list,.wp-block-image,blockquote.wp-block-quote,pre.wp-block-code,figure.wp-block-table",

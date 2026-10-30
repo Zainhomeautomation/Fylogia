@@ -150,6 +150,7 @@ if (process.argv.includes("--lighthouse")) {
         });
         await page.evaluate(() => {
           const state = (window.fylogiaLab = {
+            startedAt: performance.now(),
             frames: [],
             events: [],
             running: true,
@@ -169,7 +170,7 @@ if (process.argv.includes("--lighthouse")) {
           try {
             new PerformanceObserver((list) => {
               for (const e of list.getEntries())
-                if (e.interactionId)
+                if (e.interactionId && e.startTime >= state.startedAt)
                   state.events.push({
                     interactionId: e.interactionId,
                     duration: e.duration,

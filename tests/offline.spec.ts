@@ -1,5 +1,5 @@
-import { mockEdition, restoreEdition } from "./edition-fixture";
-import { test, expect, type Page } from "@playwright/test";
+import { test, mockEdition, restoreEdition } from "./edition-fixture";
+import { expect, type Page } from "@playwright/test";
 import type { Edition } from "../src/catalog";
 async function nav(page: Page, label: string) {
   // IndexedDB restoration may finish after the document load event.

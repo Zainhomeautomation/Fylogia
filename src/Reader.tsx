@@ -1,3 +1,8 @@
+import {
+  mediaImage,
+  restrictedNasaMedia,
+  omitRestrictedFigures,
+} from "./media-rights";
 import { PageTurnControls } from "./PageTurnControls";
 import { useReaderReturn, isolateReaderLayer } from "./useReaderReturn";
 import {
@@ -77,6 +82,8 @@ export function Reader({
   // Previews stay in one readable column with their publisher action visible.
   // The user’s page/scroll preference still applies to complete articles.
   const reading = article.full ? prefs.reading : "scroll";
+  const displayImage = mediaImage(article);
+  const restrictedMedia = restrictedNasaMedia(article);
   const viewport = useRef<HTMLDivElement>(null),
     content = useRef<HTMLDivElement>(null),
     close = useRef<HTMLButtonElement>(null);
@@ -218,13 +225,18 @@ export function Reader({
       FORBID_ATTR: ["style", "srcset"],
     }).replace(/<img /g, '<img referrerpolicy="no-referrer" ');
     // Promote the credited lead figure rather than showing the same photo twice.
+    if (restrictedMedia) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      omitRestrictedFigures(doc);
+      html = doc.body.innerHTML;
+    }
     let leadCaption = "";
-    if (article.image) {
+    if (displayImage) {
       const document = new DOMParser().parseFromString(html, "text/html");
       const figure = [...document.querySelectorAll("figure")].find(
         (figure) =>
           figure.querySelectorAll("img").length === 1 &&
-          figure.querySelector("img")?.getAttribute("src") === article.image,
+          figure.querySelector("img")?.getAttribute("src") === displayImage,
       );
       if (figure) {
         leadCaption = figure.querySelector("figcaption")?.textContent || "";
@@ -233,7 +245,7 @@ export function Reader({
       }
     }
     return { html, leadCaption };
-  }, [article.content, article.image]);
+  }, [article.content, displayImage, restrictedMedia]);
   const measuring = useRef(false);
   const measurementFrame = useRef(0);
   const measure = () => {
@@ -651,10 +663,10 @@ export function Reader({
               </a>
             </p>
           )}
-          {article.image && (
+          {displayImage && (
             <figure>
               <img
-                src={article.image}
+                src={displayImage}
                 alt=""
                 referrerPolicy="no-referrer"
                 onError={(e) => {

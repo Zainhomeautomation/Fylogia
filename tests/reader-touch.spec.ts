@@ -1,5 +1,5 @@
-import { mockEdition } from "./edition-fixture";
-import { test, expect, type Page } from "@playwright/test";
+import { test, mockEdition } from "./edition-fixture";
+import { expect, type Page } from "@playwright/test";
 async function open(page: Page) {
   const edition = await (await page.request.get("data/edition.json")).json();
   const article = edition.articles

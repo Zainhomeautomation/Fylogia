@@ -1,12 +1,13 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Page } from "@playwright/test";
 const proxy =
   !process.env.FYLOGIA_TEST_URL && process.env.FYLOGIA_PAGES_RUNTIME !== "0";
 export async function mockEdition(page: Page, edition: unknown) {
   if (proxy) {
     const result = await page.request.post("__test/edition", { data: edition });
-    expect(result.ok(), "loopback worker-level edition fixture installed").toBe(
-      true,
-    );
+    expect(
+      result.status(),
+      "loopback worker-level edition fixture installed",
+    ).toBe(200);
   } else {
     await page
       .context()
@@ -24,7 +25,14 @@ export async function restoreEdition(page: Page) {
   } else await page.context().unroute("**/data/edition.json*");
 }
 
-if (proxy)
-  test.afterEach(async ({ page }) => {
-    await restoreEdition(page);
-  });
+// An automatic per-test fixture survives worker/module reuse across spec files.
+// A hook registered as an import side effect only belongs to the first file.
+export const test = base.extend<{ editionCleanup: void }>({
+  editionCleanup: [
+    async ({ page }, use) => {
+      await use();
+      if (proxy) await restoreEdition(page);
+    },
+    { auto: true },
+  ],
+});
