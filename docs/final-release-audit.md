@@ -31,7 +31,7 @@ Release candidate validated locally; exact-head CI and final public-commit verif
 | Cloud privacy | PASS WITH LIMITATIONS | No publisher bodies/images/PDF uploads; access-controlled metadata, not end-to-end encryption; free-tier budgets can pause updates |
 | Optional summaries | PASS WITH LIMITATIONS | Browser on-device API where supported; otherwise explicitly non-AI extracted passages |
 | iOS/iPadOS Simulator / physical devices | BLOCKED | Full Xcode/runtimes and device tools absent; no USB iPhone/iPad found; wireless availability unverified |
-| Native macOS Safari | PASS WITH LIMITATIONS | Earlier isolated-origin partial UI checks; current UI connection unavailable; WebDriver permission disabled |
+| Native macOS Safari | PASS WITH LIMITATIONS | Native article checks plus production PDF zoom/fit/single-click turn after unlock; WebDriver permission disabled |
 
 ## Findings fixed during final audit
 
@@ -70,6 +70,6 @@ Initial JavaScript is approximately 132 KB gzipped, with lazy XML parsing, QR UI
 
 ## Release decision
 
-**READY WITH LIMITATIONS**, subject to successful exact-head CI, deployment and final live verification. Local release validation passed **174 browser tests without retries**, **66 server tests**, TypeScript/production build, formatting and lint (11 existing non-blocking React warnings). The suite includes actual Cloudflare Pages Functions with disposable local D1, metadata-only private sync, real PDF decode/CSP checks, legacy saved-media protection and network-disabled downloads. The 20 automated accessibility scans found no WCAG A/AA violations. Production milestone verification already passed three real-news/offline journeys, three original-PDF browser cases and the legacy-tab sync regression; final audit fixes require a new deployment receipt.
+**READY WITH LIMITATIONS**, subject to successful exact-head CI, deployment and final live verification. Local release validation passed **174 browser tests without retries**, **67 server tests**, TypeScript/production build, formatting and lint (11 existing non-blocking React warnings). The suite includes actual Cloudflare Pages Functions with disposable local D1, metadata-only private sync, real PDF decode/CSP checks, legacy saved-media protection and network-disabled downloads. The 20 automated accessibility scans found no WCAG A/AA violations. Production milestone verification already passed three real-news/offline journeys, three original-PDF browser cases and the legacy-tab sync regression; final audit fixes require a new deployment receipt.
 
 The final commit and live verification are identified in the accompanying release report and [public build metadata](https://fylogia.com/build-info.json). No unconditional bug-free, legal-clearance, physical-device, field-INP or unqualified full-content claim is made. Remaining limitations include publisher permissions/CORS, online-only large public PDF, best-effort scheduled-feed timing, browser storage eviction, non-E2E optional sync with finite free quotas, missing Apple hardware/simulators and the approximate curl renderer.
