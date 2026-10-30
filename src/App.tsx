@@ -51,6 +51,7 @@ import { Magazines } from "./Magazines";
 import { useOfflineLibrary } from "./useOfflineLibrary";
 import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
+import { BrandMark } from "./BrandMark";
 import { useSectionRoute } from "./useSectionRoute";
 const navigation = [
   { id: "home", label: "For You", icon: Home },
@@ -582,7 +583,10 @@ export default function App() {
           <Menu />
         </button>
         <span className="brand-lockup">
-          <span className="wordmark">Fylogia</span>
+          <span className="brand-name">
+            <BrandMark />
+            <span className="wordmark">Fylogia</span>
+          </span>
           {view === "home" && (
             <span className="brand-tagline">
               Your World, One Page at a Time.
@@ -600,7 +604,10 @@ export default function App() {
       <aside className={"sidebar " + (menu ? "open" : "")}>
         <div className="sidebar-brand">
           <span className="brand-lockup">
-            <span className="wordmark">Fylogia</span>
+            <span className="brand-name">
+              <BrandMark />
+              <span className="wordmark">Fylogia</span>
+            </span>
             {view === "home" && (
               <span className="brand-tagline">
                 Your World, One Page at a Time.
@@ -817,12 +824,12 @@ export default function App() {
             </label>
             {busy && !all.length ? (
               <div className="empty" role="status">
-                <RefreshCw className="spinning" />
+                <BrandMark />
                 <h2>Preparing your edition…</h2>
               </div>
             ) : !articles.length ? (
               <div className="empty">
-                <BookOpen size={36} strokeWidth={1} />
+                <BrandMark />
                 <h2>
                   {query
                     ? "No stories found."

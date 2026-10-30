@@ -1,6 +1,7 @@
 import { recommendSources } from "./source-utils";
 import { useState } from "react";
 import { ArrowRight, Check, ArrowLeft, BookOpen } from "lucide-react";
+import { BrandMark } from "./BrandMark";
 import { Sources } from "./Sources";
 import {
   interestGroups,
@@ -55,7 +56,11 @@ export function Onboarding({
   return (
     <main className="onboarding">
       <div className="onboard-brand">
-        Fylogia<span>Read your world.</span>
+        <div className="onboard-brand-name">
+          <BrandMark />
+          Fylogia
+        </div>
+        <span>Read your world.</span>
       </div>
       <div className="onboard-layout">
         <aside>

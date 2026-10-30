@@ -1,4 +1,5 @@
-import { Download, CloudOff, Trash2, RefreshCw, BookOpen } from "lucide-react";
+import { BrandMark } from "./BrandMark";
+import { CloudOff, Trash2, RefreshCw, BookOpen } from "lucide-react";
 import type { Article } from "./catalog";
 import type { useOfflineLibrary } from "./useOfflineLibrary";
 import { dateLabel } from "./storage";
@@ -44,7 +45,7 @@ export function OfflineLibrary({
         <p role="status">Checking offline storage…</p>
       ) : !library.items.length ? (
         <div className="empty">
-          <Download size={34} />
+          <BrandMark />
           <h2>Take a few stories with you.</h2>
           <p>
             Use the download arrow on a story, select several, or download your

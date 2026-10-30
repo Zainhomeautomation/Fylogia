@@ -242,3 +242,7 @@ The source catalog has 194 validated feeds and nine full-text-capable policies. 
 ### Today's Fylogia
 
 Open **Today's Fylogia** from For You for a personal cover, grouped table of contents and continuous reading through the existing magazine reader. **Download Daily Edition** saves the same issue for offline reading. Recent issues, bookmarks and each story's progress remain local; older library backups remain compatible. See [the daily magazine notes](docs/personalized-daily-magazine.md) for selection rules, preservation and limits.
+
+## Brand assets
+
+The owner-approved cream F and sage page mark, light/monochrome variants, browser/PWA icons, 1024 app-icon master and social preview are in `public/brand` and `public/icons`. See [brand assets, export instructions and limited visual screening](docs/branding.md). No native application is included, and search-result favicon display remains controlled by search engines.
