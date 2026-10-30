@@ -1705,6 +1705,9 @@ html[data-theme="light"] .brand-mark-light {
 }
 .paginated :is(.reader-content, .turn-content) {
   transition: none;
+  /* Column overflow can span dozens of pages. Composite only the folded
+     visible bands, never fourteen complete long-article layers. */
+  will-change: auto;
 }
 :is(.reader-content, .turn-content) p {
   orphans: 3;
@@ -2905,6 +2908,7 @@ html[data-theme="light"] .brand-mark-light {
   );
 }
 .paper-fold .paper-content {
+  contain: layout paint;
   color: var(--ink);
 }
 .pdf-spread[data-zoom="1"],

@@ -242,6 +242,9 @@ function createEngine(
     if (s.finishing) return;
     s.finishing = true;
     clearTimeout(s.timer);
+    s.distance = commit ? 2 : 0;
+    s.vertical = 0;
+    s.view?.draw(s.distance, 0);
     if (commit) applyOnce(s);
     // Keep the fully painted destination over the native PDF canvases until
     // React has mounted and PDF.js has finished painting them. No blank spread.
@@ -256,9 +259,9 @@ function createEngine(
         dispose(s, true);
         return;
       }
-      s.frame = requestAnimationFrame(wait);
+      s.timer = setTimeout(wait, 32);
     };
-    if (commit) s.frame = requestAnimationFrame(wait);
+    if (commit) s.timer = setTimeout(wait, 32);
     else dispose(s, true);
   }
   async function end(commit: boolean, turn: () => void) {

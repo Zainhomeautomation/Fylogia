@@ -9,6 +9,7 @@ async function nav(page: Page, name: string) {
     .getByRole("navigation", { name: "Main navigation", exact: true })
     .getByRole("button", { name, exact: true })
     .click();
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
 }
 test("reader Back preserves section, filters and scroll; Home opens For You", async ({
   page,
@@ -30,6 +31,9 @@ test("reader Back preserves section, filters and scroll; Home opens For You", as
         .click();
     const search = page.getByPlaceholder("Search stories, sources, ideas…");
     await search.fill("NASA");
+    // Await the filtered React result, not an old card still present while the
+    // Linux WebKit input/navigation events are completing.
+    await expect(page.locator(".story.lead")).toContainText("NASA");
     const story = page.locator(".story-open").first();
     await expect(story).toBeVisible();
     await story.scrollIntoViewIfNeeded();

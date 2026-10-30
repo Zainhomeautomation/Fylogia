@@ -263,8 +263,12 @@ export function Reader({
   }, [article.content, displayImage, restrictedMedia]);
   const measuring = useRef(false);
   const measurementFrame = useRef(0);
+  const measurementTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const measure = () => {
     cancelAnimationFrame(measurementFrame.current);
+    clearTimeout(measurementTimer.current);
     if (!viewport.current || !content.current) return;
     const w = viewport.current.clientWidth;
     viewport.current.style.setProperty(
@@ -292,7 +296,12 @@ export function Reader({
     navigation.current = false;
     setWidth(w);
     setSpread(article.full && w >= Math.max(680, prefs.fontSize * 36) ? 2 : 1);
-    measurementFrame.current = requestAnimationFrame(() => {
+    let measured = false;
+    const finishMeasurement = () => {
+      if (measured) return;
+      measured = true;
+      cancelAnimationFrame(measurementFrame.current);
+      clearTimeout(measurementTimer.current);
       if (content.current) {
         const n = Math.max(
           1,
@@ -312,14 +321,21 @@ export function Reader({
         setPageState(Math.max(0, Math.min(n - 1, location)));
         measuring.current = false;
       }
-    });
+    };
+    measurementFrame.current = requestAnimationFrame(finishMeasurement);
+    measurementTimer.current = setTimeout(finishMeasurement, 80);
   };
   useLayoutEffect(() => {
     const observer = new ResizeObserver(measure);
     if (viewport.current) observer.observe(viewport.current);
     measure();
     document.fonts.ready.then(measure);
+    window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
     return () => {
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+      clearTimeout(measurementTimer.current);
       observer.disconnect();
       cancelAnimationFrame(measurementFrame.current);
     };

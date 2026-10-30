@@ -75,3 +75,50 @@ test("queued article turns stay within the first and last text pages", async ({
     ),
   ).toBe(0);
 });
+
+test("long-article turns and responsive pagination recover when animation callbacks stop", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1180, height: 900 });
+  const edition = await (await page.request.get("data/edition.json")).json();
+  const article = edition.articles
+    .filter((a: any) => a.full)
+    .sort((a: any, b: any) => b.content.length - a.content.length)[0];
+  article.image = undefined;
+  article.content = article.content.replace(/<img[^>]*>/gi, "");
+  await page.addInitScript(
+    ({ article, prefs }) => {
+      localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
+      localStorage.setItem("folio.v1.saved", JSON.stringify([article]));
+      const request = window.requestAnimationFrame.bind(window);
+      (window as any).pauseReaderFrames = false;
+      window.requestAnimationFrame = (callback) =>
+        request((time) => {
+          if (!(window as any).pauseReaderFrames) callback(time);
+        });
+    },
+    { article, prefs: { ...defaults, complete: true } },
+  );
+  await page.goto("./saved");
+  await page.locator(".story-open").click();
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator(".reader-content")).toHaveCSS("column-count", "2");
+  const text = await page.locator(".article-body").innerText();
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.locator(".paper-fold")).toHaveCount(1);
+  await expect(
+    page.locator(".paper-flat[data-face=front] .turn-content"),
+  ).toHaveCSS("will-change", "auto");
+  await page.evaluate(() => {
+    (window as any).pauseReaderFrames = true;
+  });
+  await expect(page.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
+  await expect(page.locator(".reader-footer")).toContainText("Spread 2 of");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");
+  await expect(page.locator(".reader-footer")).toContainText(/Page \d+ of/);
+  expect(await page.locator(".article-body").innerText()).toBe(text);
+  await page.evaluate(() => {
+    (window as any).pauseReaderFrames = false;
+  });
+});
