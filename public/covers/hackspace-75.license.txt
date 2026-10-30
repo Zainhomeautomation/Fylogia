@@ -1,0 +1,8 @@
+HackSpace magazine, issue 75 (February 2024), Raspberry Pi Ltd.
+Original publication: https://magazine.raspberrypi.com/hackspace/issues/75
+The original PDF's colophon on page 3 states CC BY-NC-SA 3.0 except where otherwise noted.
+License: https://creativecommons.org/licenses/by-nc-sa/3.0/
+This cover thumbnail is a reduced-size JPEG rendering of the original cover.
+Original credits and third-party exceptions are retained in the linked PDF.
+This publication asset is not covered by Fylogia's MIT source-code license.
+No endorsement is implied. Noncommercial use only under the applicable license.

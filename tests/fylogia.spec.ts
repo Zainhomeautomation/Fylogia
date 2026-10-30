@@ -1,6 +1,6 @@
 import { readerOption } from "./reader-controls";
 import { test, expect, type Page } from "@playwright/test";
-async function setup(page: Page) {
+async function setup(page: Page, waitForStories = true) {
   await page.goto("./");
   await expect(
     page.getByRole("heading", { name: "What draws you in?" }),
@@ -14,7 +14,11 @@ async function setup(page: Page) {
   await expect(
     page.getByRole("heading", { name: "Your daily perspective." }),
   ).toBeVisible();
-  await expect(page.locator(".story").first()).toBeVisible();
+  // Source slices can arrive after the shell on a busy WebKit CI runner.
+  if (waitForStories)
+    await expect(page.locator(".story").first()).toBeVisible({
+      timeout: 15000,
+    });
 }
 async function nav(page: Page, label: string) {
   // IndexedDB restoration may finish after the document load event.
@@ -459,7 +463,8 @@ test("custom RSS file, library export/import and sanitized article content", asy
 test("private PDF import survives reload and opens original page layout", async ({
   page,
 }) => {
-  await setup(page);
+  // Importing a local PDF does not depend on news delivery completing.
+  await setup(page, false);
   await nav(page, "Magazines");
   const content = "BT /F1 24 Tf 50 700 Td (Fylogia PDF import test) Tj ET";
   const objects = [

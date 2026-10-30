@@ -2934,3 +2934,92 @@ html[data-theme="light"] .brand-mark-light {
   background: linear-gradient(90deg, transparent, #0002, transparent);
   pointer-events: none;
 }
+
+.directory-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  max-width: 36rem;
+}
+.directory-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+}
+.category-group {
+  margin-block: 2rem;
+}
+.category-tile {
+  min-width: 0;
+}
+.category-tile > button:first-child {
+  width: 100%;
+  text-align: left;
+}
+.category-tile > .text-button {
+  min-height: 44px;
+  font-size: 0.8rem;
+}
+.publication-directory {
+  margin-top: 3rem;
+}
+.publication-card {
+  border-top: 1px solid var(--line);
+  padding: 1rem 0;
+}
+.publication-card h3 {
+  margin: 0.25rem 0;
+}
+.publication-card .text-button {
+  margin-right: 1rem;
+  min-height: 44px;
+}
+.magazine-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.magazine-filters select {
+  max-width: 100%;
+  min-height: 44px;
+  font: inherit;
+  background: var(--paper);
+  color: inherit;
+  padding: 0.5rem;
+}
+.category-grid .category-tile > .text-button {
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  border-top: 0;
+}
+.category-tile > button:first-child > svg {
+  color: var(--green);
+}
+.magazine-filters input {
+  max-width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+.publication-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  color: var(--green);
+  font-size: 0.875rem;
+}
+.publication-selection button {
+  min-height: 44px;
+}

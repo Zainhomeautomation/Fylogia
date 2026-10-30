@@ -301,9 +301,17 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
         () => JSON.parse(localStorage.getItem("folio.v1.saved")!)[0].content,
       ),
     ).toBe(article.content);
+    // A click starts revocation; wait for the actual server acknowledgement
+    // before asking the other device to prove its credential is rejected.
+    const revoked = first.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.request().postDataJSON()?.action === "revoke",
+    );
     await first
       .getByRole("button", { name: "Revoke device", exact: true })
       .click();
+    expect((await revoked).ok()).toBeTruthy();
     await second.getByRole("button", { name: "Sync now", exact: true }).click();
     await expect(second.getByRole("alert")).toContainText(
       /disconnected|device|connect/i,

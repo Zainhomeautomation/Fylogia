@@ -12,6 +12,20 @@ export const interestGroups = [
       "Gaming",
     ],
   },
+
+  {
+    name: "Fashion & Lifestyle",
+    categories: [
+      "Men’s Fashion",
+      "Women’s Fashion",
+      "Watches & Jewelry",
+      "Luxury & Lifestyle",
+    ],
+  },
+  {
+    name: "Home & Nature",
+    categories: ["Home & Garden", "Nature & Environment"],
+  },
   {
     name: "Science & Design",
     categories: [
@@ -51,6 +65,10 @@ export const sourceTopics: Record<
   string,
   { categories: string[]; topics: string[] }
 > = {
+  "apartment-therapy": {
+    categories: ["Home & Garden", "Architecture"],
+    topics: ["Interiors", "Design", "Decoration", "Home improvement"],
+  },
   "smithsonian-magazine": {
     categories: ["History & Culture"],
     topics: ["History", "Archaeology", "Culture", "Heritage"],
@@ -102,10 +120,6 @@ export const sourceTopics: Record<
   "design-milk": {
     categories: ["Architecture"],
     topics: ["Interiors", "Buildings", "Design"],
-  },
-  "apartment-therapy": {
-    categories: ["Architecture"],
-    topics: ["Interiors", "Design"],
   },
 };
 const aliases: Record<string, string[]> = {
@@ -169,4 +183,8 @@ export function topicMatchesText(topic: string, text: string) {
     patterns.set(topic, compiled);
   }
   return compiled.some((pattern) => pattern.test(text));
+}
+
+export function normalizeInterestSearch(value: string) {
+  return value.normalize("NFKC").replace(/[‘’]/g, "'").toLocaleLowerCase();
 }

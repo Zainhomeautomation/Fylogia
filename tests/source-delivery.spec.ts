@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { defaults } from "../src/catalog";
+import { defaults, sources } from "../src/catalog";
 async function fixture(page: any) {
   await page.addInitScript(
     (p: any) => {
@@ -36,33 +36,39 @@ test("For You loads complete followed-source slices while Explore loads the full
   await expect(page.locator(".story").first()).toBeVisible();
   expect(full.length).toBeGreaterThan(0);
 });
-test("unavailable source slices fall back to the preserved full edition without losing real stories", async ({
-  page,
-}) => {
-  test.skip(
-    process.env.FYLOGIA_PAGES_RUNTIME === "0",
-    "Requires static Pages capability headers",
-  );
-  await fixture(page);
-  await page.route("**/data/source-files/*.json", (r) =>
-    r.fulfill({ status: 503, body: "Temporarily unavailable" }),
-  );
-  const original = page.waitForResponse(
-    (r) =>
-      r.request().method() === "GET" &&
-      r.url().includes("/data/edition.json") &&
-      r.ok(),
-  );
-  await page.goto("./");
-  await original;
-  await expect(page.locator(".story").first()).toBeVisible();
-  await page
-    .locator(".story")
-    .filter({ has: page.locator(".content-label.complete") })
-    .first()
-    .locator(".story-open")
-    .click();
-  await expect(page.locator(".article-body")).not.toBeEmpty();
+test.describe("network-failure fixture", () => {
+  // A browser route must receive the deliberately failed request; an installed
+  // worker may otherwise serve the real successful slice before interception.
+  // Worker-controlled news and offline behavior retain their separate tests.
+  test.use({ serviceWorkers: "block" });
+  test("unavailable source slices fall back to the preserved full edition without losing real stories", async ({
+    page,
+  }) => {
+    test.skip(
+      process.env.FYLOGIA_PAGES_RUNTIME === "0",
+      "Requires static Pages capability headers",
+    );
+    await fixture(page);
+    await page.route("**/data/source-files/*.json", (r) =>
+      r.fulfill({ status: 503, body: "Temporarily unavailable" }),
+    );
+    const original = page.waitForResponse(
+      (r) =>
+        r.request().method() === "GET" &&
+        r.url().includes("/data/edition.json") &&
+        r.ok(),
+    );
+    await page.goto("./");
+    await original;
+    await expect(page.locator(".story").first()).toBeVisible();
+    await page
+      .locator(".story")
+      .filter({ has: page.locator(".content-label.complete") })
+      .first()
+      .locator(".story-open")
+      .click();
+    await expect(page.locator(".article-body")).not.toBeEmpty();
+  });
 });
 test("every indexed source preserves its contributing stories, attribution, and body bytes", async ({
   request,
@@ -73,7 +79,9 @@ test("every indexed source preserves its contributing stories, attribution, and 
   );
   const index = await (await request.get("data/source-index.json")).json();
   const full = await (await request.get("data/edition.json")).json();
-  expect(index.sources.length).toBe(194);
+  expect(index.sources.map((source: { id: string }) => source.id)).toEqual(
+    sources.map((source) => source.id),
+  );
   expect(index.generatedAt).toBe(full.generatedAt);
   // Include a combined feed entry to cover alternate-source ownership as well as ordinary full text.
   const ids = new Set([
