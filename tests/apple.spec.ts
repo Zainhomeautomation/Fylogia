@@ -258,6 +258,17 @@ test("Apple preview saves and offline downloads retain the existing reader and p
   await main()
     .getByRole("button", { name: "Offline Library", exact: true })
     .click();
+  // A fresh browser must finish the initial PWA installation and claim this
+  // page before Airplane Mode. Downloads can finish while shell caching runs.
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await expect
+    .poll(
+      () => page.evaluate(() => navigator.serviceWorker.controller !== null),
+      { timeout: 30000 },
+    )
+    .toBeTruthy();
   await context.setOffline(true);
   await page.reload();
   await page
