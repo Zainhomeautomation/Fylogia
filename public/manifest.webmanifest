@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Fylogia \u2014 Read your world",
+  "name": "Fylogia \u2014 Your World, One Page at a Time.",
   "short_name": "Fylogia",
-  "description": "Fylogia: your personal news and magazine reader",
+  "description": "Your World, One Page at a Time. Your personal news and magazine reader.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

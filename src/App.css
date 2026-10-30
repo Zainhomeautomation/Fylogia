@@ -129,6 +129,21 @@ h2 {
   justify-content: space-between;
   align-items: center;
 }
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.brand-tagline {
+  font: 400 11.5px/1.4 var(--serif);
+  letter-spacing: 0.12px;
+  text-wrap: balance;
+  color: var(--muted);
+}
+.sidebar-brand:has(.brand-tagline) {
+  padding-bottom: 6px;
+}
 .nav-item {
   width: 100%;
   display: flex;
@@ -1120,6 +1135,20 @@ h2 {
     padding-top: max(15px, env(safe-area-inset-top));
     background: var(--bg);
   }
+  .mobile-header:has(.brand-tagline) {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-bottom: 8px;
+  }
+  .mobile-header .brand-lockup {
+    align-items: center;
+    gap: 3px;
+  }
+  .mobile-header .brand-tagline {
+    white-space: nowrap;
+  }
+  .sidebar-brand .brand-tagline {
+    display: none;
+  }
   .mobile-header .wordmark {
     font-size: 40px;
   }
@@ -1544,7 +1573,8 @@ h2 {
   .sidebar-footer {
     padding-top: 10px;
   }
-  .sidebar-brand {
+  .sidebar-brand,
+  .sidebar-brand:has(.brand-tagline) {
     padding-bottom: 24px;
   }
   .offline-row {

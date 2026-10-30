@@ -32,7 +32,7 @@ test("onboarding, real stories, saves, history, theme and persistent preferences
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await setup(page);
-  await expect(page).toHaveTitle("Fylogia — Read your world");
+  await expect(page).toHaveTitle("Fylogia — Your World, One Page at a Time.");
   await expect
     .poll(
       () =>
@@ -513,7 +513,7 @@ test("Fylogia branding preserves legacy libraries and installation identity", as
     { article },
   );
   await page.goto("./");
-  await expect(page).toHaveTitle("Fylogia — Read your world");
+  await expect(page).toHaveTitle("Fylogia — Your World, One Page at a Time.");
   await expect(
     page.getByRole("heading", { name: "Your daily perspective." }),
   ).toBeVisible();
@@ -530,7 +530,7 @@ test("Fylogia branding preserves legacy libraries and installation identity", as
   const manifest = await (
     await page.request.get("manifest.webmanifest")
   ).json();
-  expect(manifest.name).toBe("Fylogia — Read your world");
+  expect(manifest.name).toBe("Fylogia — Your World, One Page at a Time.");
   expect(manifest.short_name).toBe("Fylogia");
   const base = new URL("./", page.url()).pathname;
   expect(manifest.id).toBe(base === "/Fylogia/" ? "/Folio/" : base);

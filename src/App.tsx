@@ -581,7 +581,14 @@ export default function App() {
         >
           <Menu />
         </button>
-        <span className="wordmark">Fylogia</span>
+        <span className="brand-lockup">
+          <span className="wordmark">Fylogia</span>
+          {view === "home" && (
+            <span className="brand-tagline">
+              Your World, One Page at a Time.
+            </span>
+          )}
+        </span>
         <button
           className="icon-button"
           aria-label="Search stories"
@@ -592,7 +599,14 @@ export default function App() {
       </header>
       <aside className={"sidebar " + (menu ? "open" : "")}>
         <div className="sidebar-brand">
-          <span className="wordmark">Fylogia</span>
+          <span className="brand-lockup">
+            <span className="wordmark">Fylogia</span>
+            {view === "home" && (
+              <span className="brand-tagline">
+                Your World, One Page at a Time.
+              </span>
+            )}
+          </span>
           <button
             className="icon-button mobile-close"
             aria-label="Close navigation"
