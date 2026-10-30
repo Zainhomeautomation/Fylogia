@@ -104,7 +104,15 @@ test("long-article turns and responsive pagination recover when animation callba
   await page.evaluate(() => document.fonts.ready);
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "2");
   const text = await page.locator(".article-body").innerText();
-  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  // Hold the sheet so slow CI assertions cannot race a 620 ms auto turn.
+  const corner = (await page
+    .getByRole("button", { name: "Drag or tap to turn forward", exact: true })
+    .boundingBox())!;
+  const width =
+    (await page.locator(".reader-viewport").boundingBox())!.width / 2;
+  await page.mouse.move(corner.x + 24, corner.y + 24);
+  await page.mouse.down();
+  await page.mouse.move(corner.x + 24 - width * 0.7, corner.y, { steps: 8 });
   await expect(page.locator(".paper-fold")).toHaveCount(1);
   await expect(
     page.locator(".paper-flat[data-face=front] .turn-content"),
@@ -112,6 +120,7 @@ test("long-article turns and responsive pagination recover when animation callba
   await page.evaluate(() => {
     (window as any).pauseReaderFrames = true;
   });
+  await page.mouse.up();
   await expect(page.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
   await expect(page.locator(".reader-footer")).toContainText("Spread 2 of");
   await page.setViewportSize({ width: 390, height: 844 });
