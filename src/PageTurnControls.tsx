@@ -1,8 +1,9 @@
+import { pageBox } from "./paper-surface";
 import { useRef, useState } from "react";
 const tutorialKey = "fylogia.page-turn-tutorial.v1";
 type Curl = {
-  begin: (forward: boolean) => void;
-  move: (p: number) => void;
+  begin: (forward: boolean) => boolean;
+  move: (p: number, vertical?: number) => void;
   end: (commit: boolean, turn: () => void) => void;
 };
 export function PageTurnControls({
@@ -28,6 +29,7 @@ export function PageTurnControls({
     forward: boolean;
     width: number;
     height: number;
+    pageHeight: number;
     slop: number;
     dragging: boolean;
   } | null>(null);
@@ -93,9 +95,8 @@ export function PageTurnControls({
                   progress: 0,
                   forward,
                   height: surface.clientHeight,
-                  width:
-                    surface.clientWidth /
-                    (surface.dataset.spread === "2" ? 2 : 1),
+                  width: pageBox(surface, forward).width,
+                  pageHeight: pageBox(surface, forward).height,
                   slop: e.pointerType === "touch" ? 12 : 6,
                   dragging: false,
                 };
@@ -113,14 +114,18 @@ export function PageTurnControls({
                     cancel();
                     return;
                   }
+                  if (!curl.begin(g.forward)) {
+                    gesture.current = null;
+                    suppressClick.current = true;
+                    return;
+                  }
                   g.dragging = true;
-                  curl.begin(g.forward);
                 }
                 g.progress = Math.max(
                   0,
-                  Math.min(0.98, (dx * (g.forward ? -1 : 1)) / g.width),
+                  Math.min(1.98, (dx * (g.forward ? -1 : 1)) / g.width),
                 );
-                curl.move(g.progress);
+                curl.move(g.progress, dy / g.pageHeight);
               }}
               onPointerUp={(e) => {
                 const g = gesture.current;
@@ -130,11 +135,7 @@ export function PageTurnControls({
                 const surface = surfaceFor(e.currentTarget);
                 const unchanged =
                   surface.clientHeight === g.height &&
-                  Math.abs(
-                    surface.clientWidth /
-                      (surface.dataset.spread === "2" ? 2 : 1) -
-                      g.width,
-                  ) < 1;
+                  Math.abs(pageBox(surface, g.forward).width - g.width) < 1;
                 if (g.dragging)
                   curl.end(unchanged && g.progress >= 0.35, () =>
                     turn(g.forward),

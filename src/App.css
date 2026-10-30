@@ -2869,3 +2869,64 @@ html[data-theme="light"] .brand-mark-light {
 .reader-download-notice {
   color: var(--ink);
 }
+
+/* A local moving crease with two printed faces; the book's spine never slides. */
+.paper-fold.turn-leaf {
+  overflow: visible;
+  background: none;
+  box-shadow: none;
+  perspective: none;
+  pointer-events: none;
+}
+.paper-fold::after {
+  display: none;
+}
+.paper-fold .paper-band,
+.paper-fold .paper-flat {
+  background: var(--sheet-color);
+  backface-visibility: visible;
+  overflow: hidden;
+  will-change: transform, clip-path;
+}
+.paper-fold .curl-strip::after {
+  display: none;
+}
+.paper-texture {
+  background: var(--sheet-color);
+}
+.paper-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    rgb(0 0 0 / var(--fold-shade)),
+    rgb(255 255 255 / var(--fold-highlight)) 80%
+  );
+}
+.paper-fold .paper-content {
+  color: var(--ink);
+}
+.pdf-spread[data-zoom="1"],
+.reader-viewport.paginated {
+  touch-action: pan-y;
+}
+@media (prefers-reduced-motion: reduce) {
+  .paper-fold {
+    display: none;
+  }
+}
+.pdf-spread[data-spread="2"] .pdf-pages {
+  background: #fff;
+  position: relative;
+}
+.pdf-spread[data-paper-spread="2"] .pdf-pages::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 8px);
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  background: linear-gradient(90deg, transparent, #0002, transparent);
+  pointer-events: none;
+}

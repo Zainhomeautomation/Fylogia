@@ -159,7 +159,7 @@ if (process.argv.includes("--lighthouse")) {
           });
           function tick(t) {
             state.frames.push(t);
-            if (document.querySelector(".curl-mesh"))
+            if (document.querySelector(".paper-fold"))
               state.peakNodes = Math.max(
                 state.peakNodes,
                 document.getElementsByTagName("*").length,
@@ -194,9 +194,18 @@ if (process.argv.includes("--lighthouse")) {
         ]) {
           const button = page.getByRole("button", { name, exact: true });
           if (await button.isEnabled()) {
+            const before = await page
+              .locator(".reader-footer [role=status]")
+              .textContent();
             await button.click();
+            await page.waitForFunction(
+              (before) =>
+                document.querySelector(".reader-footer [role=status]")
+                  ?.textContent !== before &&
+                !document.querySelector(".paper-fold,.curl-underlay"),
+              before,
+            );
             turns++;
-            await page.waitForTimeout(550);
           }
         }
         const metrics = await page.evaluate(() => {
@@ -227,7 +236,8 @@ if (process.argv.includes("--lighthouse")) {
             maxEventTiming: events.at(-1) ?? null,
             baseNodes: s.baseNodes,
             peakNodes: s.peakNodes,
-            remainingCurlLayers: document.querySelectorAll(".curl-mesh").length,
+            remainingCurlLayers:
+              document.querySelectorAll(".paper-fold").length,
             spread: document.querySelector(".reader-viewport").dataset.spread,
           };
         });
