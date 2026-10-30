@@ -437,3 +437,66 @@ test("a focused product headline ranks above a secondary platform mention", () =
     appleRelevance(direct, "iphone") > appleRelevance(compatibility, "iphone"),
   );
 });
+
+test("following a service recommends its scoped feed and delivers matching stories", () => {
+  for (const [topic, id] of [
+    ["Apple Arcade", "9to5mac-arcade"],
+    ["Apple Fitness+", "9to5mac-fitness"],
+  ]) {
+    const picks = recommendSources(
+      sources,
+      { interests: ["Apple"], region: "Worldwide", topics: [topic] },
+      [],
+      3,
+    );
+    assert.ok(
+      picks.some((s) => s.id === id),
+      topic,
+    );
+  }
+});
+test("publisher attribution and taglines are never primary article evidence", () => {
+  const footer =
+    " The post New HomePod mini 2 availability appeared first on Cult of Mac. Your source for the latest Apple news, rumors, analysis, reviews, how-tos and deals.";
+  const a = story({
+    sourceId: "cult-of-mac",
+    title: "HomePod mini 2 is now available",
+    excerpt: "Orders are shipping today." + footer,
+    content: "<p>HomePod mini 2 is available.</p><p>" + footer + "</p>",
+  });
+  const c = deriveApple(a);
+  assert.ok(c.topics.includes("home"));
+  assert.equal(c.topics.includes("mac"), false);
+  assert.equal(c.topics.includes("rumors"), false);
+  assert.equal(c.kind, undefined);
+  assert.equal(
+    deriveApple({
+      ...a,
+      title: "iPhone webcam review",
+      excerpt: "We tested the webcam." + footer,
+    }).kind,
+    "Review",
+  );
+});
+test("general tech feeds recognize Mac product names and contextual metadata at the evidence gate", () => {
+  for (const title of [
+    "Mac mini review",
+    "Mac Studio gains new ports",
+    "Mac.apk runs Android apps on my Mac",
+  ]) {
+    assert.ok(
+      deriveApple(
+        story({ sourceId: "android-police", title, publisherTags: ["Mac"] }),
+      ).topics.includes("mac"),
+      title,
+    );
+  }
+  assert.deepEqual(
+    deriveApple(story({ title: "MAC address randomization" })).topics,
+    [],
+  );
+  assert.deepEqual(
+    deriveApple(story({ title: "Fleetwood Mac review" })).topics,
+    [],
+  );
+});

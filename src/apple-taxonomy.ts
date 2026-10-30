@@ -262,8 +262,9 @@ export const applePublisherIds = [
   "9to5mac-arcade",
   "9to5mac-fitness",
 ];
-const plain = (s: string) =>
-  s
+const plain = (s: string = "") =>
+  String(s || "")
+    .slice(0, 16000)
     .replace(/<(script|style|nav|footer|aside)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/&plus;|&#(?:0*43|x0*2b);/gi, "+")
@@ -289,6 +290,18 @@ export function publisherTags(item: Record<string, any>): string[] {
     .slice(0, 24)
     .map((v) => v.slice(0, 100));
 }
+function cleanAppleEvidence(value: string) {
+  let text = plain(value);
+  const lower = text.toLowerCase(),
+    attribution = lower.indexOf(" appeared first on");
+  if (attribution >= 0) {
+    const post = lower.lastIndexOf("the post ", attribution);
+    text = text.slice(0, post >= 0 ? post : attribution);
+  }
+  return text.split(
+    /Your source for (?:the latest )?Apple news|Read more:|Related articles|You may also like/i,
+  )[0];
+}
 // Only supplied RSS text is considered. Classification never fetches publisher pages.
 export function deriveApple(
   article: Pick<
@@ -307,15 +320,16 @@ export function deriveApple(
   const primary = plain(
     [
       article.title,
-      article.excerpt,
+      cleanAppleEvidence(article.excerpt),
       (article.publisherTags || []).join(" "),
       path,
     ].join(" "),
   );
   const dedicated = applePublisherIds.includes(article.sourceId);
-  const body = plain(suppliedBody || article.content)
-    .split(/Read more:|Related articles|You may also like/i)[0]
-    .slice(0, 1800);
+  const body = cleanAppleEvidence(suppliedBody || article.content).slice(
+    0,
+    1800,
+  );
   const text = (primary + " " + body).replace(
     /\bCisco IOS\b/gi,
     "Cisco router operating system",
@@ -324,7 +338,11 @@ export function deriveApple(
     ["Apple", "Technology", "Computing", "Smart Home"].includes(c),
   );
   const evidence =
-    /\b(?:iPhones?|iPads?|iOS|iPadOS|macOS|MacBooks?|iMacs?|watchOS|tvOS|visionOS|HomePods?|HomeKit|AirPods|AirTags?|MagSafe|Apple (?:Watch|Vision|Home|TV|Music|Arcade|News|Fitness|Pay|Wallet|Intelligence|silicon|Developer|Inc|CEO)|iCloud|Siri (?:AI|assistant|voice)|Powerbeats|Beats Studio|WWDC|Xcode|SwiftUI)\b/i;
+    /\b(?:iPhones?|iPads?|iOS|iPadOS|macOS|MacBooks?|iMacs?|Mac (?:mini|Studio|Pro)|watchOS|tvOS|visionOS|HomePods?|HomeKit|AirPods|AirTags?|MagSafe|Apple (?:Watch|Vision|Home|TV|Music|Arcade|News|Fitness|Pay|Wallet|Intelligence|silicon|Developer|Inc|CEO)|iCloud|Siri (?:AI|assistant|voice)|Powerbeats|Beats Studio|WWDC|Xcode|SwiftUI)\b/i;
+  const macContext =
+    (tech || dedicated) &&
+    /\bMacs?\b/.test(primary) &&
+    !/Fleetwood Mac|Mac and cheese/i.test(primary);
   const primaryExplicit = evidence.test(
     primary.replace(/\bCisco IOS\b/gi, "Cisco router operating system"),
   );
@@ -332,6 +350,7 @@ export function deriveApple(
   if (
     !dedicated &&
     !primaryExplicit &&
+    !macContext &&
     !(tech && (/\bApple\b/i.test(primary) || explicit))
   )
     return { topics: [] };
@@ -361,7 +380,7 @@ export function deriveApple(
     if (s.group === "software" && s.pattern.test(primary) && owners[s.id])
       primaryProducts.add(owners[s.id]);
   if (
-    (dedicated || explicit) &&
+    (dedicated || explicit || macContext) &&
     /\bMacs?\b/i.test(primary) &&
     !/Fleetwood Mac|Mac and cheese/i.test(primary)
   )
@@ -390,7 +409,7 @@ export function deriveApple(
     if (s.pattern.test(text)) tags.add(s.id);
   }
   if (
-    (dedicated || explicit) &&
+    (dedicated || explicit || macContext) &&
     /\bMacs?\b/i.test(primary) &&
     !/\b(?:Fleetwood Mac|Mac and cheese)\b/i.test(primary)
   )
@@ -502,7 +521,7 @@ export function appleSearchMatches(article: Article, query: string) {
       article.title,
       article.source,
       article.excerpt,
-      article.content.slice(0, 8000),
+      (article.content || "").slice(0, 8000),
       ...(article.publisherTags || []),
       ...classifyApple(article).topics.map(
         (id) => appleSection(id)?.name || id,
@@ -525,4 +544,24 @@ export function appleRelevance(article: Article, selection: AppleSelection) {
     (direct ? 6 : metadata ? 3 : 1) +
     (applePublisherIds.includes(article.sourceId) ? 1 : 0)
   );
+}
+
+export function appleRecommendationBoost(
+  source: Pick<Source, "id" | "topics">,
+  topics: readonly string[] = [],
+) {
+  if (
+    ![
+      "9to5mac-arcade",
+      "9to5mac-fitness",
+      "homekit-news",
+      "applehome-authority",
+      "apple-developer-news",
+    ].includes(source.id)
+  )
+    return 0;
+  const chosen = selectedApple(topics);
+  return selectedApple(source.topics).some((id) => chosen.includes(id))
+    ? 12
+    : 0;
 }

@@ -1,16 +1,16 @@
 # Apple product hub
 
-Measured feed snapshot: 2026-10-30T20:03:23.570Z. Figures describe this refresh, not guaranteed future availability.
+Measured feed snapshot: 2026-10-30T20:19:05.793Z. Figures describe this refresh, not guaranteed future availability.
 
 ## Navigation and preferences
 
 Apple stays one main interest. Twenty-eight unique sections cover eight product families, seven software topics, eight services and five company/innovation topics. The seven original topic strings remain compatible. Aliases such as Apple Home and Apple TV map to the same section without silently rewriting existing preferences. A compact horizontal product bar, grouped Software/Services/More submenus and an accessible section selector reuse the existing editorial interface. Reader Back retains product and search state; explicit Home navigation resets browsing controls without resetting the library.
 
-Follow/unfollow individual products in the Apple bar or Settings → Interests and sources. Follows add relevant sources without replacing old selections. Product tags boost For You and future Daily Editions while keeping other interests available. Existing frozen editions, bookmarks, progress, offline downloads and themes are preserved.
+Follow/unfollow individual products in the Apple bar or Settings → Interests and sources. Follows add relevant sources without replacing old selections. Service-specific feeds take priority when following their services. Product tags boost For You and future Daily Editions while keeping other interests available. Existing frozen editions, bookmarks, progress, offline downloads and themes are preserved.
 
 ## Classification and search
 
-Deterministic tags use publisher categories, title, excerpt, URL context and bounded publisher-supplied RSS text. No publisher article page is fetched for classification. Product-specific service feeds provide explicit scope. Metadata is retained through duplicate merging, downloads and backup normalization. Body evidence is restricted to the introduction, with specific product headlines taking priority over secondary platform mentions; scripts/navigation/footer text and unrelated researcher names are excluded. Tags may overlap (for example, iPadOS and iPad) without duplicating stored category choices. Classification is heuristic, not a guarantee of perfect editorial relevance.
+Deterministic tags use publisher categories, title, excerpt, URL context and bounded publisher-supplied RSS text. No publisher article page is fetched for classification. Product-specific service feeds provide explicit scope. Metadata is retained through duplicate merging, downloads and backup normalization. Body evidence is restricted to the introduction, with specific product headlines taking priority over secondary platform mentions; publisher attribution/taglines, scripts/navigation/footer text and unrelated researcher names are excluded. Tags may overlap (for example, iPadOS and iPad) without duplicating stored category choices. Classification is heuristic, not a guarantee of perfect editorial relevance.
 
 Apple-only searches match separate query terms across permitted stored text and topic metadata while respecting the selected section. Reset Apple filters clears the browsing selection/search, not preferences. Rumor/leak, Review, Opinion and Official announcement labels require evidence; MacRumors as a source does not automatically mean a rumor. Apple Newsroom announcements are identified as official.
 
@@ -18,7 +18,7 @@ Apple-only searches match separate query terms across permitted stored text and 
 
 Seven feeds were added: MacRumors, Macworld, Daring Fireball, 512 Pixels, The Verge, and two publisher-advertised 9to5Mac guides (Arcade and Fitness+). All seven returned usable RSS/Atom and succeeded in this snapshot. Twelve of the thirteen requested publishers have verified active feed integrations; iMore is an archive reference. Existing source IDs/follows are retained.
 
-There are 19 feeds with Apple coverage (19 successful in the final refresh), including general Ars Technica and The Verge. These general sources do not label all their stories Apple. Cult of Mac was intermittently unavailable in an earlier refresh and recovered in the final snapshot. Across the application: 278/285 feeds refreshed, 2709 real articles, 74 duplicate entries merged. Unavailable existing feeds retain cached stories and visible health status.
+There are 19 feeds with Apple coverage (19 successful in the final refresh), including general Ars Technica and The Verge. These general sources do not label all their stories Apple. Cult of Mac was intermittently unavailable in an earlier refresh and recovered in the final snapshot. Across the application: 278/285 feeds refreshed, 2709 real articles, 75 duplicate entries merged. Unavailable existing feeds retain cached stories and visible health status. Unavailable existing feeds retain cached stories and visible health status.
 
 Apple feeds retain up to 32 entries each to cover less-frequent topics; all other feed limits and existing six-worker/two-per-host bounds remain unchanged. A versioned enrichment refresh updates publisher tags; the existing four-hour schedule and Cloudflare/GitHub deployment configuration are unchanged. The edition remains below the existing 20 MiB budget.
 
@@ -40,22 +40,22 @@ Macworld offers feed-backed previews plus an official publisher link. Mac Life (
 
 | Section | Stories (overlap allowed) |
 | --- | ---: |
-| iPhone | 146 |
+| iPhone | 149 |
 | iPad | 61 |
-| Mac | 192 |
+| Mac | 174 |
 | Apple Watch | 25 |
-| Apple TV & Home | 56 |
+| Apple TV & Home | 55 |
 | AirPods & Audio | 7 |
 | Apple Vision | 5 |
-| Apple Accessories | 23 |
-| iOS | 55 |
+| Apple Accessories | 25 |
+| iOS | 56 |
 | iPadOS | 11 |
 | macOS | 51 |
 | watchOS | 7 |
 | tvOS | 5 |
 | visionOS | 3 |
-| Apple Intelligence & AI | 28 |
-| Apple TV+ | 14 |
+| Apple Intelligence & AI | 29 |
+| Apple TV+ | 13 |
 | Apple Music | 13 |
 | Apple Arcade | 32 |
 | Apple News+ | 0 |
@@ -64,9 +64,9 @@ Macworld offers feed-backed previews plus an official publisher link. Mac Life (
 | Apple Pay & Wallet | 1 |
 | App Store & Applications | 37 |
 | Apple Events & Announcements | 24 |
-| Apple Rumors & Leaks | 46 |
+| Apple Rumors & Leaks | 16 |
 | Apple Patents & Future Products | 1 |
-| Apple Business & Financial News | 21 |
+| Apple Business & Financial News | 22 |
 | Apple Developers & WWDC | 34 |
 
 ## Feed endpoints and final health

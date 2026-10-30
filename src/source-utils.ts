@@ -1,4 +1,8 @@
-import { classifyApple, sourceHasAppleCoverage } from "./apple-taxonomy.ts";
+import {
+  classifyApple,
+  sourceHasAppleCoverage,
+  appleRecommendationBoost,
+} from "./apple-taxonomy.ts";
 import {
   selectedSports,
   sourceSports,
@@ -226,6 +230,7 @@ export function recommendSources(
       const score = (s: Source) =>
         s.categories.filter((c) => prefs.interests.includes(c)).length * 3 +
         (s.full ? 4 : 0) +
+        appleRecommendationBoost(s, prefs.topics) +
         (prefs.interests.includes("Apple") && s.id === "apple" ? 3 : 0) +
         (selected.length ? sportsRecommendationBoost(s.id) : 0) +
         (prefs.topics || []).filter((t) =>

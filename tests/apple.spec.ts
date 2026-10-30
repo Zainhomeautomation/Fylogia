@@ -344,3 +344,44 @@ test("Apple source discovery includes verified requested publishers without turn
   await search.fill("iMore");
   await expect(page.locator(".source-row")).toHaveCount(0);
 });
+test("following Apple Arcade subscribes to its specific feed and fills the personalized service section", async ({
+  page,
+}) => {
+  await seed(page);
+  await nav(page)
+    .getByRole("button", { name: "Services", exact: true })
+    .click();
+  await page
+    .getByRole("navigation", { name: "Apple subcategories", exact: true })
+    .getByRole("button", { name: "Apple Arcade", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Follow Apple Arcade", exact: true })
+    .click();
+  expect(
+    (
+      await page.evaluate(() =>
+        JSON.parse(localStorage.getItem("folio.v1.preferences")!),
+      )
+    ).sourceIds,
+  ).toContain("9to5mac-arcade");
+  const main = page.getByRole("navigation", {
+    name: "Main navigation",
+    exact: true,
+  });
+  if (!(await main.isVisible()))
+    await page
+      .getByRole("button", { name: "Open navigation", exact: true })
+      .click();
+  await main.getByRole("button", { name: "For You", exact: true }).click();
+  await page
+    .locator('.filter-tabs[aria-label="Filter stories"]')
+    .getByRole("button", { name: "Apple", exact: true })
+    .click();
+  await page
+    .getByRole("combobox", { name: "Choose an Apple section", exact: true })
+    .selectOption("arcade");
+  await expect(page.locator(".story-open").first()).toBeVisible({
+    timeout: 20000,
+  });
+});

@@ -1,4 +1,4 @@
-import { sourceHasAppleCoverage } from "../src/apple-taxonomy.ts";
+import { sourceHasAppleCoverage, deriveApple } from "../src/apple-taxonomy.ts";
 import { parseFeedDocument } from "../src/feed-parser.ts";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { sources } from "../src/catalog.ts";
@@ -8,7 +8,7 @@ import {
   deduplicateArticles,
 } from "../src/source-utils.ts";
 import { feedArticle } from "./feed-content.mjs";
-const pipelineVersion = 8;
+const pipelineVersion = 9;
 const contentVersion = 3;
 const fullOnly = process.argv.includes("--full-only");
 let previous = { articles: [], statuses: [] };
@@ -27,6 +27,18 @@ async function refresh(source) {
   const enrichmentCurrent = !appleSource || old?.appleVersion === 2;
   const cached = previous.articles
     .filter((a) => a.sourceId === source.id || a.alsoIn?.includes(source.id))
+    .map((a) =>
+      previous.pipelineVersion === pipelineVersion
+        ? a
+        : {
+            ...a,
+            apple: deriveApple({
+              ...a,
+              sourceId: source.id,
+              categories: source.categories,
+            }),
+          },
+    )
     .map((a) =>
       a.contentDetails
         ? a
