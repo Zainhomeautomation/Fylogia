@@ -198,7 +198,7 @@ export function Reader({
       }
     }
   }, [page, width, spread, count, reading]);
-  const start = useRef<{ x: number; y: number } | null>(null);
+
   const restored = useRef(false);
   const { html, leadCaption } = useMemo(() => {
     let html = DOMPurify.sanitize(article.content, {
@@ -614,6 +614,7 @@ export function Reader({
             setOptionsOpen(false);
           if (
             immersive &&
+            !curl.handledSwipe() &&
             !(event.target as HTMLElement).closest("button,a") &&
             window.getSelection()?.isCollapsed
           )
@@ -633,29 +634,6 @@ export function Reader({
           }
         }}
         ref={viewport}
-        onTouchStart={(e) => {
-          start.current =
-            e.touches.length === 1
-              ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
-              : null;
-        }}
-        onTouchEnd={(e) => {
-          const from = start.current;
-          start.current = null;
-          if (
-            !from ||
-            curl.handledSwipe() ||
-            reading !== "pages" ||
-            e.touches.length
-          )
-            return;
-          const dx = e.changedTouches[0].clientX - from.x,
-            dy = e.changedTouches[0].clientY - from.y;
-          if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
-            setPage((p) =>
-              Math.max(0, Math.min(count - 1, p + (dx < 0 ? 1 : -1))),
-            );
-        }}
       >
         <div
           ref={content}

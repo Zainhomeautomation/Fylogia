@@ -82,6 +82,8 @@ function createEngine(
     dragging: boolean;
     touch: boolean;
     edge: boolean;
+    queued: boolean;
+    link: boolean;
   } | null>(null);
   const nativePointers = cell(new Set<number>());
   const lastSwipe = cell(-Infinity);
@@ -313,6 +315,9 @@ function createEngine(
     alive.current = true;
     const surface = getSurface();
     if (!surface) return;
+    let touchSequence = false;
+    let touchBlocked = false;
+    let touchId: number | undefined;
     let width = surface.clientWidth,
       height = surface.clientHeight;
     const observer = new ResizeObserver(() => {
@@ -336,6 +341,10 @@ function createEngine(
     media.addEventListener("change", motion);
     const visible = () => {
       if (document.hidden) {
+        touchSequence = false;
+        touchBlocked = false;
+        touchId = undefined;
+        nativePointers.current.clear();
         const s = current.current;
         if (s?.ending && !s.applied) {
           applyOnce(s);
@@ -344,7 +353,23 @@ function createEngine(
       }
     };
     document.addEventListener("visibilitychange", visible);
-    const down = (e: PointerEvent) => {
+    const visualViewport = window.visualViewport;
+    const browserZoomed = () => (visualViewport?.scale || 1) > 1.01;
+    const viewportChange = () => {
+      const zoomed = browserZoomed();
+      if ((surface.dataset.browserZoomed === "true") !== zoomed) {
+        surface.dataset.browserZoomed = String(zoomed);
+        clear();
+        touchSequence = false;
+        touchBlocked = false;
+        touchId = undefined;
+        nativePointers.current.clear();
+      }
+    };
+    viewportChange();
+    visualViewport?.addEventListener("resize", viewportChange);
+    const down = (e: PointerEvent, fromTouch?: boolean) => {
+      if (e.pointerType === "touch" && touchSequence && !fromTouch) return;
       nativePointers.current.add(e.pointerId);
       if (nativePointers.current.size > 1) {
         gesture.current = null;
@@ -356,11 +381,15 @@ function createEngine(
       const cfg = getOptions().interaction;
       if (
         !getOptions().enabled ||
+        browserZoomed() ||
         !cfg ||
         cfg.blocked?.() ||
         e.button !== 0 ||
         !e.isPrimary ||
-        (e.target as HTMLElement).closest("a,button,input,textarea,select")
+        (e.target as HTMLElement).closest(
+          "button,input,textarea,select,[contenteditable=true]",
+        ) ||
+        (e.pointerType !== "touch" && (e.target as HTMLElement).closest("a"))
       )
         return;
       const rect = surface.getBoundingClientRect(),
@@ -392,9 +421,12 @@ function createEngine(
         dragging: false,
         touch: e.pointerType === "touch",
         edge: Math.abs(x - edge) <= 28,
+        queued: false,
+        link: Boolean((e.target as HTMLElement).closest("a")),
       };
     };
-    const move = (e: PointerEvent) => {
+    const move = (e: PointerEvent, fromTouch?: boolean) => {
+      if (e.pointerType === "touch" && touchSequence && !fromTouch) return;
       const g = gesture.current;
       if (!g || g.id !== e.pointerId || nativePointers.current.size !== 1)
         return;
@@ -422,17 +454,27 @@ function createEngine(
           g.height = box.height;
         }
         const r = surface.getBoundingClientRect();
-        if (!begin(g.forward, g.y - r.top < surface.clientHeight / 2 ? 0 : 1)) {
+        g.queued = Boolean(g.touch && current.current?.ending);
+        if (
+          !g.queued &&
+          !begin(g.forward, g.y - r.top < surface.clientHeight / 2 ? 0 : 1)
+        ) {
           gesture.current = null;
           return;
         }
         g.dragging = true;
         if (g.touch) lastSwipe.current = performance.now();
-        surface.setPointerCapture(e.pointerId);
+        if (!fromTouch) {
+          try {
+            surface.setPointerCapture(e.pointerId);
+          } catch {
+            /* Window listeners retain a mouse/pen drag if capture is unavailable. */
+          }
+        }
       }
       e.preventDefault();
       const s = current.current;
-      if (s && !s.ending) {
+      if (s && !s.ending && !g.queued) {
         s.distance = Math.max(
           0,
           Math.min(1.98, (dx * (g.forward ? -1 : 1)) / g.width),
@@ -441,23 +483,63 @@ function createEngine(
         s.view?.draw(s.distance, s.vertical);
       }
     };
-    const up = (e: PointerEvent) => {
+    const up = (e: PointerEvent, fromTouch?: boolean) => {
+      if (e.pointerType === "touch" && touchSequence && !fromTouch) return;
       nativePointers.current.delete(e.pointerId);
       const g = gesture.current;
       if (!g || g.id !== e.pointerId) return;
       gesture.current = null;
+      // A fast/coalesced contact may report only its terminal displacement.
+      // Resolve it in this same owner rather than a second touch-end fallback.
+      const releaseX = e.clientX - g.x,
+        releaseY = e.clientY - g.y;
+      if (
+        !g.dragging &&
+        g.touch &&
+        Math.abs(releaseX) >= 60 &&
+        Math.abs(releaseX) > Math.abs(releaseY) * 1.5
+      ) {
+        const forward = releaseX < 0;
+        e.preventDefault();
+        lastSwipe.current = performance.now();
+        navigate(forward, () => getOptions().interaction?.step(forward));
+        return;
+      }
       if (g.dragging) {
+        if (g.touch) e.preventDefault();
         if (reduced() && !current.current?.motionless) {
           clear();
           return;
         }
-        const commit = (current.current?.distance || 0) >= 0.35;
-        void end(commit, () => getOptions().interaction?.step(g.forward));
-      } else if (g.edge && Math.hypot(e.clientX - g.x, e.clientY - g.y) <= 12) {
+        // Interior swipes are distance based, independent of tablet page width.
+        // Edge drags retain proportional release/cancel geometry like paper.
+        const dx = e.clientX - g.x,
+          dy = e.clientY - g.y;
+        const commit =
+          g.touch && !g.edge
+            ? Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5
+            : (g.queued
+                ? (dx * (g.forward ? -1 : 1)) / g.width
+                : current.current?.distance || 0) >= 0.35;
+        if (g.queued) {
+          if (commit)
+            navigate(g.forward, () =>
+              getOptions().interaction?.step(g.forward),
+            );
+        } else
+          void end(commit, () => getOptions().interaction?.step(g.forward));
+      } else if (
+        !g.link &&
+        g.edge &&
+        Math.hypot(e.clientX - g.x, e.clientY - g.y) <= 12
+      ) {
+        if (g.touch) e.preventDefault();
+        lastSwipe.current = performance.now();
         navigate(g.forward, () => getOptions().interaction?.step(g.forward));
       }
     };
-    const cancel = (e: PointerEvent) => {
+    const cancel = (e: PointerEvent, fromTouch?: boolean) => {
+      if (e.pointerType === "touch" && touchSequence && !fromTouch) return;
       nativePointers.current.delete(e.pointerId);
       const g = gesture.current;
       if (g?.id === e.pointerId) {
@@ -465,8 +547,88 @@ function createEngine(
         if (g.dragging) void end(false, () => {});
       }
     };
+    // Safari dispatches both event families. A native touch sequence takes sole
+    // ownership so pointercancel/capture loss cannot suppress its touchend, and
+    // React fallback swipes cannot turn the same page twice.
+    const input = (touch: Touch, event: TouchEvent) =>
+      ({
+        pointerId: touch.identifier,
+        pointerType: "touch",
+        button: 0,
+        isPrimary: true,
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        target: event.target,
+        preventDefault: () => {
+          if (event.cancelable) event.preventDefault();
+        },
+      }) as PointerEvent;
+    const abortTouch = () => {
+      gesture.current = null;
+      nativePointers.current.clear();
+      if (current.current && !current.current.ending) void end(false, () => {});
+    };
+    const touchStart = (event: TouchEvent) => {
+      if (!getOptions().enabled || browserZoomed()) {
+        touchSequence = false;
+        touchBlocked = false;
+        touchId = undefined;
+        nativePointers.current.clear();
+        gesture.current = null;
+        return;
+      }
+      if (event.touches.length !== 1 || touchBlocked) {
+        touchSequence = true;
+        touchBlocked = true;
+        abortTouch();
+        return;
+      }
+      // A fresh touchstart also releases an interrupted OS touch sequence.
+      if (gesture.current && current.current && !current.current.ending)
+        clear();
+      touchSequence = true;
+      touchId = event.touches[0].identifier;
+      nativePointers.current.clear();
+      down(input(event.touches[0], event), true);
+    };
+    const touchMove = (event: TouchEvent) => {
+      if (!touchSequence || touchBlocked) return;
+      if (event.touches.length !== 1) {
+        touchBlocked = true;
+        abortTouch();
+        return;
+      }
+      const touch = Array.from(event.touches).find(
+        (t) => t.identifier === touchId,
+      );
+      if (touch) move(input(touch, event), true);
+    };
+    const touchEnd = (event: TouchEvent) => {
+      if (!touchSequence) return;
+      const touch = Array.from(event.changedTouches).find(
+        (t) => t.identifier === touchId,
+      );
+      if (!touchBlocked && touch) up(input(touch, event), true);
+      if (!event.touches.length) {
+        touchSequence = false;
+        touchBlocked = false;
+        touchId = undefined;
+        nativePointers.current.clear();
+      }
+    };
+    const touchCancel = (event: TouchEvent) => {
+      if (!touchSequence) return;
+      abortTouch();
+      touchBlocked = event.touches.length > 0;
+      touchSequence = touchBlocked;
+      touchId = undefined;
+    };
+    surface.addEventListener("touchstart", touchStart, { passive: true });
+    surface.addEventListener("touchmove", touchMove, { passive: false });
+    window.addEventListener("touchend", touchEnd, { passive: false });
+    window.addEventListener("touchcancel", touchCancel, { passive: true });
     window.addEventListener("pointerdown", down, true);
-    surface.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointermove", move, { passive: false });
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", cancel);
     surface.addEventListener("lostpointercapture", cancel);
@@ -475,8 +637,13 @@ function createEngine(
       observer.disconnect();
       media.removeEventListener("change", motion);
       document.removeEventListener("visibilitychange", visible);
+      visualViewport?.removeEventListener("resize", viewportChange);
       window.removeEventListener("pointerdown", down, true);
-      surface.removeEventListener("pointermove", move);
+      window.removeEventListener("pointermove", move);
+      surface.removeEventListener("touchstart", touchStart);
+      surface.removeEventListener("touchmove", touchMove);
+      window.removeEventListener("touchend", touchEnd);
+      window.removeEventListener("touchcancel", touchCancel);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", cancel);
       surface.removeEventListener("lostpointercapture", cancel);
