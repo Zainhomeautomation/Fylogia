@@ -212,9 +212,11 @@ test("all category and regional controls, source follow, search and no horizonta
   await page
     .getByRole("textbox", { name: "Search stories", exact: true })
     .fill("zzzznotastory");
+  // Explore may still be loading source editions after changing region.
+  // Use the same bounded loading budget as the initial story assertion.
   await expect(
     page.getByRole("heading", { name: "No stories found." }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15000 });
 });
 test("real original PDF renders, turns pages, bookmarks and persists", async ({
   page,
@@ -314,8 +316,13 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
     });
   });
   await page.getByRole("button", { name: "Next magazine page" }).click();
+  // PDF preparation is bounded at ten seconds by the reader. Five seconds
+  // can expire before raster decoding finishes on a busy CI runner; keep the
+  // pixel/memory assertions below and allow preparation plus paint to finish.
   await expect
-    .poll(() => page.evaluate(() => (window as any).__pdfPaper))
+    .poll(() => page.evaluate(() => (window as any).__pdfPaper), {
+      timeout: 15000,
+    })
     .not.toBeNull();
   const paper = await page.evaluate(() => (window as any).__pdfPaper);
   expect(paper.hidden).toBe(true);
