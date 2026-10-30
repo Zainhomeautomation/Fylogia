@@ -1,3 +1,11 @@
+import { SportsNavigation } from "./SportsNavigation";
+import {
+  matchesSport,
+  selectedSports,
+  sportForTopic,
+  type SportSelection,
+} from "./sports-taxonomy";
+import { recommendSources } from "./source-utils";
 import { lazy, Suspense } from "react";
 import { incomingPairCode } from "./pair-link";
 const SyncPanel = lazy(() => import("./SyncPanel"));
@@ -85,6 +93,8 @@ export default function App() {
   const [dailyOpen, setDailyOpen] = useState<DailyMetadata>();
   const [custom, setCustom, customError] = useStored<Article[]>("custom", []);
   const [view, setView] = useSectionRoute();
+  const [sport, setSport] = useState<SportSelection>("all");
+  const [magazineSport, setMagazineSport] = useState<SportSelection>("all");
   const newsScope = useMemo(() => {
     if (!prefs.complete || (view === "sources" && !dailyOpen)) return "health";
     if (view === "explore" || view === "categories") return "*";
@@ -298,6 +308,8 @@ export default function App() {
   function navigate(id: string) {
     setBackupPassword("");
     setMagazineCategory("All categories");
+    setSport("all");
+    setMagazineSport("all");
     setPublicationId("");
     setView(id);
     setFilter("All stories");
@@ -385,6 +397,10 @@ export default function App() {
     if (readableOnly) result = result.filter((a) => a.full);
     if (filter !== "All stories")
       result = result.filter((a) => a.categories.includes(filter));
+    if (filter === "Sports")
+      result = result.filter((a) =>
+        matchesSport(a, sport, prefs.customSources),
+      );
     if (query.trim())
       result = result.filter((a) =>
         (a.title + " " + a.source + " " + a.excerpt)
@@ -432,6 +448,8 @@ export default function App() {
     query,
     readableOnly,
     publicationId,
+    sport,
+    prefs.customSources,
   ]);
   const dailyId = `${localDay()}-${dailyPreferenceKey(prefs)}`;
   const daily = useMemo(
@@ -810,6 +828,53 @@ export default function App() {
                 ))}
               </div>
             </div>
+            {filter === "Sports" && (
+              <SportsNavigation
+                value={sport}
+                onChange={setSport}
+                following={selectedSports(prefs.topics).some(
+                  (id) => id === sport,
+                )}
+                onFollow={() => {
+                  const selected = sportForTopic(sport);
+                  if (!selected) return;
+                  setPrefs((p) => {
+                    const followed = selectedSports(p.topics).includes(
+                      selected.id,
+                    );
+                    const nextTopics = p.topics.filter(
+                      (t) => sportForTopic(t)?.id !== selected.id,
+                    );
+                    const additions = followed
+                      ? []
+                      : recommendSources(
+                          sources,
+                          {
+                            ...p,
+                            interests: ["Sports"],
+                            topics: [selected.topic],
+                          },
+                          edition.statuses,
+                          3,
+                        ).map((s) => s.id);
+                    return {
+                      ...p,
+                      interests: [...new Set([...p.interests, "Sports"])],
+                      topics: followed
+                        ? nextTopics
+                        : [...nextTopics, selected.topic],
+                      sourceIds: [...new Set([...p.sourceIds, ...additions])],
+                    };
+                  });
+                }}
+                onMagazines={() => {
+                  const selection = sport;
+                  navigate("magazines");
+                  setMagazineCategory("Sports");
+                  setMagazineSport(selection);
+                }}
+              />
+            )}
             <button
               className="secondary readable-filter"
               aria-pressed={readableOnly}
@@ -1026,9 +1091,14 @@ export default function App() {
           <Magazines
             onHome={() => navigate("home")}
             initialCategory={magazineCategory}
-            onBrowseSource={(id) => {
+            initialSport={magazineSport}
+            onBrowseSource={(id, selectedSport) => {
               navigate("explore");
               setPublicationId(id);
+              if (selectedSport) {
+                setFilter("Sports");
+                setSport(selectedSport);
+              }
             }}
           />
         )}

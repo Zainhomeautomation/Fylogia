@@ -1,3 +1,10 @@
+import { SportsNavigation } from "./SportsNavigation";
+import { sportsPublications } from "./sports-publications";
+import {
+  primarySports,
+  sourceSports,
+  type SportSelection,
+} from "./sports-taxonomy";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { BookOpen, Upload, ExternalLink, Trash2 } from "lucide-react";
 import { normalizeInterestSearch } from "./interest-taxonomy";
@@ -86,14 +93,17 @@ async function records(
 export function Magazines({
   onHome,
   initialCategory = "All categories",
+  initialSport = "all",
   onBrowseSource,
 }: {
   onHome: () => void;
   initialCategory?: string;
-  onBrowseSource: (id: string) => void;
+  initialSport?: SportSelection;
+  onBrowseSource: (id: string, sport?: SportSelection) => void;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(initialCategory);
+  const [sport, setSport] = useState<SportSelection>(initialSport);
   const matches = (m: {
     title?: string;
     name?: string;
@@ -103,7 +113,36 @@ export function Magazines({
     normalizeInterestSearch(
       `${m.title || m.name} ${(m.categories || []).join(" ")}`,
     ).includes(normalizeInterestSearch(query.trim()));
-  const publications = sources.filter(matches);
+  const directory = [
+    ...sources.map((source) => ({
+      ...source,
+      articleSourceId: source.id,
+      sportIds:
+        sportsPublications.find(
+          (p) => p.id === source.id || p.feedId === source.id,
+        )?.sports || sourceSports(source),
+    })),
+    ...sportsPublications
+      .filter((p) => !sources.some((s) => s.id === p.id || s.id === p.feedId))
+      .map((p) => ({
+        ...p,
+        categories: ["Sports"],
+        full: false,
+        articleSourceId: undefined,
+        sportIds: p.sports,
+      })),
+  ];
+  const publications = directory.filter(
+    (source) =>
+      matches(source) &&
+      (category !== "Sports" ||
+        sport === "all" ||
+        (sport === "other"
+          ? !source.sportIds.some((id) =>
+              primarySports.some((s) => s.id === id),
+            )
+          : source.sportIds.includes(sport))),
+  );
   const [publicationLimit, setPublicationLimit] = useState(24);
   const [local, setLocal] = useState<Magazine[]>([]),
     [active, setActive] = useState<{
@@ -293,6 +332,9 @@ export function Magazines({
           below, or import a PDF you have permission to read.
         </p>
       )}
+      {category === "Sports" && (
+        <SportsNavigation value={sport} onChange={setSport} />
+      )}
       <section className="publication-directory">
         <h2>Publications & articles</h2>
         <p className="quiet">
@@ -309,14 +351,25 @@ export function Magazines({
             <h3>{source.name}</h3>
             <p className="quiet">
               {source.categories.join(" · ")} ·{" "}
-              {source.full ? "Permitted full articles" : "Publisher previews"}
+              {source.articleSourceId
+                ? source.full
+                  ? "Permitted full articles"
+                  : "Publisher previews"
+                : "Official publisher · Editions on publisher’s site"}
             </p>
-            <button
-              className="text-button"
-              onClick={() => onBrowseSource(source.id)}
-            >
-              Browse articles
-            </button>
+            {source.articleSourceId && (
+              <button
+                className="text-button"
+                onClick={() =>
+                  onBrowseSource(
+                    source.articleSourceId!,
+                    category === "Sports" ? sport : undefined,
+                  )
+                }
+              >
+                Browse articles
+              </button>
+            )}
             <a
               className="text-button"
               href={source.site}

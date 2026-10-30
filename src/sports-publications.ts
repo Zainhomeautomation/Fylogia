@@ -1,0 +1,115 @@
+// Publication links are not complete issues or promises of republication rights.
+// A feed-backed publication also offers the existing attributed article browser.
+export const sportsPublications = [
+  {
+    id: "fourfourtwo",
+    name: "FourFourTwo",
+    site: "https://www.fourfourtwo.com/",
+    sports: ["football"],
+    feedId: "fourfourtwo",
+  },
+  {
+    id: "world-soccer",
+    name: "World Soccer",
+    site: "https://www.worldsoccer.com/",
+    sports: ["football"],
+  },
+  {
+    id: "11freunde",
+    name: "11 FREUNDE",
+    site: "https://www.11freunde.de/",
+    sports: ["football"],
+  },
+  {
+    id: "slam",
+    name: "SLAM",
+    site: "https://www.slamonline.com/",
+    sports: ["basketball"],
+  },
+  {
+    id: "basketball-times",
+    name: "Basketball Times Archive",
+    site: "https://www.collegebasketballtimes.com/archives",
+    sports: ["basketball"],
+  },
+  {
+    id: "autosport",
+    name: "Autosport",
+    site: "https://www.autosport.com/",
+    sports: ["motorsport"],
+    feedId: "autosport",
+  },
+  {
+    id: "motor-sport-magazine",
+    name: "Motor Sport Magazine",
+    site: "https://www.motorsportmagazine.com/",
+    sports: ["motorsport"],
+  },
+  {
+    id: "sports-illustrated",
+    name: "Sports Illustrated",
+    site: "https://www.si.com/",
+    sports: [
+      "football",
+      "basketball",
+      "motorsport",
+      "tennis",
+      "american-football",
+      "baseball",
+      "golf",
+      "combat",
+      "athletics",
+    ],
+    feedId: "sports-illustrated",
+  },
+  {
+    id: "runners-world",
+    name: "Runner’s World",
+    site: "https://www.runnersworld.com/",
+    sports: ["athletics", "outdoor"],
+    feedId: "runners-world",
+  },
+  {
+    id: "outside",
+    name: "Outside",
+    site: "https://www.outsideonline.com/",
+    sports: ["outdoor", "water", "cycling"],
+    feedId: "outside",
+  },
+  {
+    id: "golf-digest",
+    name: "Golf Digest",
+    site: "https://www.golfdigest.com/",
+    sports: ["golf"],
+  },
+  {
+    id: "tennis-magazine",
+    name: "Tennis Magazine / Tennis.com",
+    site: "https://www.tennis.com/",
+    sports: ["tennis"],
+  },
+];
+export const officialSportsSites = [
+  { name: "UEFA", site: "https://www.uefa.com/", sports: ["football"] },
+  { name: "FIFA", site: "https://www.fifa.com/", sports: ["football"] },
+  { name: "NBA", site: "https://www.nba.com/", sports: ["basketball"] },
+  { name: "WNBA", site: "https://www.wnba.com/", sports: ["basketball"] },
+  {
+    name: "EuroLeague",
+    site: "https://www.euroleaguebasketball.net/",
+    sports: ["basketball"],
+  },
+  {
+    name: "FIBA",
+    site: "https://www.fiba.basketball/",
+    sports: ["basketball"],
+  },
+  {
+    name: "Formula1.com",
+    site: "https://www.formula1.com/",
+    sports: ["motorsport"],
+  },
+  { name: "ATP Tour", site: "https://www.atptour.com/", sports: ["tennis"] },
+  { name: "WTA", site: "https://www.wtatennis.com/", sports: ["tennis"] },
+  { name: "ITF", site: "https://www.itftennis.com/", sports: ["tennis"] },
+];

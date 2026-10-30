@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { mediaImage } from "./media-rights";
 import {
   Bookmark,
@@ -32,6 +33,7 @@ export function StoryCard({
   selected?: boolean;
 }) {
   const image = mediaImage(article);
+  const [failedImage, setFailedImage] = useState<string>();
   return (
     <article className={"story " + (lead ? "lead" : "")}>
       <div className="story-offline-tools">
@@ -59,15 +61,13 @@ export function StoryCard({
         </span>
       )}
       <button className="story-open" onClick={onOpen}>
-        {image ? (
+        {image && failedImage !== image ? (
           <img
             src={image}
             alt=""
             loading={lead ? "eager" : "lazy"}
             referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
+            onError={() => setFailedImage(image)}
           />
         ) : (
           <div className="type-art" aria-hidden="true">

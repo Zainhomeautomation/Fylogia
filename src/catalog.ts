@@ -1,3 +1,5 @@
+import { sports, topicsForSportsSource } from "./sports-taxonomy.ts";
+import { sportsSources } from "./sports-sources.ts";
 import { lifestyleSources } from "./lifestyle-sources.ts";
 import { sourceTopics } from "./interest-taxonomy.ts";
 import { interestSources } from "./interest-sources.ts";
@@ -130,7 +132,7 @@ export const subcategories: Record<string, string[]> = {
     "Drinks",
     "Culinary travel",
   ],
-  Sports: ["Football", "Tennis", "Formula 1"],
+  Sports: sports.map((sport) => sport.topic),
   Gaming: ["PC", "Console", "Indie", "Esports"],
   Photography: [
     "Cameras",
@@ -413,14 +415,24 @@ const catalogSources: Source[] = [
   ...expandedSources,
   ...interestSources,
   ...lifestyleSources,
+  ...sportsSources,
 ];
 export const sources: Source[] = catalogSources.map((source) => {
   const detail = sourceTopics[source.id];
-  return detail
+  const sportTopics = topicsForSportsSource(source.id);
+  return detail || sportTopics.length
     ? {
         ...source,
-        categories: [...new Set([...source.categories, ...detail.categories])],
-        topics: [...new Set([...(source.topics || []), ...detail.topics])],
+        categories: [
+          ...new Set([...source.categories, ...(detail?.categories || [])]),
+        ],
+        topics: [
+          ...new Set([
+            ...(source.topics || []),
+            ...(detail?.topics || []),
+            ...sportTopics,
+          ]),
+        ],
       }
     : source;
 });

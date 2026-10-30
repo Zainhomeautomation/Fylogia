@@ -1120,7 +1120,7 @@ export const expandedSources: Source[] = [
   },
   {
     id: "www-espn-com-top",
-    name: "www.espn.com - TOP",
+    name: "ESPN",
     url: "https://www.espn.com/espn/rss/news",
     site: "https://www.espn.com/",
     categories: ["Sports"],
