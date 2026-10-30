@@ -1,6 +1,8 @@
 import { test, mockEdition } from "./edition-fixture";
 import { expect, type Page } from "@playwright/test";
 async function nav(page: Page) {
+  // Reload restores IndexedDB before rendering the responsive navigation.
+  await expect(page.locator(".mobile-header")).toBeAttached();
   if (await page.getByRole("button", { name: "Open navigation" }).isVisible())
     await page.getByRole("button", { name: "Open navigation" }).click();
   await page

@@ -237,7 +237,7 @@ The library displays the actual NASA and HackSpace publication covers and genera
 
 ### Organized specialist interests
 
-The source catalog has 194 validated feeds and nine full-text-capable policies. Search grouped interests for computing/operating systems, architecture, engineering/construction, history/culture and marine topics. Recommendations balance interests and match topics without changing existing follows. Saved/history cards gain relevant category labels in memory while stored data remains intact. See [current coverage, publisher permission boundaries and validation](docs/organized-interests.md).
+The source catalog has 230 curated feeds and nine full-text-capable policies; see the dated expansion review below for current health and validation results. Search grouped interests for computing/operating systems, architecture, engineering/construction, history/culture and marine topics. Recommendations balance interests and match topics without changing existing follows. Saved/history cards gain relevant category labels in memory while stored data remains intact. See [current coverage, publisher permission boundaries and validation](docs/organized-interests.md).
 
 ### Today's Fylogia
 
