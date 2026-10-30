@@ -249,15 +249,14 @@ export function Reader({
       setWidth(w);
       setSpread(1);
       setCount(1);
-      measurementFrame.current = requestAnimationFrame(() => {
-        if (viewport.current)
-          viewport.current.scrollTop =
-            position.current *
-            Math.max(
-              0,
-              viewport.current.scrollHeight - viewport.current.clientHeight,
-            );
-      });
+      // The scrolling DOM is already committed in the layout effect. Restore
+      // synchronously so a delayed frame cannot overwrite the user's next scroll.
+      viewport.current.scrollTop =
+        position.current *
+        Math.max(
+          0,
+          viewport.current.scrollHeight - viewport.current.clientHeight,
+        );
       return;
     }
     // Width/spread commit before the deferred measurement. Retain the text

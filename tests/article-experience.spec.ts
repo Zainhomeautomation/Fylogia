@@ -9,6 +9,8 @@ async function openFixture(page: Page, full = true, media = false) {
     (_, i) =>
       `<p>Paragraph ${i + 1}. ${"A measured reading fixture preserves every word through changing page dimensions. ".repeat(8)}</p>`,
   ).join("");
+  const pixel =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aLFsAAAAASUVORK5CYII=";
   const article = {
     ...base,
     id: "https://reader.example/fixture",
@@ -24,7 +26,7 @@ async function openFixture(page: Page, full = true, media = false) {
     content: full
       ? "<h2>Opening</h2>" +
         (media
-          ? '<figure><img src="https://reader.example/one.png" alt="Reading test fixture"><figcaption>First credited fixture photograph.</figcaption></figure><figure><img src="https://reader.example/two.png" alt="Second test fixture"><figcaption>Second credited fixture photograph.</figcaption></figure>'
+          ? `<figure><img src="${pixel}" alt="Reading test fixture"><figcaption>First credited fixture photograph.</figcaption></figure><figure><img src="${pixel}" alt="Second test fixture"><figcaption>Second credited fixture photograph.</figcaption></figure>`
           : "") +
         text +
         "<h2>Final section</h2><p>Final sentence remains readable.</p>"
@@ -194,15 +196,6 @@ test("preview has prominent original-publisher action without technical licensin
 test("multiple permitted figures and captions remain readable after font and viewport changes", async ({
   page,
 }) => {
-  await page.route("https://reader.example/*.png", (r) =>
-    r.fulfill({
-      contentType: "image/png",
-      body: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aLFsAAAAASUVORK5CYII=",
-        "base64",
-      ),
-    }),
-  );
   await openFixture(page, true, true);
   await expect(page.locator(".reader-content .article-body img")).toHaveCount(
     2,

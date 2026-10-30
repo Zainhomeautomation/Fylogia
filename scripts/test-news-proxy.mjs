@@ -56,7 +56,8 @@ export function testNewsProxy(target, port = 8788) {
         const key = id || randomUUID();
         if (
           (!fixtures.has(key) && fixtures.size >= 64) ||
-          [...fixtures.values()].reduce((n, f) => n + f.body.length, 0) +
+          [...fixtures.values()].reduce((n, f) => n + f.body.length, 0) -
+            (fixtures.get(key)?.body.length || 0) +
             body.length >
             128 * 1024 * 1024
         ) {

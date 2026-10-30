@@ -148,3 +148,33 @@ test("Pages forwarding translates only its own Origin and retains cookies, hosti
     ).json();
     assert.equal(hostile.origin, "https://attacker.invalid");
   }));
+test("the fixture safety cap admits a new test after a completed test releases its slot", async () =>
+  setup(async ({ origin }) => {
+    const cookies = [];
+    for (let i = 0; i < 64; i++) {
+      const result = await fetch(origin + "/__test/edition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(edition),
+      });
+      assert.equal(result.status, 200);
+      cookies.push(result.headers.get("set-cookie").split(";")[0]);
+      await result.text();
+    }
+    const full = await fetch(origin + "/__test/edition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(edition),
+    });
+    assert.equal(full.status, 503);
+    await fetch(origin + "/__test/edition", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Cookie: cookies[0] },
+    });
+    const next = await fetch(origin + "/__test/edition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(edition),
+    });
+    assert.equal(next.status, 200);
+  }));

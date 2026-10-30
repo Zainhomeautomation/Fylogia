@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 const proxy =
   !process.env.FYLOGIA_TEST_URL && process.env.FYLOGIA_PAGES_RUNTIME !== "0";
 export async function mockEdition(page: Page, edition: unknown) {
@@ -23,3 +23,8 @@ export async function restoreEdition(page: Page) {
     expect(result.ok()).toBe(true);
   } else await page.context().unroute("**/data/edition.json*");
 }
+
+if (proxy)
+  test.afterEach(async ({ page }) => {
+    await restoreEdition(page);
+  });
