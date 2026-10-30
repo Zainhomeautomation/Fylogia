@@ -1,3 +1,4 @@
+import { restrictedMediaNotice } from "../src/media-rights.ts";
 import { feedImage } from "../src/feed-images.ts";
 import {
   cleanFeedArticle,
@@ -26,7 +27,11 @@ export function feedArticle(
   const raw = str(
     item["content:encoded"] || item.content || item.description || item.summary,
   );
-  const image = feedImage(item, raw, url);
+  const image =
+    ["nasa", "nasa-science"].includes(source.id) &&
+    restrictedMediaNotice.test(raw)
+      ? undefined
+      : feedImage(item, raw, url);
   const author =
     text(item["dc:creator"] || item.author?.name) ||
     (source.id === "homeassistant" ? "Home Assistant contributors" : "");

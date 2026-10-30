@@ -1,3 +1,4 @@
+import { mediaImage } from "./media-rights";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -81,6 +82,7 @@ export function DailyMagazine({
         (online || downloadedIds.includes(a.id)),
     );
   const cover = library.get(edition.stories[0]?.id);
+  const coverImage = cover ? mediaImage(cover) : undefined;
   const current =
     index === null ? undefined : library.get(edition.stories[index]?.id);
   const reportProgress = useCallback(
@@ -226,9 +228,9 @@ export function DailyMagazine({
             </p>
           )}
           <section className="daily-cover" aria-labelledby="daily-title">
-            {cover?.image && (
+            {coverImage && (
               <img
-                src={cover.image}
+                src={coverImage}
                 alt=""
                 fetchPriority="high"
                 decoding="async"

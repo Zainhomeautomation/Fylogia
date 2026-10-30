@@ -1,13 +1,13 @@
 # Fylogia
 
-A free, open-source personal news and magazine reader. No account, ads, paid subscription, or API key required.
+A free, open-source personal news and magazine reader. No mandatory account, ads, paid subscription, or API key required.
 
 Production target: **https://fylogia.com/**, deployed from the personal [Zainhomeautomation/Fylogia](https://github.com/Zainhomeautomation/Fylogia) repository through Cloudflare Pages GitHub integration. The owner authorized publication on 29 October 2026. The earlier naming screen remains a cautionary record, not legal clearance.
 
 ## Features
 
 - Three-step onboarding: grouped interests, subtopics, regions, recommended sources and custom RSS/Atom feeds.
-- Real publisher content from 194 curated feeds, refreshed every four hours by GitHub Actions. The app checks for a newer deployed edition every 15 minutes and on Refresh.
+- Real publisher content from 194 curated feeds, scheduled for refresh every four hours by GitHub Actions (runs can be delayed). The app checks for a newer deployed edition every 15 minutes and on Refresh.
 - Editorial home, Explore, Categories, source management, saved articles, magazines, history and settings.
 - Single-page article reading on small screens, two-column spreads on wide screens, swipes, keyboard/page controls, text-size adjustment and optional continuous scrolling. Pagination responds to resizing, rotation and folding.
 - Nine sources support permitted full text when their feed supplies a qualifying article body; other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
@@ -44,7 +44,7 @@ Use the existing Cloudflare account that owns fylogia.com. Connect only **Zainho
 
 Add `fylogia.com` in the Pages project's Custom domains, allowing Pages to create only its required apex DNS record. Configure a domain-specific Cloudflare redirect from `www.fylogia.com` to `https://fylogia.com`, preserving path and query. Keep HTTPS enabled. Do not alter unrelated zones, records, applications or account settings. Verify the public page, deep links, certificate and `build-info.json` commit after deployment. This repository does not provision DNS or store account credentials.
 
-`npm run build:pages` uses the committed real-news dataset, generates the production app/service worker and checks the 25 MiB asset limit. The original NASA magazine exceeds that limit, so its fixed URL is served by one streaming Pages Function with HTTP range support; no arbitrary proxy target, uploaded document, credential forwarding or paid storage is used. `_routes.json` limits function invocations to that PDF. All other content is static; Pages' default SPA fallback handles section URLs. Do not add a top-level `404.html` without preserving SPA routing. `_headers` revalidates the manifest/service worker/news and caches versioned assets. No credentials or external backend are required for private local libraries.
+`npm run build:pages` uses the committed real-news dataset, generates the production app/service worker and checks the 25 MiB asset limit. The original NASA magazine exceeds that limit, so its fixed URL is served by one streaming Pages Function with HTTP range support; no arbitrary proxy target, uploaded document, credential forwarding or paid storage is used. `_routes.json` limits function invocations to that fixed PDF and the private `/api/sync` endpoint. All other content is static; Pages' default SPA fallback handles section URLs. Do not add a top-level `404.html` without preserving SPA routing. `_headers` revalidates the manifest/service worker/news and caches versioned assets. No credentials or external backend are required for private local libraries.
 
 GitHub Actions validates main pushes and pull requests. A separate scheduled job refreshes publisher feeds every four hours and commits only `public/data/edition.json`, triggering Pages through its GitHub integration. This uses at most 186 of the free plan's 500 monthly builds, leaving room for code updates. Schedules can be delayed or disabled after inactivity; failed sources retain previous entries with visible timestamps. The app checks the deployed dataset every 15 minutes and on reconnection/Refresh. Refresh does not start a cloud build. The NASA PDF endpoint shares Cloudflare Workers Free request/CPU quotas; publisher or quota outages leave article reading and imported PDFs functional.
 
@@ -60,7 +60,9 @@ npx wrangler pages dev dist --port 8788
 FYLOGIA_TEST_URL=http://127.0.0.1:8788/ npm test
 ```
 
-## Production verification — 29 October 2026
+## Initial publication verification — 29 October 2026 (historical)
+
+For the current release, see [the final release audit](docs/final-release-audit.md). The following figures describe the initial publication, not current coverage.
 
 The application is publicly available without registration at **https://fylogia.com/** through the `fylogia` Cloudflare Pages project. Both the personal repository integration and automatic production deployments use `main`; non-production branch builds are disabled. The domain-specific `Fylogia www to HTTPS apex` 301 rule preserves paths and query strings. Only the requested apex/www DNS records and this site's settings were configured.
 
@@ -78,19 +80,19 @@ React, TypeScript, Vite, Lucide icons, DOMPurify, fast-xml-parser and lazy-loade
 
 - `src/catalog.ts`: shared source/category definitions and types.
 - `scripts/refresh-feeds.mjs`: bounded concurrent feed ingestion, timeouts, timestamps, original images, source health.
-- `src/Reader.tsx`: CSS multi-column pagination measured by ResizeObserver; sanitized publisher HTML.
+- `src/Reader.tsx`: measured multi-column pagination, shared bounded page-curl rendering, sanitized publisher HTML and a continuous-scrolling option.
 - `src/PdfReader.tsx`: original PDF pages rendered on canvas.
 - `src/storage.ts` and `src/local-library.ts`: reactive library state, anonymous device identity, IndexedDB persistence, legacy-storage migration/recovery and visible save failures.
 - `src/library-data.ts` and `src/library-backup.ts`: validated, transactional restore and optional AES-GCM encrypted recovery files.
 - `scripts/write-sw.mjs`: versioned app-shell cache and network-first edition refresh; excludes large online PDFs.
 
-The main bundle is about 126 KB gzipped. PDF code/worker are loaded only when opening a magazine. No analytics or server database. Google Fonts and publisher image CDNs receive normal network metadata; images send no referrer. Browser storage is not an encrypted cloud backup. Clearing browser data removes the local library.
+The initial JavaScript chunks total about 132 KB gzipped in the audited build. Custom-feed XML parsing, QR UI and PDF rendering load on demand; the service worker precaches PDF code/codecs so imported magazines remain readable offline. DM Sans is self-hosted under its [SIL Open Font License](public/fonts/OFL.txt). Fylogia includes no application analytics; the host and publisher image CDNs receive ordinary network metadata, and images send no referrer. Optional sync uses a private Cloudflare D1 database for library metadata, with HttpOnly device credentials and no publisher bodies or uploads. Local browser storage is not encrypted at rest; password-encrypted exports are optional. Clearing site data removes the local library.
 
 ## Content rights
 
 MIT covers Fylogia code only. Publisher content retains its rights and original attribution. Public feeds supply previews and original links. NASA content is used factually for informational reading, without implying endorsement; original PDF pages and credits are preserved. See [NASA media guidance](https://www.nasa.gov/nasa-brand-center/images-and-media/).
 
-[NASA Spinoff 2025 original PDF](https://ntts-prod.s3.amazonaws.com/t2p/prod/spinoff/NASA.Spinoff_2025_508.pdf) is 54 MB. Its binary is excluded from Git and downloaded at build time. Fylogia does not upload or redistribute user-imported PDFs. Import only publications you have permission to read.
+[NASA Spinoff 2025 original PDF](https://ntts-prod.s3.amazonaws.com/t2p/prod/spinoff/NASA.Spinoff_2025_508.pdf) is approximately 54 MB. Its binary is excluded from Git and Pages assets; a fixed streaming Function serves it online. `npm run magazines` optionally downloads it for local development. Imported PDFs up to 50 MB support offline reading; this larger public edition is online-only. Fylogia does not upload or redistribute user-imported PDFs. Import only publications you have permission to read.
 
 ## MVP limits
 
@@ -110,7 +112,7 @@ Offline copies are stored in the `fyllora-offline` IndexedDB database. The `fyll
 4. Turn off connectivity, close/reopen or reload Fylogia, and open a downloaded story. Pagination, text size, single/two-column layouts, saved state and progress work locally.
 5. Remove a download from Offline Library to delete its IndexedDB content and any images not shared with another download. Bookmarks and reading progress remain in the existing personal library.
 
-Downloads contain only already-supplied RSS text: full NASA feed articles where supplied, conservative previews for other publishers. No article page, paywall, login, or PDF restriction is bypassed. Image downloads use a conservative NASA informational-media policy: only official NASA-hosted images on qualifying NASA articles; APOD and feed material marked with copyright are excluded. Original credits remain in the content. Other publisher images are omitted from offline copies when permission has not been established. The UI reports partial or text-only copies rather than claiming those images are available. A failed image does not prevent permitted text from being stored.
+Downloads contain only already-supplied RSS text: qualifying authorized bodies from the nine full-text-capable sources and attributed previews elsewhere. No article page, paywall, login, or PDF restriction is bypassed. Image downloads use a conservative NASA informational-media policy: only official NASA-hosted images on qualifying NASA articles; APOD and feed material marked with copyright are excluded. Explicitly copyrighted third-party NASA figures and lead photographs are omitted from ingestion and legacy-reader display; permitted figures and credits remain. This does not remove saved-library records or reading progress. Other publisher images are omitted from offline copies when permission has not been established. The UI reports partial or text-only copies rather than claiming those images are available. A failed image does not prevent permitted text from being stored.
 
 When an online edition changes, downloaded text and metadata are refreshed from that feed; images whose permission or URL changed are dropped from the copy. New or missing images require the explicit Refresh download action. An unavailable feed leaves the existing download intact. The app does not crawl original article pages to update offline text.
 

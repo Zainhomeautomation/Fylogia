@@ -203,6 +203,12 @@ test("all category and regional controls, source follow, search and no horizonta
 test("real original PDF renders, turns pages, bookmarks and persists", async ({
   page,
 }) => {
+  await page.addInitScript(() => {
+    (window as any).fylogiaPolicyViolations = [];
+    window.addEventListener("securitypolicyviolation", (event) =>
+      (window as any).fylogiaPolicyViolations.push(event.violatedDirective),
+    );
+  });
   const decodeWarnings: string[] = [];
   page.on("console", (message) => {
     if (
@@ -333,6 +339,9 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
   await expect(page.locator("canvas").first()).toBeVisible();
   await expect(page.locator(".reader-footer [role=status]")).toHaveText(text);
   expect(decodeWarnings).toEqual([]);
+  expect(
+    await page.evaluate(() => (window as any).fylogiaPolicyViolations),
+  ).toEqual([]);
 });
 test("install manifest, service worker and offline saved reading", async ({
   page,
