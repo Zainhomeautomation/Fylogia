@@ -204,14 +204,12 @@ test("a second pointer or motion change cancels a held corner without a late pag
     await expect(page.locator(".paper-fold")).toHaveCount(1);
   };
   await hold();
-  await page
-    .locator(".pdf-spread")
-    .dispatchEvent("pointerdown", {
-      pointerId: 4,
-      pointerType: "touch",
-      isPrimary: false,
-      button: 0,
-    });
+  await page.locator(".pdf-spread").dispatchEvent("pointerdown", {
+    pointerId: 4,
+    pointerType: "touch",
+    isPrimary: false,
+    button: 0,
+  });
   await expect(page.locator(".paper-fold")).toHaveCount(0);
   await page.mouse.up();
   await page
