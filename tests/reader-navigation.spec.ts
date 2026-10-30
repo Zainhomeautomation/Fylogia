@@ -30,7 +30,9 @@ test("reader Back preserves section, filters and scroll; Home opens For You", as
         })
         .click();
     const search = page.getByPlaceholder("Search stories, sources, ideas…");
-    await search.fill("NASA");
+    await search.fill("");
+    // Real keyboard events exercise controlled input on emulated tablet WebKit.
+    await search.pressSequentially("NASA");
     // Await the filtered React result, not an old card still present while the
     // Linux WebKit input/navigation events are completing.
     await expect(page.locator(".story.lead")).toContainText("NASA");

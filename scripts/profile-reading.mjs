@@ -11,6 +11,8 @@ const arg = (name, fallback) =>
   fallback;
 const url = arg("--url", "https://fylogia.com/"),
   output = resolve(arg("--out", join(tmpdir(), "fylogia-reading-profile")));
+const profileSource = arg("--source", "nasa");
+const textOnly = process.argv.includes("--text-only");
 const origin = new URL(url);
 if (
   origin.username ||
@@ -127,12 +129,20 @@ if (process.argv.includes("--lighthouse")) {
           await context.request.get(new URL("data/edition.json", url).href)
         ).json();
         const article = data.articles
-          .filter((a) => a.full && a.sourceId === "nasa")
+          .filter(
+            (a) =>
+              a.full &&
+              (profileSource === "longest" || a.sourceId === profileSource),
+          )
           .sort((a, b) => b.content.length - a.content.length)[0];
         if (!article)
           throw new Error(
-            "No current authorized NASA article for the lab profile.",
+            "No current authorized full article for the lab profile.",
           );
+        if (textOnly) {
+          article.image = undefined;
+          article.content = article.content.replace(/<img[^>]*>/gi, "");
+        }
         await page.addInitScript(
           ({ prefs, article }) => {
             localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
@@ -241,7 +251,15 @@ if (process.argv.includes("--lighthouse")) {
             spread: document.querySelector(".reader-viewport").dataset.spread,
           };
         });
-        results.push({ engine, layout, viewport, turns, ...metrics });
+        results.push({
+          engine,
+          layout,
+          viewport,
+          turns,
+          source: article.source,
+          characters: article.content.length,
+          ...metrics,
+        });
       } finally {
         await context.close();
         await browser.close();

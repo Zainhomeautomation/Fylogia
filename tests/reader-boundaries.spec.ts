@@ -117,6 +117,13 @@ test("long-article turns and responsive pagination recover when animation callba
   await expect(
     page.locator(".paper-flat[data-face=front] .turn-content"),
   ).toHaveCSS("will-change", "auto");
+  const projected = page.locator(".paper-flat[data-face=front] .turn-content");
+  expect(await projected.locator("*").count()).toBeLessThan(250);
+  const source = await page.locator(".reader-content").textContent();
+  const lines = await projected.locator("span").allTextContents();
+  expect(lines.length).toBeGreaterThan(5);
+  for (const line of lines)
+    expect(source!.replace(/\s+/g, " ")).toContain(line.replace(/\s+/g, " "));
   await page.evaluate(() => {
     (window as any).pauseReaderFrames = true;
   });

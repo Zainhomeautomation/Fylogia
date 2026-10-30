@@ -185,17 +185,11 @@ function createEngine(
       let image: HTMLElement | undefined;
       const prepare = getOptions().prepare;
       if (prepare) image = await prepare(forward, controller.signal);
-      else {
-        image = capture(surface).node;
-        const content = image.querySelector<HTMLElement>(".turn-content");
-        if (content) {
-          const x = Number(
-            content.style.transform.match(/translateX\(([-\d.]+)px\)/)?.[1] ||
-              0,
-          );
-          content.style.transform = `translateX(${x + (forward ? -1 : 1) * (surface.clientWidth + 40)}px)`;
-        }
-      }
+      else
+        image = capture(
+          surface,
+          (forward ? -1 : 1) * (surface.clientWidth + 40),
+        ).node;
       if (!image || controller.signal.aborted) return;
       image.classList.remove("reader-viewport", "pdf-spread");
       image.classList.add("curl-underlay");

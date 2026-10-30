@@ -1,4 +1,5 @@
 import { crease, clipBand, foldPlane, planeMatrix } from "./paper-fold";
+import { articleSurface } from "./article-surface";
 export type PageBox = {
   x: number;
   y: number;
@@ -19,12 +20,15 @@ export type Capture = {
     height: number;
   }[];
 };
-export function capture(surface: HTMLElement): Capture {
+export function capture(surface: HTMLElement, offset = 0): Capture {
   const rect = surface.getBoundingClientRect(),
     pdf =
       surface.classList.contains("pdf-spread") ||
       surface.dataset.paperPdf === "true";
-  const node = surface.cloneNode(true) as HTMLElement;
+  const node =
+    !pdf && surface.dataset.paperArticle !== "true"
+      ? articleSurface(surface, offset)
+      : (surface.cloneNode(true) as HTMLElement);
   node
     .querySelectorAll(".turn-leaf,.curl-underlay,.page-turn-controls")
     .forEach((n) => n.remove());
