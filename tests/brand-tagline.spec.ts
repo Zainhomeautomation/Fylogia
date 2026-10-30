@@ -16,6 +16,10 @@ test("homepage brand tagline stays secondary, responsive and exclusive to For Yo
   );
   for (const theme of ["navy", "dark", "light"]) {
     await page.goto("./");
+    // Complete the first offline-shell install before intentionally destroying
+    // its WebKit document with a theme reload. Keep all page-error assertions.
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller);
     await page.evaluate((theme) => {
       const prefs = JSON.parse(localStorage.getItem("folio.v1.preferences")!);
       localStorage.setItem(
