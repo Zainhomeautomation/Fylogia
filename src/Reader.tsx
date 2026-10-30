@@ -100,10 +100,15 @@ export function Reader({
     [summary, setSummary] = useState(""),
     [summaryBusy, setSummaryBusy] = useState(false);
   const navigation = useRef(true);
-  const setPage = useCallback(
+  const applyPage = useCallback(
     (next: number | ((previous: number) => number)) => {
-      const nextPage =
-        typeof next === "function" ? next(pageValue.current) : next;
+      const nextPage = Math.max(
+        0,
+        Math.min(
+          count - 1,
+          typeof next === "function" ? next(pageValue.current) : next,
+        ),
+      );
       pageValue.current = nextPage;
       navigation.current = true;
       anchor.current = null;
@@ -118,11 +123,21 @@ export function Reader({
   useLayoutEffect(() => {
     pageValue.current = page;
   }, [page]);
-  const curl = usePageTurn(
-    viewport,
-    page,
-    reading === "pages",
-    navigation.current,
+  const curl = usePageTurn(viewport, page, reading === "pages", undefined, {
+    previous: page > 0,
+    next: page < count - 1,
+    step: (forward) =>
+      applyPage((p) =>
+        Math.max(0, Math.min(count - 1, p + (forward ? 1 : -1))),
+      ),
+  });
+  const setPage = useCallback(
+    (next: number | ((previous: number) => number)) => {
+      const value = typeof next === "function" ? next(pageValue.current) : next;
+      if (value === pageValue.current) return;
+      curl.navigate(value > pageValue.current, () => applyPage(next));
+    },
+    [applyPage, curl],
   );
   const [openingProgress] = useState(initialProgress);
   const position = useRef(openingProgress);
@@ -183,8 +198,8 @@ export function Reader({
       }
     }
   }, [page, width, spread, count, reading]);
-  const start = useRef<{ x: number; y: number } | null>(null),
-    restored = useRef(false);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const restored = useRef(false);
   const { html, leadCaption } = useMemo(() => {
     let html = DOMPurify.sanitize(article.content, {
       ALLOWED_TAGS: [
@@ -248,8 +263,12 @@ export function Reader({
   }, [article.content, displayImage, restrictedMedia]);
   const measuring = useRef(false);
   const measurementFrame = useRef(0);
+  const measurementTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const measure = () => {
     cancelAnimationFrame(measurementFrame.current);
+    clearTimeout(measurementTimer.current);
     if (!viewport.current || !content.current) return;
     const w = viewport.current.clientWidth;
     viewport.current.style.setProperty(
@@ -277,7 +296,12 @@ export function Reader({
     navigation.current = false;
     setWidth(w);
     setSpread(article.full && w >= Math.max(680, prefs.fontSize * 36) ? 2 : 1);
-    measurementFrame.current = requestAnimationFrame(() => {
+    let measured = false;
+    const finishMeasurement = () => {
+      if (measured) return;
+      measured = true;
+      cancelAnimationFrame(measurementFrame.current);
+      clearTimeout(measurementTimer.current);
       if (content.current) {
         const n = Math.max(
           1,
@@ -297,14 +321,21 @@ export function Reader({
         setPageState(Math.max(0, Math.min(n - 1, location)));
         measuring.current = false;
       }
-    });
+    };
+    measurementFrame.current = requestAnimationFrame(finishMeasurement);
+    measurementTimer.current = setTimeout(finishMeasurement, 80);
   };
   useLayoutEffect(() => {
     const observer = new ResizeObserver(measure);
     if (viewport.current) observer.observe(viewport.current);
     measure();
     document.fonts.ready.then(measure);
+    window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
     return () => {
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+      clearTimeout(measurementTimer.current);
       observer.disconnect();
       cancelAnimationFrame(measurementFrame.current);
     };
@@ -603,18 +634,27 @@ export function Reader({
         }}
         ref={viewport}
         onTouchStart={(e) => {
-          start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          start.current =
+            e.touches.length === 1
+              ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+              : null;
         }}
         onTouchEnd={(e) => {
-          if (start.current !== null && reading === "pages") {
-            const dx = e.changedTouches[0].clientX - start.current.x;
-            const dy = e.changedTouches[0].clientY - start.current.y;
-            if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
-              setPage((p) =>
-                Math.max(0, Math.min(count - 1, p + (dx < 0 ? 1 : -1))),
-              );
-          }
+          const from = start.current;
           start.current = null;
+          if (
+            !from ||
+            curl.handledSwipe() ||
+            reading !== "pages" ||
+            e.touches.length
+          )
+            return;
+          const dx = e.changedTouches[0].clientX - from.x,
+            dy = e.changedTouches[0].clientY - from.y;
+          if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
+            setPage((p) =>
+              Math.max(0, Math.min(count - 1, p + (dx < 0 ? 1 : -1))),
+            );
         }}
       >
         <div

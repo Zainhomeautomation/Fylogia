@@ -2,7 +2,14 @@ import { getLibraryValue, setLibraryValue } from "./local-library";
 import type { LibraryData } from "./library-data";
 import { PageTurnControls } from "./PageTurnControls";
 import { useReaderReturn } from "./useReaderReturn";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { pdfTurnCache } from "./pdf-turn-cache";
 import { usePageTurn } from "./usePageTurn";
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -160,60 +167,104 @@ export default function PdfReader({
   const lastTap = useRef(0);
   const touchZoomed = useRef(0);
   const progressKey = "fylogia.pdf.progress." + id;
-  function changeZoom(value: number) {
+  const pageValue = useRef(page);
+  useLayoutEffect(() => {
+    pageValue.current = page;
+  }, [page]);
+  const changeZoom = useCallback((value: number) => {
     const next = Math.max(1, Math.min(4, value));
     zoomRef.current = next;
     setZoom(next);
-  }
-  function turn(value: number | ((previous: number) => number)) {
-    setPage(value);
-    changeZoom(1);
-    if (surface.current) {
-      surface.current.scrollTop = 0;
-      surface.current.scrollLeft = 0;
-    }
-  }
+  }, []);
+  const applyPage = useCallback(
+    (value: number | ((previous: number) => number)) => {
+      const next = Math.max(
+        1,
+        Math.min(
+          pdf?.numPages || 1,
+          typeof value === "function" ? value(pageValue.current) : value,
+        ),
+      );
+      pageValue.current = next;
+      setPage(next);
+      changeZoom(1);
+      if (surface.current) {
+        surface.current.scrollTop = 0;
+        surface.current.scrollLeft = 0;
+      }
+    },
+    [changeZoom, pdf?.numPages],
+  );
+  const pageCache = useRef<ReturnType<typeof pdfTurnCache> | null>(null);
+  useEffect(() => {
+    if (!pdf) return;
+    const cache = pdfTurnCache(pdf, pageWidth, size.height - 40);
+    pageCache.current = cache;
+    return () => {
+      cache.dispose();
+      if (pageCache.current === cache) pageCache.current = null;
+    };
+  }, [pdf, pageWidth, size.height]);
+  useEffect(() => {
+    if (!pdf || zoom !== 1) return;
+    const timer = window.setTimeout(() => {
+      const target = page + spread;
+      for (let i = target; i < Math.min(target + spread, pdf.numPages + 1); i++)
+        void pageCache.current?.get(i).catch(() => {});
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [pdf, page, spread, pageWidth, size.height, zoom]);
   const curl = usePageTurn(
     surface,
     page,
-    true,
-    true,
+    zoom === 1,
     async (forward, signal) => {
-      if (!pdf) return;
+      if (!pdf || !pageCache.current) return;
       const target = page + (forward ? spread : -spread);
       if (target < 1 || target > pdf.numPages) return;
+      const canvases = await Promise.all(
+        Array.from(
+          { length: Math.min(spread, pdf.numPages - target + 1) },
+          (_, i) => pageCache.current!.get(target + i),
+        ),
+      );
+      if (signal.aborted) return;
       const wrapper = document.createElement("div");
       wrapper.style.cssText =
-        "display:flex;gap:12px;justify-content:center;align-items:center;padding:20px 12px";
-      for (let i = 0; i < Math.min(spread, pdf.numPages - target + 1); i++) {
-        if (signal.aborted) return;
-        const pdfPage = await pdf.getPage(target + i);
-        if (signal.aborted) return;
-        const natural = pdfPage.getViewport({ scale: 1 });
-        const fittedWidth = Math.min(
-          pageWidth,
-          ((size.height - 40) * natural.width) / natural.height,
-        );
-        const viewport = pdfPage.getViewport({
-          scale: fittedWidth / natural.width,
-        });
-        const canvas = document.createElement("canvas");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        canvas.style.cssText = `width:${fittedWidth}px;height:${canvas.height}px;flex-shrink:0`;
-        const task = pdfPage.render({ canvas, viewport });
-        const cancel = () => task.cancel();
-        signal.addEventListener("abort", cancel, { once: true });
-        try {
-          await task.promise;
-        } finally {
-          signal.removeEventListener("abort", cancel);
-        }
-        if (signal.aborted) return;
-        wrapper.append(canvas);
+        "display:flex;justify-content:center;align-items:center;padding:20px 12px";
+      const sheets = document.createElement("div");
+      sheets.className = "pdf-pages";
+      sheets.style.width = pageWidth * spread + 12 * (spread - 1) + "px";
+      for (const canvas of canvases) {
+        const sheet = document.createElement("div");
+        sheet.className = "pdf-page";
+        sheet.append(canvas);
+        sheets.append(sheet);
       }
+      wrapper.append(sheets);
       return wrapper;
     },
+    {
+      previous: page > 1,
+      next: Boolean(pdf && page + spread <= pdf.numPages),
+      blocked: () => pinching.current || zoomRef.current !== 1,
+      step: (forward) =>
+        applyPage((p) =>
+          Math.max(
+            1,
+            Math.min(pdf?.numPages || 1, p + (forward ? spread : -spread)),
+          ),
+        ),
+    },
+  );
+  const turn = useCallback(
+    (value: number | ((previous: number) => number)) => {
+      const next =
+        typeof value === "function" ? value(pageValue.current) : value;
+      if (next === pageValue.current) return;
+      curl.navigate(next > pageValue.current, () => applyPage(value));
+    },
+    [applyPage, curl],
   );
   useEffect(() => {
     if (!pdf || !coverCallback.current) return;
@@ -325,7 +376,7 @@ export default function PdfReader({
       window.removeEventListener("keydown", esc);
       document.body.style.overflow = previous;
     };
-  }, [pdf, spread, onClose]);
+  }, [pdf, spread, onClose, turn]);
   useEffect(() => {
     const element = surface.current;
     if (!element) return;
@@ -424,7 +475,7 @@ export default function PdfReader({
       element.removeEventListener("touchend", end);
       element.removeEventListener("touchcancel", end);
     };
-  }, []);
+  }, [changeZoom]);
   return (
     <div
       className={`reader pdf-reader ${immersive ? "immersive" : ""}`}
@@ -540,9 +591,25 @@ export default function PdfReader({
       <div
         className="pdf-spread"
         data-spread={spread}
+        data-paper-spread={
+          spread === 2 ||
+          (id === "nasa-spinoff-2025" &&
+            ratio < 0.85 &&
+            pageWidth >= 680 &&
+            zoom === 1)
+            ? 2
+            : 1
+        }
         ref={surface}
         data-zoom={zoom}
         onDoubleClick={(e) => {
+          const canvas = (e.target as HTMLElement).closest("canvas");
+          const bounds = canvas?.getBoundingClientRect();
+          if (
+            bounds &&
+            (e.clientX - bounds.left < 28 || bounds.right - e.clientX < 28)
+          )
+            return;
           if (
             performance.now() - touchZoomed.current > 700 &&
             (e.target as HTMLElement).closest("canvas")
@@ -567,6 +634,12 @@ export default function PdfReader({
             Math.hypot(dx, dy) < 12 &&
             (e.target as HTMLElement).closest("canvas")
           ) {
+            const bounds = (e.target as HTMLElement).getBoundingClientRect();
+            const x = e.changedTouches[0].clientX;
+            if (x - bounds.left < 28 || bounds.right - x < 28) {
+              lastTap.current = 0;
+              return;
+            }
             const now = performance.now();
             if (now - lastTap.current < 300) {
               touchZoomed.current = now;
@@ -575,6 +648,7 @@ export default function PdfReader({
             } else lastTap.current = now;
           }
           if (
+            !curl.handledSwipe() &&
             zoom === 1 &&
             Math.abs(dx) > 60 &&
             Math.abs(dx) > Math.abs(dy) * 1.5
@@ -594,9 +668,7 @@ export default function PdfReader({
             <div
               className="pdf-pages"
               style={{
-                width:
-                  pageWidth * zoom * Math.min(spread, pdf.numPages - page + 1) +
-                  12 * (spread - 1),
+                width: pageWidth * zoom * spread + 12 * (spread - 1),
               }}
             >
               {Array.from(

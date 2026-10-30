@@ -1,325 +1,502 @@
-import { useLayoutEffect, useRef, type RefObject } from "react";
-
-function snapshot(surface: HTMLElement) {
-  const image = surface.cloneNode(true) as HTMLElement;
-  image
-    .querySelectorAll(".turn-leaf, .curl-underlay, .page-turn-controls")
-    .forEach((n) => n.remove());
-  surface.querySelectorAll("canvas").forEach((canvas, i) => {
-    const target = image.querySelectorAll("canvas")[i];
-    if (!target) return;
-    target.width = canvas.width;
-    target.height = canvas.height;
-    target.style.cssText = canvas.style.cssText;
-    target.getContext("2d")?.drawImage(canvas, 0, 0);
-  });
-  image
-    .querySelectorAll(".reader-content")
-    .forEach((n) => (n.className = "turn-content"));
-  image.removeAttribute("id");
-  image.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
-  return image;
-}
-
-// A short-lived cylindrical paper mesh. Each strip carries the actual outgoing
-// text/canvas, with a different tangent: the page bends rather than rotating flat.
-function paper(surface: HTMLElement, image: HTMLElement, forward: boolean) {
-  const w = surface.clientWidth,
-    h = surface.clientHeight;
-  const facing = surface.dataset.spread === "2";
-  const pw = facing ? w / 2 : w;
-  const origin = forward ? (facing ? w / 2 : 0) : facing ? w / 2 : w;
-  const leaf = document.createElement("div");
-  leaf.className = "turn-leaf curl-mesh";
-  leaf.setAttribute("aria-hidden", "true");
-  leaf.inert = true;
-  // Rasterize only the visible PDF viewport once. Each moving strip gets a
-  // cropped slice, so its backing pixels sum to at most one screen-sized page.
-  let raster: HTMLCanvasElement | undefined;
-  if (surface.classList.contains("pdf-spread")) {
-    raster = document.createElement("canvas");
-    raster.width = w;
-    raster.height = h;
-    const ctx = raster.getContext("2d")!;
-    ctx.fillStyle = getComputedStyle(surface).backgroundColor;
-    ctx.fillRect(0, 0, w, h);
-    const pages = [...image.querySelectorAll("canvas")];
-    const widths = pages.map((c) => parseFloat(c.style.width) || c.width);
-    const top = Math.max(
-      20,
-      (h -
-        Math.max(...pages.map((c) => parseFloat(c.style.height) || c.height))) /
-        2,
-    );
-    let left =
-      (w -
-        widths.reduce((sum, n) => sum + n, 0) -
-        Math.max(0, pages.length - 1) * 12) /
-      2;
-    pages.forEach((canvas, i) => {
-      ctx.drawImage(
-        canvas,
-        left,
-        top - surface.scrollTop,
-        widths[i],
-        parseFloat(canvas.style.height) || canvas.height,
-      );
-      left += widths[i] + 12;
-    });
-  }
-  const strips: HTMLElement[] = [];
-  for (let i = 0; i < 12; i++) {
-    const strip = document.createElement("div");
-    strip.className = "curl-strip";
-    strip.style.width = `${pw / 12 + 0.6}px`;
-    strip.style.height = `${h}px`;
-    const sourceX = forward
-      ? origin + (i * pw) / 12
-      : origin - ((i + 1) * pw) / 12;
-    let face: HTMLElement;
-    if (raster) {
-      face = document.createElement("div");
-      face.className = "curl-face pdf-turn-leaf";
-      face.style.cssText = `position:absolute;inset:0;width:100%;height:100%;`;
-      const crop = document.createElement("canvas");
-      crop.width = Math.ceil(pw / 12 + 0.6);
-      crop.height = h;
-      crop.style.cssText = "width:100%;height:100%";
-      crop
-        .getContext("2d")!
-        .drawImage(raster, sourceX, 0, crop.width, h, 0, 0, crop.width, h);
-      face.append(crop);
-    } else {
-      face = image.cloneNode(true) as HTMLElement;
-      face.className = "curl-face";
-      face.style.cssText = `position:absolute;top:0;left:${-sourceX}px;width:${w}px;height:${h}px;max-width:none;margin:0;`;
-    }
-    strip.append(face);
-    leaf.append(strip);
-    strips.push(strip);
-  }
-  surface.append(leaf);
-  return {
-    leaf,
-    draw(progress: number) {
-      const bend = Math.sin(progress * Math.PI) * 1.25;
-      const base = progress * Math.PI - bend / 2;
-      let x = origin,
-        z = 0;
-      const sign = forward ? 1 : -1;
-      strips.forEach((strip, i) => {
-        const angle = base + (bend * (i + 0.5)) / 12;
-        const dx = (Math.cos(angle) * pw) / 12;
-        const dz = (Math.sin(angle) * pw) / 12;
-        // Project each adjoining strip into one common camera, avoiding
-        // independent CSS perspective origins (which produce visible seams).
-        const depth = 2200,
-          cx = w / 2,
-          cy = h / 2;
-        const x0 = forward ? x : x - dx;
-        const z0 = forward ? z : z + dz;
-        const dzdu = sign * Math.sin(angle);
-        const denom = 1 - z0 / depth;
-        const a = (Math.cos(angle) - (cx * dzdu) / depth) / denom;
-        const lift = 0.18 * Math.sin(progress * Math.PI);
-        const y0 = ((-(i + (forward ? 0 : 1)) * pw) / 12) * lift;
-        const b = (-sign * lift - (cy * dzdu) / depth) / denom;
-        const g = -dzdu / depth / denom;
-        const e = (x0 - (cx * z0) / depth) / denom;
-        const f = (y0 - (cy * z0) / depth) / denom;
-        strip.style.transformOrigin = "0 0";
-        strip.style.left = "0";
-        strip.style.transform = `matrix3d(${a},${b},0,${g},0,${1 / denom},0,0,0,0,1,0,${e},${f},0,1)`;
-        (strip.firstElementChild as HTMLElement).style.visibility =
-          Math.cos(angle) < 0 ? "hidden" : "visible";
-        strip.style.setProperty(
-          "--shade",
-          String(0.04 + Math.sin(angle) * 0.18),
-        );
-        x += sign * dx;
-        z += dz;
-      });
-      leaf.style.opacity = String(progress > 0.92 ? (1 - progress) / 0.08 : 1);
-    },
-  };
-}
-
+import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { capture, paper, pageBox } from "./paper-surface";
+type Interaction = {
+  previous: boolean;
+  next: boolean;
+  step: (forward: boolean) => void;
+  blocked?: () => boolean;
+};
+type Session = {
+  controller: AbortController;
+  view?: Awaited<ReturnType<typeof paper>>;
+  surface: HTMLElement;
+  underlay?: HTMLElement;
+  ready: Promise<void>;
+  distance: number;
+  vertical: number;
+  ending: boolean;
+  apply?: () => void;
+  applied: boolean;
+  applying: boolean;
+  finishing: boolean;
+  motionless: boolean;
+  frame: number;
+  timer?: ReturnType<typeof setTimeout>;
+};
 export function usePageTurn(
   ref: RefObject<HTMLDivElement | null>,
   page: number,
   enabled = true,
-  animatePage = true,
   prepare?: (
     forward: boolean,
     signal: AbortSignal,
   ) => Promise<HTMLElement | undefined>,
+  interaction?: Interaction,
 ) {
-  const state = useRef<ReturnType<typeof paper> | null>(null);
-  const frame = useRef(0),
-    value = useRef(0),
-    skip = useRef(false);
-  const previous = useRef<{
+  const latest = useRef({ enabled, prepare, interaction, page });
+  useLayoutEffect(() => {
+    latest.current = { enabled, prepare, interaction, page };
+  }, [enabled, prepare, interaction, page]);
+  const engine = useMemo(
+    () =>
+      createEngine(
+        // Getters are stored, never invoked by createEngine during render.
+        // oxlint-disable-next-line react/refs
+        () => ref.current,
+        // oxlint-disable-next-line react/refs
+        () => latest.current,
+      ),
+    [ref],
+  );
+  useLayoutEffect(() => engine.connect(), [engine]);
+  useLayoutEffect(() => {
+    if (!enabled) engine.cancel();
+  }, [enabled, engine]);
+  return engine.api;
+}
+function cell<T>(value: T) {
+  return { current: value };
+}
+function createEngine(
+  getSurface: () => HTMLDivElement | null,
+  getOptions: () => {
+    enabled: boolean;
     page: number;
+    prepare?: (
+      forward: boolean,
+      signal: AbortSignal,
+    ) => Promise<HTMLElement | undefined>;
+    interaction?: Interaction;
+  },
+) {
+  const current = cell<Session | null>(null),
+    queued = cell<{ forward: boolean; turn: () => void } | null>(null);
+  const alive = cell(true);
+  const gesture = cell<{
+    id: number;
+    x: number;
+    y: number;
     width: number;
     height: number;
-    image: HTMLElement;
-    canvases: HTMLCanvasElement[];
+    forward: boolean;
+    dragging: boolean;
+    touch: boolean;
+    edge: boolean;
   } | null>(null);
-  const deadline = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const underlay = useRef<HTMLElement | null>(null);
-  const preparing = useRef<AbortController | null>(null);
+  const nativePointers = cell(new Set<number>());
+  const lastSwipe = cell(-Infinity);
+  function dispose(s: Session, runQueue = false) {
+    s.controller.abort();
+    cancelAnimationFrame(s.frame);
+    clearTimeout(s.timer);
+    s.underlay?.remove();
+    s.view?.dispose();
+    const owned = current.current === s;
+    if (owned) {
+      delete s.surface.dataset.pageTurn;
+      current.current = null;
+      if (!runQueue) queued.current = null;
+    }
+    if (owned && runQueue && alive.current) {
+      const q = queued.current;
+      queued.current = null;
+      if (q) navigate(q.forward, q.turn);
+    }
+  }
   function clear() {
-    preparing.current?.abort();
-    underlay.current?.remove();
-    underlay.current = null;
-    clearTimeout(deadline.current);
-    cancelAnimationFrame(frame.current);
-    state.current?.leaf.remove();
-    state.current = null;
+    const s = current.current;
+    queued.current = null;
+    if (s) dispose(s);
+    gesture.current = null;
   }
-  function animate(to: number, done?: () => void) {
-    const from = value.current,
-      start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / 480);
-      value.current = from + (to - from) * (1 - Math.pow(1 - t, 3));
-      state.current?.draw(value.current);
-      if (t < 1) frame.current = requestAnimationFrame(tick);
-      else {
-        clear();
-        done?.();
-      }
-    };
-    frame.current = requestAnimationFrame(tick);
-    // WebKit can suspend animation frames while a PDF canvas is repainting or
-    // a tab loses visibility. A visual layer must never outlive navigation.
-    deadline.current = setTimeout(() => {
-      clear();
-      done?.();
-    }, 900);
+  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function allowed(forward: boolean) {
+    const cfg = getOptions().interaction;
+    return !cfg || (forward ? cfg.next : cfg.previous);
   }
-  useLayoutEffect(() => {
-    const surface = ref.current;
-    if (!surface) return;
-    const observer = new ResizeObserver(() => {
-      if (state.current) clear();
-    });
-    observer.observe(surface);
-    return () => {
-      observer.disconnect();
-      clear();
-    };
-  }, [ref]);
-  useLayoutEffect(() => {
-    const surface = ref.current;
-    if (!surface) return;
-    const old = previous.current;
-    // Snapshot only changes in rendered page/layout, not every progress render.
+  function begin(forward: boolean, corner = 1) {
+    const surface = getSurface();
     if (
-      old?.page === page &&
-      old.width === surface.clientWidth &&
-      old.height === surface.clientHeight
+      current.current ||
+      !surface ||
+      !getOptions().enabled ||
+      !allowed(forward)
     )
-      return;
-    const image = snapshot(surface);
-    previous.current = {
-      page,
-      width: surface.clientWidth,
-      height: surface.clientHeight,
-      image,
-      canvases: [
-        ...surface.querySelectorAll<HTMLCanvasElement>(
-          ":scope > .pdf-page canvas, :scope > .pdf-pages > .pdf-page canvas",
-        ),
-      ],
+      return false;
+    const controller = new AbortController();
+    const s: Session = {
+      surface,
+      controller,
+      distance: 0,
+      vertical: 0,
+      ending: false,
+      applied: false,
+      applying: false,
+      finishing: false,
+      motionless: reduced(),
+      frame: 0,
+      ready: Promise.resolve(),
     };
-    if (skip.current) {
-      skip.current = false;
+    current.current = s;
+    if (s.motionless) return true;
+    // A stalled range request leaves the current readable page in place.
+    s.timer = setTimeout(() => dispose(s), 10_000);
+    surface.dataset.pageTurn = "preparing";
+    const pdfSurface = surface.classList.contains("pdf-spread");
+    const view = (async () => {
+      if (pdfSurface)
+        await new Promise<void>((resolve) => {
+          let frame = 0;
+          const done = () => {
+            cancelAnimationFrame(frame);
+            clearTimeout(timer);
+            controller.signal.removeEventListener("abort", done);
+            resolve();
+          };
+          const check = () => {
+            const busy = [
+              ...surface.querySelectorAll(
+                ":scope > .pdf-pages > .pdf-page canvas",
+              ),
+            ].some((c) => c.getAttribute("aria-busy") !== "false");
+            if (!busy || controller.signal.aborted) done();
+            else frame = requestAnimationFrame(check);
+          };
+          const timer = setTimeout(done, 5000);
+          controller.signal.addEventListener("abort", done, { once: true });
+          check();
+        });
+      if (controller.signal.aborted) return;
+      const v = await paper(
+        surface,
+        capture(surface),
+        forward,
+        controller.signal,
+        corner,
+      );
+      if (controller.signal.aborted) {
+        v?.dispose();
+        return;
+      }
+      s.view = v;
+      v?.draw(s.distance, s.vertical);
+    })();
+    const destination = (async () => {
+      let image: HTMLElement | undefined;
+      const prepare = getOptions().prepare;
+      if (prepare) image = await prepare(forward, controller.signal);
+      else
+        image = capture(
+          surface,
+          (forward ? -1 : 1) * (surface.clientWidth + 40),
+        ).node;
+      if (!image || controller.signal.aborted) return;
+      image.classList.remove("reader-viewport", "pdf-spread");
+      image.classList.add("curl-underlay");
+      image.style.position = "absolute";
+      image.style.inset = "0";
+      image.style.margin = "0";
+      image.style.width = surface.clientWidth + "px";
+      image.style.height = surface.clientHeight + "px";
+      image.inert = true;
+      image.setAttribute("aria-hidden", "true");
+      image.dataset.paperPdf = String(pdfSurface);
+      if ((surface.dataset.paperSpread || surface.dataset.spread) === "2")
+        image.style.clipPath = forward
+          ? "inset(0 0 0 50%)"
+          : "inset(0 50% 0 0)";
+      surface.append(image);
+      s.underlay = image;
+      await view;
+      if (!controller.signal.aborted) await s.view?.setDestination(image);
+    })();
+    s.ready = Promise.all([view, destination])
+      .then(() => {
+        clearTimeout(s.timer);
+        if (!controller.signal.aborted) surface.dataset.pageTurn = "folding";
+      })
+      .catch(() => {
+        // Keep the original page readable when preparing a turn fails.
+        dispose(s);
+      });
+    return true;
+  }
+  function applyOnce(s: Session) {
+    if (s.applied) return;
+    s.applied = true;
+    s.applying = true;
+    try {
+      s.apply?.();
+    } finally {
+      s.applying = false;
+    }
+  }
+  async function finish(s: Session, commit: boolean) {
+    if (current.current !== s || s.controller.signal.aborted) return;
+    if (s.finishing) return;
+    s.finishing = true;
+    clearTimeout(s.timer);
+    s.distance = commit ? 2 : 0;
+    s.vertical = 0;
+    s.view?.draw(s.distance, 0);
+    if (commit) applyOnce(s);
+    // Keep the fully painted destination over the native PDF canvases until
+    // React has mounted and PDF.js has finished painting them. No blank spread.
+    const start = performance.now();
+    let frames = 0;
+    const wait = () => {
+      if (current.current !== s || s.controller.signal.aborted) return;
+      const busy = [
+        ...s.surface.querySelectorAll(":scope > .pdf-pages > .pdf-page canvas"),
+      ].some((c) => c.getAttribute("aria-busy") !== "false");
+      if ((!busy && frames++ >= 2) || performance.now() - start > 5000) {
+        dispose(s, true);
+        return;
+      }
+      s.timer = setTimeout(wait, 32);
+    };
+    if (commit) s.timer = setTimeout(wait, 32);
+    else dispose(s, true);
+  }
+  async function end(commit: boolean, turn: () => void) {
+    const s = current.current;
+    if (!s) return;
+    if (s.ending) return;
+    s.ending = true;
+    s.apply = turn;
+    if (s.motionless) {
+      if (commit) applyOnce(s);
+      dispose(s, true);
       return;
     }
-    if (
-      !enabled ||
-      !animatePage ||
-      !old ||
-      old.page === page ||
-      old.width !== surface.clientWidth ||
-      old.height !== surface.clientHeight ||
-      matchMedia("(prefers-reduced-motion: reduce)").matches
-    )
+    if (commit) await s.ready;
+    if (current.current !== s || s.controller.signal.aborted) return;
+    const from = s.distance,
+      to = commit ? 2 : 0,
+      start = performance.now(),
+      vertical = s.vertical;
+    const duration = commit ? Math.max(280, (620 * (2 - from)) / 2) : 240;
+    const tick = (now: number) => {
+      if (current.current !== s) return;
+      const t = Math.min(1, (now - start) / duration),
+        ease = t * t * (3 - 2 * t);
+      s.distance = from + (to - from) * ease;
+      s.vertical = vertical * (1 - ease);
+      s.view?.draw(s.distance, s.vertical);
+      if (t < 1) s.frame = requestAnimationFrame(tick);
+      else void finish(s, commit);
+    };
+    s.frame = requestAnimationFrame(tick);
+    // Suspended WebKit frames must neither strand a layer nor lose navigation.
+    s.timer = setTimeout(() => {
+      void finish(s, commit);
+    }, duration + 1400);
+  }
+  function navigate(forward: boolean, turn: () => void) {
+    if (!allowed(forward)) return;
+    if (!getOptions().enabled || reduced()) {
+      turn();
       return;
-    clear();
-    old.canvases.forEach((canvas, i) => {
-      const target = old.image.querySelectorAll("canvas")[i];
-      if (target) {
-        target.width = canvas.width;
-        target.height = canvas.height;
-        target.style.cssText = canvas.style.cssText;
-        target.getContext("2d")?.drawImage(canvas, 0, 0);
+    }
+    if (current.current?.applying) {
+      turn();
+      return;
+    }
+    if (current.current) {
+      if (!queued.current) queued.current = { forward, turn };
+      return;
+    }
+    if (begin(forward)) void end(true, turn);
+    else turn();
+  }
+  function connect() {
+    alive.current = true;
+    const surface = getSurface();
+    if (!surface) return;
+    let width = surface.clientWidth,
+      height = surface.clientHeight;
+    const observer = new ResizeObserver(() => {
+      if (width !== surface.clientWidth || height !== surface.clientHeight) {
+        width = surface.clientWidth;
+        height = surface.clientHeight;
+        clear();
       }
     });
-    value.current = 0;
-    state.current = paper(surface, old.image, page > old.page);
-    animate(1);
-  });
-  return {
-    begin(forward: boolean) {
-      clear();
-      value.current = 0;
+    observer.observe(surface);
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const motion = () => {
+      if (media.matches) {
+        const s = current.current;
+        if (s?.ending && !s.applied) {
+          applyOnce(s);
+        }
+        clear();
+      }
+    };
+    media.addEventListener("change", motion);
+    const visible = () => {
+      if (document.hidden) {
+        const s = current.current;
+        if (s?.ending && !s.applied) {
+          applyOnce(s);
+        }
+        clear();
+      }
+    };
+    document.addEventListener("visibilitychange", visible);
+    const down = (e: PointerEvent) => {
+      nativePointers.current.add(e.pointerId);
+      if (nativePointers.current.size > 1) {
+        gesture.current = null;
+        if (current.current && !current.current.ending)
+          void end(false, () => {});
+        return;
+      }
+      if (!surface.contains(e.target as Node)) return;
+      const cfg = getOptions().interaction;
       if (
-        !enabled ||
-        !ref.current ||
-        matchMedia("(prefers-reduced-motion: reduce)").matches
+        !getOptions().enabled ||
+        !cfg ||
+        cfg.blocked?.() ||
+        e.button !== 0 ||
+        !e.isPrimary ||
+        (e.target as HTMLElement).closest("a,button,input,textarea,select")
       )
         return;
-      state.current = paper(ref.current, snapshot(ref.current), forward);
-      state.current.draw(0);
-      const surface = ref.current;
-      const controller = new AbortController();
-      preparing.current = controller;
-      const add = (image?: HTMLElement) => {
-        if (!image || controller.signal.aborted || !state.current) return;
-        image.className = "curl-underlay";
-        image.inert = true;
-        image.setAttribute("aria-hidden", "true");
-        if (surface.dataset.spread === "2")
-          image.style.clipPath = forward
-            ? "inset(0 0 0 50%)"
-            : "inset(0 50% 0 0)";
-        surface.insertBefore(image, state.current.leaf);
-        underlay.current = image;
-      };
-      if (prepare)
-        void prepare(forward, controller.signal)
-          .then(add)
-          .catch(() => {});
-      else {
-        const image = snapshot(surface);
-        const content = image.querySelector<HTMLElement>(".turn-content");
-        if (content) {
-          const x = Number(
-            content.style.transform.match(/translateX\(([-\d.]+)px\)/)?.[1] ||
-              0,
-          );
-          content.style.transform = `translateX(${x + (forward ? -1 : 1) * (surface.clientWidth + 40)}px)`;
-          add(image);
-        }
-      }
-    },
-    move(progress: number) {
-      value.current = progress;
-      state.current?.draw(progress);
-    },
-    end(commit: boolean, turn: () => void) {
-      preparing.current?.abort();
-      if (!state.current) {
-        if (commit) turn();
+      const rect = surface.getBoundingClientRect(),
+        x = e.clientX - rect.left;
+      // Leave the outer system-navigation edge alone. Mouse text selection is
+      // unchanged; only mouse drags starting on a page edge become page turns.
+      if (
+        e.pointerType === "touch" &&
+        (e.clientX < 16 || e.clientX > innerWidth - 16)
+      )
         return;
+      const f = x >= surface.clientWidth / 2,
+        box = pageBox(surface, f),
+        edge = f ? box.x + box.width : box.x;
+      if (e.pointerType !== "touch" && Math.abs(x - edge) > 44) return;
+      if (
+        e.pointerType === "touch"
+          ? !cfg.next && !cfg.previous
+          : !(f ? cfg.next : cfg.previous)
+      )
+        return;
+      gesture.current = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        width: box.width,
+        height: box.height,
+        forward: f,
+        dragging: false,
+        touch: e.pointerType === "touch",
+        edge: Math.abs(x - edge) <= 28,
+      };
+    };
+    const move = (e: PointerEvent) => {
+      const g = gesture.current;
+      if (!g || g.id !== e.pointerId || nativePointers.current.size !== 1)
+        return;
+      const dx = e.clientX - g.x,
+        dy = e.clientY - g.y,
+        slop = g.touch ? 12 : 6;
+      if (!g.dragging) {
+        if (Math.abs(dx) < slop && Math.abs(dy) < slop) return;
+        if (
+          Math.abs(dy) > Math.abs(dx) * 1.2 ||
+          (!g.touch && dx * (g.forward ? -1 : 1) < 0)
+        ) {
+          gesture.current = null;
+          return;
+        }
+        if (g.touch) {
+          g.forward = dx < 0;
+          const cfg = getOptions().interaction;
+          if (!(g.forward ? cfg?.next : cfg?.previous)) {
+            gesture.current = null;
+            return;
+          }
+          const box = pageBox(surface, g.forward);
+          g.width = box.width;
+          g.height = box.height;
+        }
+        const r = surface.getBoundingClientRect();
+        if (!begin(g.forward, g.y - r.top < surface.clientHeight / 2 ? 0 : 1)) {
+          gesture.current = null;
+          return;
+        }
+        g.dragging = true;
+        if (g.touch) lastSwipe.current = performance.now();
+        surface.setPointerCapture(e.pointerId);
       }
-      if (commit) {
-        skip.current = true;
-        turn();
+      e.preventDefault();
+      const s = current.current;
+      if (s && !s.ending) {
+        s.distance = Math.max(
+          0,
+          Math.min(1.98, (dx * (g.forward ? -1 : 1)) / g.width),
+        );
+        s.vertical = dy / g.height;
+        s.view?.draw(s.distance, s.vertical);
       }
-      animate(commit ? 1 : 0);
+    };
+    const up = (e: PointerEvent) => {
+      nativePointers.current.delete(e.pointerId);
+      const g = gesture.current;
+      if (!g || g.id !== e.pointerId) return;
+      gesture.current = null;
+      if (g.dragging) {
+        if (reduced() && !current.current?.motionless) {
+          clear();
+          return;
+        }
+        const commit = (current.current?.distance || 0) >= 0.35;
+        void end(commit, () => getOptions().interaction?.step(g.forward));
+      } else if (g.edge && Math.hypot(e.clientX - g.x, e.clientY - g.y) <= 12) {
+        navigate(g.forward, () => getOptions().interaction?.step(g.forward));
+      }
+    };
+    const cancel = (e: PointerEvent) => {
+      nativePointers.current.delete(e.pointerId);
+      const g = gesture.current;
+      if (g?.id === e.pointerId) {
+        gesture.current = null;
+        if (g.dragging) void end(false, () => {});
+      }
+    };
+    window.addEventListener("pointerdown", down, true);
+    surface.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    surface.addEventListener("lostpointercapture", cancel);
+    return () => {
+      alive.current = false;
+      observer.disconnect();
+      media.removeEventListener("change", motion);
+      document.removeEventListener("visibilitychange", visible);
+      window.removeEventListener("pointerdown", down, true);
+      surface.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+      surface.removeEventListener("lostpointercapture", cancel);
+      nativePointers.current.clear();
+      clear();
+    };
+  }
+  const api = {
+    begin,
+    move(distance: number, vertical = 0) {
+      const s = current.current;
+      if (s && !s.ending) {
+        s.distance = distance;
+        s.vertical = vertical;
+        s.view?.draw(distance, vertical);
+      }
     },
+    end,
+    navigate,
+    handledSwipe: () => performance.now() - lastSwipe.current < 1000,
   };
+  return { api, connect, cancel: clear };
 }

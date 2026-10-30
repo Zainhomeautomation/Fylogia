@@ -11,6 +11,8 @@ const arg = (name, fallback) =>
   fallback;
 const url = arg("--url", "https://fylogia.com/"),
   output = resolve(arg("--out", join(tmpdir(), "fylogia-reading-profile")));
+const profileSource = arg("--source", "nasa");
+const textOnly = process.argv.includes("--text-only");
 const origin = new URL(url);
 if (
   origin.username ||
@@ -127,12 +129,20 @@ if (process.argv.includes("--lighthouse")) {
           await context.request.get(new URL("data/edition.json", url).href)
         ).json();
         const article = data.articles
-          .filter((a) => a.full && a.sourceId === "nasa")
+          .filter(
+            (a) =>
+              a.full &&
+              (profileSource === "longest" || a.sourceId === profileSource),
+          )
           .sort((a, b) => b.content.length - a.content.length)[0];
         if (!article)
           throw new Error(
-            "No current authorized NASA article for the lab profile.",
+            "No current authorized full article for the lab profile.",
           );
+        if (textOnly) {
+          article.image = undefined;
+          article.content = article.content.replace(/<img[^>]*>/gi, "");
+        }
         await page.addInitScript(
           ({ prefs, article }) => {
             localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
@@ -159,7 +169,7 @@ if (process.argv.includes("--lighthouse")) {
           });
           function tick(t) {
             state.frames.push(t);
-            if (document.querySelector(".curl-mesh"))
+            if (document.querySelector(".paper-fold"))
               state.peakNodes = Math.max(
                 state.peakNodes,
                 document.getElementsByTagName("*").length,
@@ -194,9 +204,18 @@ if (process.argv.includes("--lighthouse")) {
         ]) {
           const button = page.getByRole("button", { name, exact: true });
           if (await button.isEnabled()) {
+            const before = await page
+              .locator(".reader-footer [role=status]")
+              .textContent();
             await button.click();
+            await page.waitForFunction(
+              (before) =>
+                document.querySelector(".reader-footer [role=status]")
+                  ?.textContent !== before &&
+                !document.querySelector(".paper-fold,.curl-underlay"),
+              before,
+            );
             turns++;
-            await page.waitForTimeout(550);
           }
         }
         const metrics = await page.evaluate(() => {
@@ -227,11 +246,20 @@ if (process.argv.includes("--lighthouse")) {
             maxEventTiming: events.at(-1) ?? null,
             baseNodes: s.baseNodes,
             peakNodes: s.peakNodes,
-            remainingCurlLayers: document.querySelectorAll(".curl-mesh").length,
+            remainingCurlLayers:
+              document.querySelectorAll(".paper-fold").length,
             spread: document.querySelector(".reader-viewport").dataset.spread,
           };
         });
-        results.push({ engine, layout, viewport, turns, ...metrics });
+        results.push({
+          engine,
+          layout,
+          viewport,
+          turns,
+          source: article.source,
+          characters: article.content.length,
+          ...metrics,
+        });
       } finally {
         await context.close();
         await browser.close();

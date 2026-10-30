@@ -276,8 +276,14 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
   expect(
     await page
       .locator(".curl-underlay canvas")
-      .evaluate((n: HTMLCanvasElement) => n.height),
+      .evaluate((n: HTMLCanvasElement) => n.getBoundingClientRect().height),
   ).toBeLessThanOrEqual(area.height - 39);
+  // Retain a sharp high-DPI backing store while bounding its allocation.
+  expect(
+    await page
+      .locator(".curl-underlay canvas")
+      .evaluate((n: HTMLCanvasElement) => n.width * n.height),
+  ).toBeLessThanOrEqual(2_003_000);
   await page.mouse.up();
   await expect(page.locator(".reader-footer")).toContainText("Page 1 of 3");
 });

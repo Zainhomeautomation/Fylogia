@@ -79,7 +79,11 @@ test("daily cover, contents and continuous stories reuse pagination and preserve
       .getByRole("button", { name: "Next page", exact: true })
       .isEnabled()
   ) {
+    const status = first.locator(".reader-footer [role=status]");
+    const before = await status.textContent();
     await first.getByRole("button", { name: "Next page", exact: true }).click();
+    await expect(status).not.toHaveText(before!);
+    await expect(first.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
     expect(++turns).toBeLessThan(35);
   }
   const stored = await page.evaluate(

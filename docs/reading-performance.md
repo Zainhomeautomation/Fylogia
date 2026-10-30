@@ -17,7 +17,9 @@ Regression coverage includes the pre-JavaScript theme, offline local font, defer
 
 Before this milestone, the production personalized cold-home lab run recorded LCP 6,333 ms, CLS 0.00443 and TBT 24 ms (Performance 77). Post-deployment measurements must be recorded separately; local-origin results do not prove production performance.
 
-## Page-curl rendering decision
+## Earlier page-curl rendering decision
+
+The following records the earlier milestone. The subsequent [physical-page turning implementation](physical-page-turning.md) replaces its whole-page strip geometry with a localized paper crease and bounded adjacent PDF preparation.
 
 The existing renderer bends actual article/PDF page content using a bounded twelve-strip deformation with shadows, interactive cancellation and a destination page underneath. It is an approximation, not a continuously deformable physical-paper simulation. Reduced motion uses accessible direct page changes. No animation loop runs while idle.
 
