@@ -1,5 +1,5 @@
-import { mockEdition } from "./edition-fixture";
-import { test, expect, type Page } from "@playwright/test";
+import { test, mockEdition } from "./edition-fixture";
+import { expect, type Page } from "@playwright/test";
 async function nav(page: Page, name: string) {
   await expect(page.locator(".mobile-header")).toBeAttached();
   if (

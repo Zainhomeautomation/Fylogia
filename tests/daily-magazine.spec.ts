@@ -1,5 +1,5 @@
-import { mockEdition } from "./edition-fixture";
-import { test, expect, type Page } from "@playwright/test";
+import { test, mockEdition } from "./edition-fixture";
+import { expect, type Page } from "@playwright/test";
 import { defaults } from "../src/catalog";
 async function fixture(
   page: Page,

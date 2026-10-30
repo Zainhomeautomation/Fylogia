@@ -1,6 +1,6 @@
-import { mockEdition } from "./edition-fixture";
+import { test, mockEdition } from "./edition-fixture";
 import { readerOption } from "./reader-controls";
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 async function openFixture(page: Page, full = true, media = false) {
   const edition = await (await page.request.get("data/edition.json")).json();
   const base = edition.articles.find((a: any) => a.full);

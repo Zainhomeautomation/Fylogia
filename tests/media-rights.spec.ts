@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { defaults } from "../src/catalog";
-import { mockEdition } from "./edition-fixture";
+import { test, mockEdition } from "./edition-fixture";
 test("legacy saved NASA articles hide restricted photographs while retaining text, permitted figures and original stored data", async ({
   page,
 }) => {

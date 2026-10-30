@@ -1,6 +1,6 @@
 # Fylogia release audit — 30 October 2026
 
-Release candidate: final validation and publication pending. This audit follows the deployed and verified source, Daily Magazine, sync and performance milestones; no separate visual redesign was performed. The final repository/production synchronization check is reserved for the end.
+Release candidate validated locally; exact-head CI and final public-commit verification remain mandatory publication gates. This audit follows the deployed and verified source, Daily Magazine, sync and performance milestones; no separate visual redesign was performed. The final repository/production synchronization check is reserved for the end.
 
 ## Feature verification matrix
 
@@ -70,4 +70,6 @@ Initial JavaScript is approximately 132 KB gzipped, with lazy XML parsing, QR UI
 
 ## Release decision
 
-Pending final checks. No unconditional bug-free, legal-clearance, physical-device, field-INP or unqualified full-content claim is made. Remaining limitations include publisher permissions/CORS, online-only large public PDF, best-effort scheduled-feed timing, browser storage eviction, non-E2E optional sync with finite free quotas, missing Apple hardware/simulators and the approximate curl renderer.
+**READY WITH LIMITATIONS**, subject to successful exact-head CI, deployment and final live verification. Local release validation passed **174 browser tests without retries**, **66 server tests**, TypeScript/production build, formatting and lint (11 existing non-blocking React warnings). The suite includes actual Cloudflare Pages Functions with disposable local D1, metadata-only private sync, real PDF decode/CSP checks, legacy saved-media protection and network-disabled downloads. The 20 automated accessibility scans found no WCAG A/AA violations. Production milestone verification already passed three real-news/offline journeys, three original-PDF browser cases and the legacy-tab sync regression; final audit fixes require a new deployment receipt.
+
+The final commit and live verification are identified in the accompanying release report and [public build metadata](https://fylogia.com/build-info.json). No unconditional bug-free, legal-clearance, physical-device, field-INP or unqualified full-content claim is made. Remaining limitations include publisher permissions/CORS, online-only large public PDF, best-effort scheduled-feed timing, browser storage eviction, non-E2E optional sync with finite free quotas, missing Apple hardware/simulators and the approximate curl renderer.
