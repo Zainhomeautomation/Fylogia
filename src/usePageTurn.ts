@@ -19,6 +19,7 @@ type Session = {
   applied: boolean;
   applying: boolean;
   finishing: boolean;
+  motionless: boolean;
   frame: number;
   timer?: ReturnType<typeof setTimeout>;
 };
@@ -109,9 +110,18 @@ function createEngine(
     gesture.current = null;
   }
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function allowed(forward: boolean) {
+    const cfg = getOptions().interaction;
+    return !cfg || (forward ? cfg.next : cfg.previous);
+  }
   function begin(forward: boolean, corner = 1) {
     const surface = getSurface();
-    if (current.current || !surface || !getOptions().enabled || reduced())
+    if (
+      current.current ||
+      !surface ||
+      !getOptions().enabled ||
+      !allowed(forward)
+    )
       return false;
     const controller = new AbortController();
     const s: Session = {
@@ -123,10 +133,12 @@ function createEngine(
       applied: false,
       applying: false,
       finishing: false,
+      motionless: reduced(),
       frame: 0,
       ready: Promise.resolve(),
     };
     current.current = s;
+    if (s.motionless) return true;
     // A stalled range request leaves the current readable page in place.
     s.timer = setTimeout(() => dispose(s), 10_000);
     surface.dataset.pageTurn = "preparing";
@@ -255,6 +267,11 @@ function createEngine(
     if (s.ending) return;
     s.ending = true;
     s.apply = turn;
+    if (s.motionless) {
+      if (commit) applyOnce(s);
+      dispose(s, true);
+      return;
+    }
     if (commit) await s.ready;
     if (current.current !== s || s.controller.signal.aborted) return;
     const from = s.distance,
@@ -279,6 +296,7 @@ function createEngine(
     }, duration + 1400);
   }
   function navigate(forward: boolean, turn: () => void) {
+    if (!allowed(forward)) return;
     if (!getOptions().enabled || reduced()) {
       turn();
       return;
@@ -432,7 +450,7 @@ function createEngine(
       if (!g || g.id !== e.pointerId) return;
       gesture.current = null;
       if (g.dragging) {
-        if (reduced()) {
+        if (reduced() && !current.current?.motionless) {
           clear();
           return;
         }

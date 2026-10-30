@@ -222,3 +222,64 @@ test("a second pointer or motion change cancels a held corner without a late pag
   await page.mouse.up();
   await expect(page.locator(".reader-footer")).toContainText("Page 1–2 of 15");
 });
+
+test("queued turns cannot escape the last original PDF page", async ({
+  page,
+}) => {
+  const surface = await open(page);
+  const footer = page.locator(".reader-footer");
+  for (let n = 3; n <= 13; n += 2) {
+    await page
+      .getByRole("button", { name: "Next magazine page", exact: true })
+      .click();
+    await expect(footer).toContainText(`Page ${n}–${n + 1} of 15`);
+    await expect(page.locator(".pdf-spread[data-page-turn]")).toHaveCount(0);
+  }
+  const next = page.getByRole("button", {
+    name: "Next magazine page",
+    exact: true,
+  });
+  await next.click();
+  await next.click();
+  await expect(page.locator(".pdf-spread[data-page-turn]")).toHaveCount(0);
+  await expect(footer).toContainText("Page 15 of 15");
+  await expect(next).toBeDisabled();
+  await expect(
+    surface.locator(":scope > .pdf-pages canvas[aria-busy=false]"),
+  ).toHaveCount(1);
+});
+
+test("reduced motion keeps completed and cancelled corner drags functional without paper layers", async ({
+  page,
+}) => {
+  await open(page, 390);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const gesture = async (forward: boolean, fraction: number) => {
+    const b = (await page
+      .getByRole("button", {
+        name: forward
+          ? "Drag or tap to turn forward"
+          : "Drag or tap to turn backward",
+        exact: true,
+      })
+      .boundingBox())!;
+    const width = (await page
+      .locator(".pdf-spread > .pdf-pages canvas")
+      .boundingBox())!.width;
+    await page.mouse.move(b.x + 24, b.y + 24);
+    await page.mouse.down();
+    await page.mouse.move(
+      b.x + 24 + width * fraction * (forward ? -1 : 1),
+      b.y,
+      { steps: 8 },
+    );
+    await expect(page.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
+    await page.mouse.up();
+  };
+  await gesture(true, 0.7);
+  await expect(page.locator(".reader-footer")).toContainText("Page 2 of 15");
+  await gesture(true, 0.15);
+  await expect(page.locator(".reader-footer")).toContainText("Page 2 of 15");
+  await gesture(false, 0.7);
+  await expect(page.locator(".reader-footer")).toContainText("Page 1 of 15");
+});

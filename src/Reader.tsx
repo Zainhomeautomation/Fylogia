@@ -102,8 +102,13 @@ export function Reader({
   const navigation = useRef(true);
   const applyPage = useCallback(
     (next: number | ((previous: number) => number)) => {
-      const nextPage =
-        typeof next === "function" ? next(pageValue.current) : next;
+      const nextPage = Math.max(
+        0,
+        Math.min(
+          count - 1,
+          typeof next === "function" ? next(pageValue.current) : next,
+        ),
+      );
       pageValue.current = nextPage;
       navigation.current = true;
       anchor.current = null;

@@ -178,8 +178,13 @@ export default function PdfReader({
   }, []);
   const applyPage = useCallback(
     (value: number | ((previous: number) => number)) => {
-      const next =
-        typeof value === "function" ? value(pageValue.current) : value;
+      const next = Math.max(
+        1,
+        Math.min(
+          pdf?.numPages || 1,
+          typeof value === "function" ? value(pageValue.current) : value,
+        ),
+      );
       pageValue.current = next;
       setPage(next);
       changeZoom(1);
@@ -188,7 +193,7 @@ export default function PdfReader({
         surface.current.scrollLeft = 0;
       }
     },
-    [changeZoom],
+    [changeZoom, pdf?.numPages],
   );
   const pageCache = useRef<ReturnType<typeof pdfTurnCache> | null>(null);
   useEffect(() => {
