@@ -33,6 +33,18 @@ test("onboarding, real stories, saves, history, theme and persistent preferences
   page.on("pageerror", (e) => errors.push(e.message));
   await setup(page);
   await expect(page).toHaveTitle("Fylogia — Your World, One Page at a Time.");
+  // Use a real, permitted NASA photograph instead of depending on whichever
+  // publisher happens to lead the freshly ranked multi-source edition.
+  const edition = await (await page.request.get("data/edition.json")).json();
+  const illustrated = edition.articles.find(
+    (a: any) =>
+      a.sourceId === "nasa" && a.full && a.image && a.offlineImagesAllowed,
+  );
+  expect(illustrated).toBeTruthy();
+  await page
+    .getByRole("textbox", { name: "Search stories", exact: true })
+    .fill(illustrated.title);
+  await expect(page.locator(".story.lead h2")).toHaveText(illustrated.title);
   await expect
     .poll(
       () =>

@@ -7,9 +7,16 @@ test("queued article turns stay within the first and last text pages", async ({
   await page.setViewportSize({ width: 390, height: 650 });
   const edition = await (await page.request.get("data/edition.json")).json();
   const article = edition.articles
-    .filter((a: any) => a.full && a.content.length >= 2000)
+    .filter(
+      (a: any) =>
+        a.full &&
+        a.content.length >= 2000 &&
+        !/<(?:img|figure)\b/i.test(a.content),
+    )
     .sort((a: any, b: any) => a.content.length - b.content.length)[0];
   expect(article).toBeTruthy();
+  // Boundary behavior is independent of remote image loading and reflow.
+  article.image = undefined;
   await page.addInitScript(
     ({ article, prefs }) => {
       localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
@@ -19,7 +26,12 @@ test("queued article turns stay within the first and last text pages", async ({
   );
   await page.goto("./saved");
   await page.locator(".story-open").click();
-  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
   const status = page.locator(".reader-footer [role=status]");
   const number = async () =>
     Number((await status.innerText()).match(/Page (\d+)/)?.[1]);
