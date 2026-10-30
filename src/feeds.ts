@@ -1,3 +1,4 @@
+import { deriveApple, publisherTags } from "./apple-taxonomy";
 import { feedImage } from "./feed-images";
 import { parseFeedDocument } from "./feed-parser";
 import { plain } from "./article-html";
@@ -72,6 +73,19 @@ function parseItems(items: any[], source: Source): Article[] {
       );
       return {
         id: url,
+        apple: deriveApple(
+          {
+            title: plain(value(item.title)),
+            excerpt,
+            content: "",
+            url,
+            sourceId: source.id,
+            categories: source.categories,
+            publisherTags: publisherTags(item),
+          },
+          content,
+        ),
+        publisherTags: publisherTags(item),
         sourceId: source.id,
         source: source.name,
         title: plain(value(item.title)),

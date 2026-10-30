@@ -1,4 +1,9 @@
 import {
+  classifyApple,
+  sourceHasAppleCoverage,
+  appleRecommendationBoost,
+} from "./apple-taxonomy.ts";
+import {
   selectedSports,
   sourceSports,
   sportsPreferenceMatches,
@@ -83,6 +88,9 @@ export function deduplicateArticles(
         { sourceId: string; categories: string[]; region: string }
       >;
       count: number;
+      publisherTags: Set<string>;
+      appleTopics: Set<string>;
+      appleKinds: Set<string>;
     }
   >();
   const titles = new Map<string, string>();
@@ -129,6 +137,10 @@ export function deduplicateArticles(
         old.sources.add(article.sourceId);
         old.contexts.set(group.id, context);
         old.count++;
+        for (const tag of article.publisherTags || [])
+          old.publisherTags.add(tag);
+        for (const tag of article.apple?.topics || []) old.appleTopics.add(tag);
+        if (article.apple?.kind) old.appleKinds.add(article.apple.kind);
         duplicatesRemoved++;
         if (score(article) >= score(old.article)) old.article = article;
       } else
@@ -137,13 +149,40 @@ export function deduplicateArticles(
           sources: new Set([group.id, article.sourceId]),
           contexts: new Map([[group.id, context]]),
           count: 1,
+          publisherTags: new Set(article.publisherTags || []),
+          appleTopics: new Set(article.apple?.topics || []),
+          appleKinds: new Set(article.apple?.kind ? [article.apple.kind] : []),
         });
       aliases.set(canonical, key);
       if (signature) titles.set(signature, key);
     }
   const articles = [...records.values()].map(
-    ({ article, sources, contexts, count }) => ({
+    ({
+      article,
+      sources,
+      contexts,
+      count,
+      publisherTags,
+      appleTopics,
+      appleKinds,
+    }) => ({
       ...article,
+      ...(publisherTags.size
+        ? { publisherTags: [...publisherTags].slice(0, 24) }
+        : {}),
+      ...(appleTopics.size || appleKinds.size
+        ? {
+            apple: {
+              topics: [...appleTopics],
+              kind: [
+                "Official announcement",
+                "Rumor / leak",
+                "Review",
+                "Opinion",
+              ].find((k) => appleKinds.has(k)),
+            },
+          }
+        : {}),
       categories: [
         ...new Set([...contexts.values()].flatMap((c) => c.categories)),
       ],
@@ -169,7 +208,9 @@ export function recommendSources(
   const ranked = all
     .filter(
       (s) =>
-        s.categories.some((c) => prefs.interests.includes(c)) &&
+        (s.categories.some((c) => prefs.interests.includes(c)) ||
+          (prefs.interests.includes("Apple") &&
+            sourceHasAppleCoverage(s.id))) &&
         (!selected.length ||
           !s.categories.includes("Sports") ||
           s.categories.some(
@@ -189,6 +230,8 @@ export function recommendSources(
       const score = (s: Source) =>
         s.categories.filter((c) => prefs.interests.includes(c)).length * 3 +
         (s.full ? 4 : 0) +
+        appleRecommendationBoost(s, prefs.topics) +
+        (prefs.interests.includes("Apple") && s.id === "apple" ? 3 : 0) +
         (selected.length ? sportsRecommendationBoost(s.id) : 0) +
         (prefs.topics || []).filter((t) =>
           topicMatchesText(t, (s.topics || []).join(" · ")),
@@ -242,7 +285,9 @@ export function sourceMatches(
       )
         .toLowerCase()
         .includes(query.trim().toLowerCase())) &&
-    (category === "All categories" || s.categories.includes(category)) &&
+    (category === "All categories" ||
+      s.categories.includes(category) ||
+      (category === "Apple" && sourceHasAppleCoverage(s.id))) &&
     (region === "All regions" || s.region === region) &&
     (content === "All content" ||
       (content === "Full text capable" ? !!s.full : !s.full))
@@ -286,6 +331,7 @@ export function withCurrentCategories(
 ): Article {
   const labels = new Set(article.categories);
   const previousSize = labels.size;
+  if (classifyApple(article).topics.length) labels.add("Apple");
   for (const id of [article.sourceId, ...(article.alsoIn || [])])
     for (const category of directory.get(id)?.categories || [])
       labels.add(category);

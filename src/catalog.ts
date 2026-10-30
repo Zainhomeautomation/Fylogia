@@ -1,3 +1,5 @@
+import { appleSources } from "./apple-sources.ts";
+import { appleSections, appleSourceTopics } from "./apple-taxonomy.ts";
 import { sports, topicsForSportsSource } from "./sports-taxonomy.ts";
 import { sportsSources } from "./sports-sources.ts";
 import { lifestyleSources } from "./lifestyle-sources.ts";
@@ -96,7 +98,7 @@ export const subcategories: Record<string, string[]> = {
   ],
   "Home & Garden": ["Home improvement", "Gardening", "Decoration", "Furniture"],
   Technology: ["Gadgets", "Software", "Cybersecurity", "Innovation"],
-  Apple: ["iPhone", "iPad", "Mac", "macOS", "iOS", "iPadOS", "Apple Watch"],
+  Apple: appleSections.map((section) => section.name),
   AI: ["Research", "Tools", "Robotics"],
   "Smart Home": ["Home Assistant", "Automation", "Matter"],
   "3D Printing": ["Printers", "Materials", "Design"],
@@ -416,11 +418,13 @@ const catalogSources: Source[] = [
   ...interestSources,
   ...lifestyleSources,
   ...sportsSources,
+  ...appleSources,
 ];
 export const sources: Source[] = catalogSources.map((source) => {
   const detail = sourceTopics[source.id];
   const sportTopics = topicsForSportsSource(source.id);
-  return detail || sportTopics.length
+  const appleTopics = appleSourceTopics(source);
+  return detail || sportTopics.length || appleTopics.length
     ? {
         ...source,
         categories: [
@@ -431,6 +435,7 @@ export const sources: Source[] = catalogSources.map((source) => {
             ...(source.topics || []),
             ...(detail?.topics || []),
             ...sportTopics,
+            ...appleTopics,
           ]),
         ],
       }
@@ -445,6 +450,8 @@ export interface ContentDetails {
   completeness: "publisher-body" | "excerpt" | "unknown";
 }
 export interface Article {
+  publisherTags?: string[];
+  apple?: { topics: string[]; kind?: string };
   contentDetails?: ContentDetails;
   feedContexts?: { sourceId: string; categories: string[]; region: string }[];
   alsoIn?: string[];
@@ -467,6 +474,7 @@ export interface Article {
   full: boolean;
 }
 export interface FeedStatus {
+  appleVersion?: number;
   contentVersion?: number;
   bodyCount?: number;
   feedEntries?: number;

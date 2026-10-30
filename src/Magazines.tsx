@@ -1,3 +1,6 @@
+import { AppleNavigation } from "./AppleNavigation";
+import { applePublications } from "./apple-publications";
+import { sourceHasAppleCoverage, type AppleSelection } from "./apple-taxonomy";
 import { SportsNavigation } from "./SportsNavigation";
 import { sportsPublications } from "./sports-publications";
 import {
@@ -94,22 +97,32 @@ export function Magazines({
   onHome,
   initialCategory = "All categories",
   initialSport = "all",
+  initialApple = "all",
   onBrowseSource,
 }: {
   onHome: () => void;
   initialCategory?: string;
   initialSport?: SportSelection;
-  onBrowseSource: (id: string, sport?: SportSelection) => void;
+  initialApple?: AppleSelection;
+  onBrowseSource: (
+    id: string,
+    sport?: SportSelection,
+    apple?: AppleSelection,
+  ) => void;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(initialCategory);
+  const [apple, setApple] = useState<AppleSelection>(initialApple);
   const [sport, setSport] = useState<SportSelection>(initialSport);
   const matches = (m: {
     title?: string;
     name?: string;
     categories?: string[];
+    id?: string;
   }) =>
-    (category === "All categories" || m.categories?.includes(category)) &&
+    (category === "All categories" ||
+      m.categories?.includes(category) ||
+      (category === "Apple" && sourceHasAppleCoverage(m.id || ""))) &&
     normalizeInterestSearch(
       `${m.title || m.name} ${(m.categories || []).join(" ")}`,
     ).includes(normalizeInterestSearch(query.trim()));
@@ -117,11 +130,28 @@ export function Magazines({
     ...sources.map((source) => ({
       ...source,
       articleSourceId: source.id,
+      note: undefined as string | undefined,
       sportIds:
         sportsPublications.find(
           (p) => p.id === source.id || p.feedId === source.id,
         )?.sports || sourceSports(source),
     })),
+    ...applePublications
+      .filter(
+        (p) =>
+          !sources.some(
+            (s) =>
+              s.id === p.id || s.id === ("feedId" in p ? p.feedId : undefined),
+          ),
+      )
+      .map((p) => ({
+        ...p,
+        categories: ["Apple"],
+        full: false,
+        articleSourceId: undefined,
+        sportIds: [] as string[],
+        note: "note" in p ? p.note : undefined,
+      })),
     ...sportsPublications
       .filter((p) => !sources.some((s) => s.id === p.id || s.id === p.feedId))
       .map((p) => ({
@@ -130,6 +160,7 @@ export function Magazines({
         full: false,
         articleSourceId: undefined,
         sportIds: p.sports,
+        note: undefined as string | undefined,
       })),
   ];
   const publications = directory.filter(
@@ -332,6 +363,13 @@ export function Magazines({
           below, or import a PDF you have permission to read.
         </p>
       )}
+      {category === "Apple" && (
+        <AppleNavigation
+          value={apple}
+          onChange={setApple}
+          onReset={() => setApple("all")}
+        />
+      )}
       {category === "Sports" && (
         <SportsNavigation value={sport} onChange={setSport} />
       )}
@@ -355,7 +393,8 @@ export function Magazines({
                 ? source.full
                   ? "Permitted full articles"
                   : "Publisher previews"
-                : "Official publisher · Editions on publisher’s site"}
+                : source.note ||
+                  "Official publisher · Editions on publisher’s site"}
             </p>
             {source.articleSourceId && (
               <button
@@ -364,6 +403,7 @@ export function Magazines({
                   onBrowseSource(
                     source.articleSourceId!,
                     category === "Sports" ? sport : undefined,
+                    category === "Apple" ? apple : undefined,
                   )
                 }
               >

@@ -1,3 +1,4 @@
+import { sourceHasAppleCoverage, deriveApple } from "../src/apple-taxonomy.ts";
 import { parseFeedDocument } from "../src/feed-parser.ts";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { sources } from "../src/catalog.ts";
@@ -7,7 +8,7 @@ import {
   deduplicateArticles,
 } from "../src/source-utils.ts";
 import { feedArticle } from "./feed-content.mjs";
-const pipelineVersion = 4;
+const pipelineVersion = 9;
 const contentVersion = 3;
 const fullOnly = process.argv.includes("--full-only");
 let previous = { articles: [], statuses: [] };
@@ -22,8 +23,22 @@ if (
 const now = new Date().toISOString();
 async function refresh(source) {
   const old = previous.statuses.find((s) => s.id === source.id);
+  const appleSource = sourceHasAppleCoverage(source.id);
+  const enrichmentCurrent = !appleSource || old?.appleVersion === 2;
   const cached = previous.articles
     .filter((a) => a.sourceId === source.id || a.alsoIn?.includes(source.id))
+    .map((a) =>
+      previous.pipelineVersion === pipelineVersion
+        ? a
+        : {
+            ...a,
+            apple: deriveApple({
+              ...a,
+              sourceId: source.id,
+              categories: source.categories,
+            }),
+          },
+    )
     .map((a) =>
       a.contentDetails
         ? a
@@ -46,6 +61,7 @@ async function refresh(source) {
     };
     if (
       previous.pipelineVersion === pipelineVersion &&
+      enrichmentCurrent &&
       (!source.full || old?.contentVersion === contentVersion) &&
       cached.length &&
       old?.etag
@@ -53,6 +69,7 @@ async function refresh(source) {
       headers["If-None-Match"] = old.etag;
     if (
       previous.pipelineVersion === pipelineVersion &&
+      enrichmentCurrent &&
       (!source.full || old?.contentVersion === contentVersion) &&
       cached.length &&
       old?.lastModified
@@ -83,7 +100,7 @@ async function refresh(source) {
     const parsed = parseFeedDocument(xml);
     const latest = latestPublication(parsed.items);
     const articles = parsed.items
-      .slice(0, source.validatedAt ? 8 : 18)
+      .slice(0, appleSource ? 32 : source.validatedAt ? 8 : 18)
       .map((item) => feedArticle(item, source))
       .filter((a) => a.url && a.title);
     if (!articles.length) throw new Error("No readable entries");
@@ -92,6 +109,7 @@ async function refresh(source) {
       articles,
       status: {
         id: source.id,
+        ...(appleSource ? { appleVersion: 2 } : {}),
         ok: true,
         count: articles.length,
         fullCount: articles.filter((a) => a.full).length,

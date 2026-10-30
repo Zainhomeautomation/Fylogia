@@ -1,3 +1,4 @@
+import { applePreferenceScore } from "./apple-taxonomy.ts";
 import type { Article, Preferences } from "./catalog";
 import { articleMatchesLibrary } from "./source-utils.ts";
 import { topicMatchesText } from "./interest-taxonomy.ts";
@@ -47,6 +48,7 @@ export function createDailyMagazine(
       (Number.isFinite(age) ? 18 / (1 + age / 2) : 0) +
       (a.full ? (prefs.reading === "pages" ? 9 : 7) : 0) +
       (a.image ? 2 : 0) +
+      applePreferenceScore(a, prefs) * 8 +
       a.categories.filter((c) => prefs.interests.includes(c)).length * 3 +
       prefs.topics.filter((t) => topicMatchesText(t, a.title + " " + a.excerpt))
         .length *

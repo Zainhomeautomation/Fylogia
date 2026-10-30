@@ -1,3 +1,4 @@
+import { appleSection } from "./apple-taxonomy";
 import { sportLabel, sportForTopic } from "./sports-taxonomy";
 import { normalizeInterestSearch } from "./interest-taxonomy";
 import { recommendSources } from "./source-utils";
@@ -32,6 +33,7 @@ export function Onboarding({
   const [interestSearch, setInterestSearch] = useState("");
   const sameTopic = (a: string, b: string) =>
     a === b ||
+    (!!appleSection(a) && appleSection(a)?.id === appleSection(b)?.id) ||
     (!!sportForTopic(a) && sportForTopic(a)?.id === sportForTopic(b)?.id);
   const topicSelected = (topic: string) =>
     draft.topics.some((value) => sameTopic(value, topic));
@@ -169,8 +171,8 @@ export function Onboarding({
               <details>
                 <summary>Fine-tune your interests</summary>
                 <p className="quiet">
-                  Topics prioritize headlines. Selected sports also focus your
-                  Sports stories.
+                  Followed Apple products prioritize relevant stories. Selected
+                  sports focus your Sports stories.
                 </p>
                 <div className="topics">
                   {[

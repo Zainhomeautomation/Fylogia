@@ -1,10 +1,14 @@
-import { normalizeDailyMagazines, type DailyMagazine } from "./daily-magazine";
+import { appleSections, appleKinds } from "./apple-taxonomy.ts";
+import {
+  normalizeDailyMagazines,
+  type DailyMagazine,
+} from "./daily-magazine.ts";
 import {
   defaults,
   type Article,
   type Preferences,
   type Source,
-} from "./catalog";
+} from "./catalog.ts";
 
 export interface LibraryData {
   magazineReading: Record<string, { page: number; bookmark: number }>;
@@ -98,6 +102,24 @@ function articles(v: unknown): Article[] {
     )
       throw new Error("Invalid article");
     return {
+      ...(strings(a.publisherTags) &&
+      a.publisherTags.length <= 24 &&
+      a.publisherTags.every((t: string) => t.length <= 100)
+        ? { publisherTags: [...a.publisherTags] }
+        : {}),
+      ...(a.apple &&
+      strings(a.apple.topics) &&
+      a.apple.topics.length <= 28 &&
+      a.apple.topics.every((t: string) => appleSections.some((s) => s.id === t))
+        ? {
+            apple: {
+              topics: [...new Set<string>(a.apple.topics)],
+              ...(appleKinds.includes(a.apple.kind)
+                ? { kind: a.apple.kind }
+                : {}),
+            },
+          }
+        : {}),
       id: a.id,
       title: a.title,
       source: a.source,

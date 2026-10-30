@@ -14,6 +14,13 @@ async function nav(page: Page, name: string) {
 test("reader Back preserves section, filters and scroll; Home opens For You", async ({
   page,
 }, info) => {
+  const edition = await (await page.request.get("data/edition.json")).json();
+  const article = edition.articles.find(
+    (a: any) =>
+      a.sourceId === "nasa" && a.categories.includes("Science") && a.full,
+  );
+  expect(article).toBeTruthy();
+  const query = article.title;
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("./");
@@ -31,11 +38,13 @@ test("reader Back preserves section, filters and scroll; Home opens For You", as
         .click();
     const search = page.getByPlaceholder("Search stories, sources, ideas…");
     await search.fill("");
+    // Select a real article by its exact title: daily substring matches (such as
+    // NASA / nasal) must not make this navigation test depend on feed ordering.
     // Real keyboard events exercise controlled input on emulated tablet WebKit.
-    await search.pressSequentially("NASA");
+    await search.pressSequentially(query);
     // Await the filtered React result, not an old card still present while the
     // Linux WebKit input/navigation events are completing.
-    await expect(page.locator(".story.lead")).toContainText("NASA");
+    await expect(page.locator(".story.lead")).toContainText(query);
     const story = page.locator(".story-open").first();
     await expect(story).toBeVisible();
     await story.scrollIntoViewIfNeeded();
@@ -63,7 +72,7 @@ test("reader Back preserves section, filters and scroll; Home opens For You", as
     else await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page).toHaveURL(url);
-    await expect(search).toHaveValue("NASA");
+    await expect(search).toHaveValue(query);
     if (section === "Categories")
       await expect(
         page.getByRole("button", { name: "Science", exact: true }),
