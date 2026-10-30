@@ -197,6 +197,25 @@ test("rumor, review, opinion and official labels are evidence based, not publish
       .kind,
     "Official announcement",
   );
+  assert.equal(
+    deriveApple(
+      story({
+        sourceId: "apple-developer-news",
+        title: "Updated App Review Guidelines are now available",
+      }),
+    ).kind,
+    "Official announcement",
+  );
+  assert.equal(
+    classifyApple(
+      story({
+        sourceId: "9to5mac-fitness",
+        title: "The future of Apple Fitness+ is under review",
+        apple: { topics: ["fitness"], kind: "Review" },
+      }),
+    ).kind,
+    undefined,
+  );
 });
 test("RSS raw body supplies classification without storing unlicensed full article content", () => {
   const a = feedArticle(

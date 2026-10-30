@@ -434,11 +434,16 @@ export function deriveApple(
   const typeText = plain(
     article.title + " " + (article.publisherTags || []).join(" "),
   );
-  const kind: AppleKind | undefined =
-    (companyContext || tags.size > 0) &&
-    /\b(?:rumou?rs?|leaks?|leaked|reportedly|allegedly)\b/i.test(primary)
+  const kind: AppleKind | undefined = [
+    "apple",
+    "apple-developer-news",
+  ].includes(article.sourceId)
+    ? "Official announcement"
+    : (companyContext || tags.size > 0) &&
+        /\b(?:rumou?rs?|leaks?|leaked|reportedly|allegedly)\b/i.test(primary)
       ? "Rumor / leak"
-      : /\b(?:review|hands.on|tested)\b/i.test(typeText)
+      : !notProductReview.test(typeText) &&
+          /\b(?:review|hands.on|tested)\b/i.test(typeText)
         ? "Review"
         : /\b(?:opinion|editorial|commentary)\b/i.test(typeText)
           ? "Opinion"
@@ -448,6 +453,8 @@ export function deriveApple(
   if (kind === "Rumor / leak") tags.add("rumors");
   return { topics: [...tags], ...(kind ? { kind } : {}) };
 }
+const notProductReview =
+  /\b(?:App Review|under review|judicial review|review guidelines)\b/i;
 const classificationCache = new WeakMap<
   Article,
   { topics: AppleId[]; kind?: AppleKind }
@@ -476,7 +483,10 @@ export function classifyApple(article: Article) {
   ] as const)
     if (result.topics.includes(os) && !result.topics.includes(product))
       result.topics.push(product);
-  if (article.sourceId === "apple") result.kind = "Official announcement";
+  if (result.kind === "Review" && notProductReview.test(article.title))
+    delete result.kind;
+  if (["apple", "apple-developer-news"].includes(article.sourceId))
+    result.kind = "Official announcement";
   classificationCache.set(article, result);
   return result;
 }
