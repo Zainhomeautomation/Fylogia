@@ -305,8 +305,13 @@ test("browser eviction is detected without deleting bookmarks", async ({
 test("download failures remain visible inside article and Daily Magazine readers without blocking page turns", async ({
   page,
 }) => {
-  await fixture(page);
+  const state = await fixture(page);
   await onboard(page);
+  // A refreshed edition may rank a short story first; this case needs pages.
+  await page
+    .getByRole("textbox", { name: "Search stories", exact: true })
+    .fill(state.edition.articles[0].title);
+  await expect(page.locator(".story-open")).toHaveCount(1);
   await page.evaluate(() => {
     const original = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = function (value: any, ...args: any[]) {

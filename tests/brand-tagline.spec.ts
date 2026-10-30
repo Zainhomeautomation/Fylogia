@@ -27,6 +27,22 @@ test("homepage brand tagline stays secondary, responsive and exclusive to For Yo
     await expect(page).toHaveTitle(`Fylogia — ${tagline}`);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     await page.evaluate(() => document.fonts.ready);
+    const mark = page.locator(".brand-name .brand-mark img:visible");
+    await expect(mark).toHaveCount(1);
+    await expect(mark).toHaveAttribute(
+      "src",
+      new RegExp(
+        theme === "light" ? "fylogia-mark-light\\.svg$" : "fylogia-mark\\.svg$",
+      ),
+    );
+    await expect
+      .poll(() =>
+        mark.evaluate(
+          (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
+        ),
+      )
+      .toBeTruthy();
+
     for (const [width, height] of [
       [360, 780],
       [390, 844],

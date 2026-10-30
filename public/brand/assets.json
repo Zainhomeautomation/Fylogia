@@ -1,0 +1,122 @@
+[
+  {
+    "path": "brand/fylogia-mark.svg",
+    "bytes": 1750,
+    "sha256": "46d16f8358a9562523e625a192104e27bdfdb970c5cb465932bfb8e5e54b2798"
+  },
+  {
+    "path": "brand/fylogia-mark.png",
+    "bytes": 30166,
+    "sha256": "15ee826d499985d8491742572fe79843b67edbec5f786e5cc2b5310bcf8def26"
+  },
+  {
+    "path": "brand/fylogia-mark-light.svg",
+    "bytes": 1750,
+    "sha256": "150be3ca1febc63dae7471b6abb163751d6217cfbaf6d861b678ede547818bba"
+  },
+  {
+    "path": "brand/fylogia-mark-light.png",
+    "bytes": 30063,
+    "sha256": "37696dd5127e05cfa836902f8926edd6b078f9e0333de01b011a578a1a8daf97"
+  },
+  {
+    "path": "brand/fylogia-mark-monochrome.svg",
+    "bytes": 1033,
+    "sha256": "ac2ad0dbfbd6718a00baa496a393a20a233a6042ed9f5b1cb11333573a72320e"
+  },
+  {
+    "path": "brand/fylogia-mark-monochrome.png",
+    "bytes": 7504,
+    "sha256": "7818d1629c6026d3bd9d3e4292fc1c6407cbb56c3d16d3634797c60f949592e6"
+  },
+  {
+    "path": "brand/fylogia-mark-monochrome-inverse.svg",
+    "bytes": 1033,
+    "sha256": "407bfa21fd6fd01e87d2583148aa8e1ab82d8443364f7ebf5b88e0680e2c25a3"
+  },
+  {
+    "path": "brand/fylogia-mark-monochrome-inverse.png",
+    "bytes": 7484,
+    "sha256": "a7b5f439ded60159334e465b72ec174e00bc68500832bc25ba7e58e44f44824a"
+  },
+  {
+    "path": "brand/app-icon-master.svg",
+    "bytes": 1858,
+    "sha256": "94ddf1349d95a896fb05a4861ee1231a50ececd58c24933f36bf17c37ff52816"
+  },
+  {
+    "path": "brand/app-icon-1024.png",
+    "bytes": 49810,
+    "sha256": "5efa1691db92b4461f48e2c2275a2115fd6527a59c7d38510ac9ba0940a9da9e"
+  },
+  {
+    "path": "brand/app-icon-light.svg",
+    "bytes": 1858,
+    "sha256": "9c73b80a8178d380cb98dc5a7e923f9a940ba59e3fc12abad02d9ed7d09cc069"
+  },
+  {
+    "path": "brand/app-icon-light.png",
+    "bytes": 49384,
+    "sha256": "1b15f8e31d23f331b40e67b9db29b841cf1aa1b4591fe85dfb164a67af30c477"
+  },
+  {
+    "path": "favicon.svg",
+    "bytes": 1858,
+    "sha256": "94ddf1349d95a896fb05a4861ee1231a50ececd58c24933f36bf17c37ff52816"
+  },
+  {
+    "path": "icon.svg",
+    "bytes": 1858,
+    "sha256": "94ddf1349d95a896fb05a4861ee1231a50ececd58c24933f36bf17c37ff52816"
+  },
+  {
+    "path": "icons/icon-192.png",
+    "bytes": 7809,
+    "sha256": "006acb8b42fcd4a4e549abe0f127644e57c205623d7edc1b2a76a872e3c29108"
+  },
+  {
+    "path": "icons/icon-512.png",
+    "bytes": 22604,
+    "sha256": "66fc3d00314f124093e9b452431700dc85009ce898b4ac3648fd1654b7eb098f"
+  },
+  {
+    "path": "icons/maskable-512.png",
+    "bytes": 18638,
+    "sha256": "a0b0e2ef10e191bc637d67f35538d1fc136aaa319de963557e9cd8e228a73f46"
+  },
+  {
+    "path": "apple-touch-icon.png",
+    "bytes": 7302,
+    "sha256": "0eb747349ac9ffbd7cabcc26b1f2e812a197dcb1a8a5ffc8796706bfb6b6f82d"
+  },
+  {
+    "path": "favicon-16x16.png",
+    "bytes": 426,
+    "sha256": "f8e1019d434ba1773049a8ce7d641e0e2b2af27efc5c8c246282882caf9f0176"
+  },
+  {
+    "path": "favicon-32x32.png",
+    "bytes": 1028,
+    "sha256": "a70654c02e6474cc504141ab890aecd5229a6227938ed8c879e43e7e3fbc734a"
+  },
+  {
+    "path": "favicon-48x48.png",
+    "bytes": 1645,
+    "sha256": "604c8f3cbd4bfbd6743a698add67a852e6bddc15c24b7644b84664c4d62c505b"
+  },
+  {
+    "path": "favicon.ico",
+    "bytes": 3153,
+    "sha256": "746a77e346afbb3d509e91d4aec0905f28addd88e343b58d96da2a6ea6168996"
+  },
+  {
+    "path": "brand/social-card.svg",
+    "bytes": 2286,
+    "sha256": "30831d7ebb3f2ab9ce3130899edc7adbdaf5eeb6aac5d0a3568a40188bedf439"
+  },
+  {
+    "path": "brand/social-card.png",
+    "bytes": 31278,
+    "sha256": "fde67c8f8ba9bffc68dfde4a71d4943ca6cc8d072dc5bc0bd87ee90ba5191a39"
+  }
+]

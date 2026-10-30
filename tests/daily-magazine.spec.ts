@@ -9,7 +9,11 @@ async function fixture(
   const data = await (await page.request.get("data/edition.json")).json();
   const full = data.articles
     .filter(
-      (a: any) => a.full && a.sourceId === "nasa" && a.content.length > 4000,
+      (a: any) =>
+        a.full &&
+        a.sourceId === "nasa" &&
+        a.content.length > 4000 &&
+        (!images || Boolean(a.image)),
     )
     .sort((a: any, b: any) => b.content.length - a.content.length)
     .slice(0, 2)

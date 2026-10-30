@@ -2,12 +2,14 @@ import { initializeCloudSync } from "./cloud-sync";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import { BrandMark } from "./BrandMark";
 import App from "./App.tsx";
 import { initializeLocalLibrary } from "./local-library";
 
 const root = createRoot(document.getElementById("root")!);
 root.render(
   <p className="startup-message" role="status">
+    <BrandMark />
     Opening your library…
   </p>,
 );
