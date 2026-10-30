@@ -318,6 +318,32 @@ function createEngine(
     let touchSequence = false;
     let touchBlocked = false;
     let touchId: number | undefined;
+    let releaseTouchTarget = () => {};
+    const retainTouchTarget = (target: EventTarget | null) => {
+      releaseTouchTarget();
+      if (!(target instanceof Node)) return;
+      // A PDF turn can replace its canvas during a follow-up contact. Touch
+      // events retain that detached start target and no longer bubble to the
+      // surface/window. Retain only this contact's target until final release.
+      const moveDetached = (event: Event) => {
+        if (!surface.contains(target)) touchMove(event as TouchEvent);
+      };
+      const endDetached = (event: Event) => {
+        if (!surface.contains(target)) touchEnd(event as TouchEvent);
+      };
+      const cancelDetached = (event: Event) => {
+        if (!surface.contains(target)) touchCancel(event as TouchEvent);
+      };
+      target.addEventListener("touchmove", moveDetached, { passive: false });
+      target.addEventListener("touchend", endDetached, { passive: false });
+      target.addEventListener("touchcancel", cancelDetached, { passive: true });
+      releaseTouchTarget = () => {
+        target.removeEventListener("touchmove", moveDetached);
+        target.removeEventListener("touchend", endDetached);
+        target.removeEventListener("touchcancel", cancelDetached);
+        releaseTouchTarget = () => {};
+      };
+    };
     let width = surface.clientWidth,
       height = surface.clientHeight;
     const observer = new ResizeObserver(() => {
@@ -341,6 +367,7 @@ function createEngine(
     media.addEventListener("change", motion);
     const visible = () => {
       if (document.hidden) {
+        releaseTouchTarget();
         touchSequence = false;
         touchBlocked = false;
         touchId = undefined;
@@ -359,6 +386,7 @@ function createEngine(
       const zoomed = browserZoomed();
       if ((surface.dataset.browserZoomed === "true") !== zoomed) {
         surface.dataset.browserZoomed = String(zoomed);
+        releaseTouchTarget();
         clear();
         touchSequence = false;
         touchBlocked = false;
@@ -571,6 +599,7 @@ function createEngine(
     };
     const touchStart = (event: TouchEvent) => {
       if (!getOptions().enabled || browserZoomed()) {
+        releaseTouchTarget();
         touchSequence = false;
         touchBlocked = false;
         touchId = undefined;
@@ -591,6 +620,7 @@ function createEngine(
       touchId = event.touches[0].identifier;
       nativePointers.current.clear();
       down(input(event.touches[0], event), true);
+      retainTouchTarget(event.target);
     };
     const touchMove = (event: TouchEvent) => {
       if (!touchSequence || touchBlocked) return;
@@ -611,6 +641,7 @@ function createEngine(
       );
       if (!touchBlocked && touch) up(input(touch, event), true);
       if (!event.touches.length) {
+        releaseTouchTarget();
         touchSequence = false;
         touchBlocked = false;
         touchId = undefined;
@@ -619,6 +650,7 @@ function createEngine(
     };
     const touchCancel = (event: TouchEvent) => {
       if (!touchSequence) return;
+      releaseTouchTarget();
       abortTouch();
       touchBlocked = event.touches.length > 0;
       touchSequence = touchBlocked;
@@ -635,6 +667,7 @@ function createEngine(
     surface.addEventListener("lostpointercapture", cancel);
     return () => {
       alive.current = false;
+      releaseTouchTarget();
       observer.disconnect();
       media.removeEventListener("change", motion);
       document.removeEventListener("visibilitychange", visible);

@@ -758,3 +758,56 @@ for (const kind of ["article", "pdf"] as const) {
     await expect(status).not.toHaveText(initial);
   });
 }
+test("PDF contact survives canvas replacement during a rapid follow-up turn", async ({
+  page,
+}) => {
+  await ready(page, "pdf");
+  const status = page.locator(".reader-footer [role=status]");
+  await touchSwipe(page, ".pdf-spread", -75);
+  // Keep the second contact on the original canvas while the first turn
+  // completes. Touch sequences retain their start target even after removal.
+  await page.evaluate(() => {
+    const surface = document.querySelector(".pdf-spread")!;
+    const r = surface.getBoundingClientRect(),
+      x = r.left + r.width * 0.65,
+      y = r.top + r.height * 0.45;
+    const target = document.elementFromPoint(x, y)!;
+    (window as any).heldPdfContact = { target, x, y };
+    const t = { identifier: 71, target, clientX: x, clientY: y },
+      e = new Event("touchstart", { bubbles: true, cancelable: true });
+    Object.assign(e, { touches: [t], targetTouches: [t], changedTouches: [t] });
+    target.dispatchEvent(e);
+  });
+  await expect(status).toContainText("Page 3");
+  await expect
+    .poll(() =>
+      page.evaluate(() => !(window as any).heldPdfContact.target.isConnected),
+    )
+    .toBeTruthy();
+  await page.evaluate(async () => {
+    const { target, x, y } = (window as any).heldPdfContact;
+    for (let i = 1; i <= 5; i++) {
+      const t = {
+          identifier: 71,
+          target,
+          clientX: x - (75 * i) / 5,
+          clientY: y,
+        },
+        e = new Event("touchmove", { bubbles: true, cancelable: true });
+      Object.assign(e, {
+        touches: [t],
+        targetTouches: [t],
+        changedTouches: [t],
+      });
+      target.dispatchEvent(e);
+      await new Promise(requestAnimationFrame);
+    }
+    const t = { identifier: 71, target, clientX: x - 75, clientY: y },
+      e = new Event("touchend", { bubbles: true, cancelable: true });
+    Object.assign(e, { touches: [], targetTouches: [], changedTouches: [t] });
+    target.dispatchEvent(e);
+    delete (window as any).heldPdfContact;
+  });
+  await expect(status).toContainText("Page 5", { timeout: 15000 });
+  await expect(page.locator(".paper-fold")).toHaveCount(0);
+});
