@@ -51,8 +51,32 @@ export function PageTurnControls({
       lastEnd.current = performance.now();
       if (g?.dragging) curl.end(false, () => {});
     };
+    const release = (event: TouchEvent) => {
+      // The final finger may belong to another element, outside this control.
+      if (!event.touches.length && touchBlocked.current) {
+        gesture.current = null;
+        touchOwned.current = false;
+        touchBlocked.current = false;
+      }
+    };
+    const multi = (event: TouchEvent) => {
+      if (event.touches.length > 1 && touchOwned.current) {
+        const g = gesture.current;
+        gesture.current = null;
+        touchBlocked.current = true;
+        if (g?.dragging) curl.end(false, () => {});
+      }
+    };
     document.addEventListener("visibilitychange", reset);
-    return () => document.removeEventListener("visibilitychange", reset);
+    window.addEventListener("touchstart", multi, { passive: true });
+    window.addEventListener("touchend", release, { passive: true });
+    window.addEventListener("touchcancel", release, { passive: true });
+    return () => {
+      document.removeEventListener("visibilitychange", reset);
+      window.removeEventListener("touchstart", multi);
+      window.removeEventListener("touchend", release);
+      window.removeEventListener("touchcancel", release);
+    };
   }, [curl]);
   const surfaceFor = (button: HTMLElement) =>
     button
@@ -145,12 +169,7 @@ export function PageTurnControls({
       turn(g.forward);
   }
   return (
-    <div
-      className="page-turn-controls"
-      aria-label="Page corners"
-      onTouchStart={(e) => e.stopPropagation()}
-      onTouchEnd={(e) => e.stopPropagation()}
-    >
+    <div className="page-turn-controls" aria-label="Page corners">
       {!learned && (
         <aside className="turn-tutorial" aria-label="Page turning guide">
           <span>Drag or swipe to turn pages</span>

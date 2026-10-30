@@ -517,7 +517,8 @@ function createEngine(
           dy = e.clientY - g.y;
         const commit =
           g.touch && !g.edge
-            ? Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5
+            ? dx * (g.forward ? -1 : 1) >= 60 &&
+              Math.abs(dx) > Math.abs(dy) * 1.5
             : (g.queued
                 ? (dx * (g.forward ? -1 : 1)) / g.width
                 : current.current?.distance || 0) >= 0.35;

@@ -660,3 +660,101 @@ test("browser-level zoom leaves one-finger panning to the browser and fit restor
   await touchSwipe(page, ".reader-viewport", -75);
   await expect(status).not.toHaveText(initial);
 });
+test("cross-surface two-finger release resets both page and corner gesture owners", async ({
+  page,
+}) => {
+  await ready(page, "article");
+  const status = page.locator(".reader-footer [role=status]");
+  async function interrupted(firstCorner: boolean) {
+    await page.evaluate((firstCorner) => {
+      const surface = document.querySelector(".reader-viewport")!,
+        corner = document.querySelector(".next-corner")!;
+      const first = firstCorner ? corner : surface,
+        second = firstCorner ? surface : corner;
+      const a = { identifier: 1, target: first, clientX: 200, clientY: 200 },
+        b = { identifier: 2, target: second, clientX: 250, clientY: 220 };
+      const emit = (
+        target: Element,
+        type: string,
+        touches: unknown[],
+        changed: unknown[],
+      ) => {
+        const event = new Event(type, { bubbles: true, cancelable: true });
+        Object.assign(event, {
+          touches,
+          targetTouches: touches,
+          changedTouches: changed,
+        });
+        target.dispatchEvent(event);
+      };
+      emit(first, "touchstart", [a], [a]);
+      emit(second, "touchstart", [a, b], [b]);
+      emit(first, "touchmove", [a, b], [a, b]);
+      emit(first, "touchend", [b], [a]);
+      emit(second, "touchend", [], [b]);
+    }, firstCorner);
+  }
+  const initial = (await status.textContent())!;
+  await interrupted(false);
+  await touchSwipe(page, ".reader-viewport", -75);
+  await expect(status).not.toHaveText(initial);
+  await expect(page.locator(".paper-fold")).toHaveCount(0);
+  const before = (await status.textContent())!;
+  await interrupted(true);
+  await page.locator(".next-corner").evaluate((button) => {
+    const r = button.getBoundingClientRect(),
+      t = {
+        identifier: 3,
+        target: button,
+        clientX: r.left + 20,
+        clientY: r.top + 20,
+      };
+    for (const type of ["touchstart", "touchend"]) {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.assign(event, {
+        touches: type === "touchend" ? [] : [t],
+        targetTouches: type === "touchend" ? [] : [t],
+        changedTouches: [t],
+      });
+      button.dispatchEvent(event);
+    }
+  });
+  await expect(status).not.toHaveText(before);
+});
+for (const kind of ["article", "pdf"] as const) {
+  test(`${kind}: reversing an interior swipe beyond its origin cancels instead of turning the wrong way`, async ({
+    page,
+  }) => {
+    const surface = await ready(page, kind);
+    const status = page.locator(".reader-footer [role=status]");
+    const initial = (await status.textContent())!;
+    await surface.evaluate((target) => {
+      const r = target.getBoundingClientRect(),
+        x = r.left + r.width * 0.65,
+        y = r.top + r.height * 0.45;
+      for (const [type, dx] of [
+        ["touchstart", 0],
+        ["touchmove", -20],
+        ["touchmove", 75],
+        ["touchend", 75],
+      ] as [string, number][]) {
+        const t = { identifier: 55, target, clientX: x + dx, clientY: y },
+          event = new Event(type, { bubbles: true, cancelable: true });
+        Object.assign(event, {
+          touches: type === "touchend" ? [] : [t],
+          targetTouches: type === "touchend" ? [] : [t],
+          changedTouches: [t],
+        });
+        target.dispatchEvent(event);
+      }
+    });
+    await expect(page.locator(".paper-fold")).toHaveCount(0);
+    await expect(status).toHaveText(initial);
+    await touchSwipe(
+      page,
+      kind === "article" ? ".reader-viewport" : ".pdf-spread",
+      -75,
+    );
+    await expect(status).not.toHaveText(initial);
+  });
+}
