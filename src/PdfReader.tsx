@@ -436,6 +436,7 @@ export default function PdfReader({
       });
     };
     const end = (e: TouchEvent) => {
+      if (e.touches.length === 0) pinching.current = false;
       if (e.touches.length >= 2 || !initial) return;
       const completed = initial;
       initial = null;
@@ -647,18 +648,6 @@ export default function PdfReader({
               lastTap.current = 0;
             } else lastTap.current = now;
           }
-          if (
-            !curl.handledSwipe() &&
-            zoom === 1 &&
-            Math.abs(dx) > 60 &&
-            Math.abs(dx) > Math.abs(dy) * 1.5
-          )
-            turn((p) =>
-              Math.max(
-                1,
-                Math.min(pdf.numPages, p + (dx < 0 ? spread : -spread)),
-              ),
-            );
         }}
       >
         {error ? (

@@ -3023,3 +3023,15 @@ html[data-theme="light"] .brand-mark-light {
 .publication-selection button {
   min-height: 44px;
 }
+
+/* Article text retains Safari browser pinch zoom; only horizontal reading
+   gestures are owned by the native touch handler. Scroll mode stays native. */
+.reader-viewport.paginated {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Browser-level zoom owns panning; explicit page buttons remain available. */
+.reader-viewport.paginated[data-browser-zoomed="true"],
+.pdf-spread[data-browser-zoomed="true"] {
+  touch-action: pan-x pan-y pinch-zoom;
+}

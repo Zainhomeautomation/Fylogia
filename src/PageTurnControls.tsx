@@ -1,5 +1,5 @@
 import { pageBox } from "./paper-surface";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 const tutorialKey = "fylogia.page-turn-tutorial.v1";
 type Curl = {
   begin: (forward: boolean) => boolean;
@@ -23,6 +23,8 @@ export function PageTurnControls({
     }
   });
   const gesture = useRef<{
+    id: number;
+    native: boolean;
     x: number;
     y: number;
     progress: number;
@@ -33,7 +35,49 @@ export function PageTurnControls({
     slop: number;
     dragging: boolean;
   } | null>(null);
+  const touchOwned = useRef(false);
+  const touchBlocked = useRef(false);
+  const lastEnd = useRef(-Infinity);
   const suppressClick = useRef(false);
+  useEffect(() => {
+    const reset = () => {
+      if (!document.hidden) return;
+      const g = gesture.current;
+      gesture.current = null;
+      touchOwned.current = false;
+      touchBlocked.current = false;
+      suppressClick.current = true;
+      // oxlint-disable-next-line react/purity -- Event-only gesture helper.
+      lastEnd.current = performance.now();
+      if (g?.dragging) curl.end(false, () => {});
+    };
+    const release = (event: TouchEvent) => {
+      // The final finger may belong to another element, outside this control.
+      if (!event.touches.length && touchBlocked.current) {
+        gesture.current = null;
+        touchOwned.current = false;
+        touchBlocked.current = false;
+      }
+    };
+    const multi = (event: TouchEvent) => {
+      if (event.touches.length > 1 && touchOwned.current) {
+        const g = gesture.current;
+        gesture.current = null;
+        touchBlocked.current = true;
+        if (g?.dragging) curl.end(false, () => {});
+      }
+    };
+    document.addEventListener("visibilitychange", reset);
+    window.addEventListener("touchstart", multi, { passive: true });
+    window.addEventListener("touchend", release, { passive: true });
+    window.addEventListener("touchcancel", release, { passive: true });
+    return () => {
+      document.removeEventListener("visibilitychange", reset);
+      window.removeEventListener("touchstart", multi);
+      window.removeEventListener("touchend", release);
+      window.removeEventListener("touchcancel", release);
+    };
+  }, [curl]);
   const surfaceFor = (button: HTMLElement) =>
     button
       .closest(".reader")!
@@ -54,15 +98,78 @@ export function PageTurnControls({
     const g = gesture.current;
     gesture.current = null;
     suppressClick.current = true;
+    // oxlint-disable-next-line react/purity -- Event-only gesture helper.
+    lastEnd.current = performance.now();
     if (g?.dragging) curl.end(false, () => {});
   }
+  function start(
+    button: HTMLElement,
+    x: number,
+    y: number,
+    id: number,
+    forward: boolean,
+    native: boolean,
+    touch: boolean,
+  ) {
+    const surface = surfaceFor(button),
+      box = pageBox(surface, forward);
+    gesture.current = {
+      id,
+      native,
+      x,
+      y,
+      progress: 0,
+      forward,
+      height: surface.clientHeight,
+      width: box.width,
+      pageHeight: box.height,
+      slop: touch ? 12 : 6,
+      dragging: false,
+    };
+    suppressClick.current = false;
+  }
+  function move(x: number, y: number) {
+    const g = gesture.current;
+    if (!g) return;
+    const dx = x - g.x,
+      dy = y - g.y;
+    if (!g.dragging) {
+      if (Math.abs(dx) <= g.slop && Math.abs(dy) <= g.slop) return;
+      if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+        cancel();
+        return;
+      }
+      if (!curl.begin(g.forward)) {
+        gesture.current = null;
+        suppressClick.current = true;
+        return;
+      }
+      g.dragging = true;
+    }
+    g.progress = Math.max(
+      0,
+      Math.min(1.98, (dx * (g.forward ? -1 : 1)) / g.width),
+    );
+    curl.move(g.progress, dy / g.pageHeight);
+  }
+  function finish(button: HTMLElement, x: number, y: number) {
+    const g = gesture.current;
+    gesture.current = null;
+    if (!g) return;
+    suppressClick.current = true;
+    // oxlint-disable-next-line react/purity -- Event-only gesture helper.
+    lastEnd.current = performance.now();
+    const surface = surfaceFor(button);
+    const unchanged =
+      surface.clientHeight === g.height &&
+      Math.abs(pageBox(surface, g.forward).width - g.width) < 1;
+    if (g.dragging)
+      curl.end(unchanged && g.progress >= 0.35, () => turn(g.forward));
+    else if (unchanged && Math.hypot(x - g.x, y - g.y) <= g.slop)
+      turn(g.forward);
+  }
   return (
-    <div
-      className="page-turn-controls"
-      aria-label="Page corners"
-      onTouchStart={(e) => e.stopPropagation()}
-      onTouchEnd={(e) => e.stopPropagation()}
-    >
+    <div className="page-turn-controls" aria-label="Page corners">
       {!learned && (
         <aside className="turn-tutorial" aria-label="Page turning guide">
           <span>Drag or swipe to turn pages</span>
@@ -87,78 +194,109 @@ export function PageTurnControls({
               title="Drag or tap this corner to turn a page"
               onContextMenu={(e) => e.preventDefault()}
               onPointerDown={(e) => {
-                if (e.button !== 0 || !e.isPrimary) return;
-                const surface = surfaceFor(e.currentTarget);
-                gesture.current = {
-                  x: e.clientX,
-                  y: e.clientY,
-                  progress: 0,
+                if (!e.isPrimary) {
+                  cancel();
+                  return;
+                }
+                if (
+                  e.button !== 0 ||
+                  (e.pointerType === "touch" && touchOwned.current)
+                )
+                  return;
+                start(
+                  e.currentTarget,
+                  e.clientX,
+                  e.clientY,
+                  e.pointerId,
                   forward,
-                  height: surface.clientHeight,
-                  width: pageBox(surface, forward).width,
-                  pageHeight: pageBox(surface, forward).height,
-                  slop: e.pointerType === "touch" ? 12 : 6,
-                  dragging: false,
-                };
-                suppressClick.current = false;
-                e.currentTarget.setPointerCapture(e.pointerId);
+                  false,
+                  e.pointerType === "touch",
+                );
+                try {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                } catch {
+                  /* Native touch ownership does not depend on pointer capture. */
+                }
               }}
               onPointerMove={(e) => {
                 const g = gesture.current;
-                if (!g) return;
-                const dx = e.clientX - g.x,
-                  dy = e.clientY - g.y;
-                if (!g.dragging) {
-                  if (Math.abs(dx) <= g.slop && Math.abs(dy) <= g.slop) return;
-                  if (Math.abs(dy) > Math.abs(dx) * 1.2) {
-                    cancel();
-                    return;
-                  }
-                  if (!curl.begin(g.forward)) {
-                    gesture.current = null;
-                    suppressClick.current = true;
-                    return;
-                  }
-                  g.dragging = true;
-                }
-                g.progress = Math.max(
-                  0,
-                  Math.min(1.98, (dx * (g.forward ? -1 : 1)) / g.width),
-                );
-                curl.move(g.progress, dy / g.pageHeight);
+                if (g && !g.native && g.id === e.pointerId)
+                  move(e.clientX, e.clientY);
               }}
               onPointerUp={(e) => {
                 const g = gesture.current;
-                gesture.current = null;
-                if (!g) return;
-                suppressClick.current = true;
-                const surface = surfaceFor(e.currentTarget);
-                const unchanged =
-                  surface.clientHeight === g.height &&
-                  Math.abs(pageBox(surface, g.forward).width - g.width) < 1;
-                if (g.dragging)
-                  curl.end(unchanged && g.progress >= 0.35, () =>
-                    turn(g.forward),
-                  );
-                else if (
-                  unchanged &&
-                  Math.hypot(e.clientX - g.x, e.clientY - g.y) <= g.slop
-                )
-                  turn(g.forward);
+                if (g && !g.native && g.id === e.pointerId)
+                  finish(e.currentTarget, e.clientX, e.clientY);
               }}
-              onPointerCancel={cancel}
+              onPointerCancel={(e) => {
+                const g = gesture.current;
+                if (g && !g.native && g.id === e.pointerId) cancel();
+              }}
               onLostPointerCapture={() => {
-                if (gesture.current) cancel();
+                if (gesture.current && !gesture.current.native) cancel();
               }}
-              onClick={(e) => {
-                if (e.detail === 0) {
-                  turn(forward);
+              onTouchStart={(e) => {
+                touchOwned.current = true;
+                if (e.touches.length !== 1 || touchBlocked.current) {
+                  touchBlocked.current = true;
+                  cancel();
                   return;
                 }
-                if (suppressClick.current) {
+                const t = e.touches[0];
+                start(
+                  e.currentTarget,
+                  t.clientX,
+                  t.clientY,
+                  t.identifier,
+                  forward,
+                  true,
+                  true,
+                );
+              }}
+              onTouchMove={(e) => {
+                if (touchBlocked.current) return;
+                if (e.touches.length !== 1) {
+                  touchBlocked.current = true;
+                  cancel();
+                  return;
+                }
+                const t = Array.from(e.touches).find(
+                  (t) => t.identifier === gesture.current?.id,
+                );
+                if (t) move(t.clientX, t.clientY);
+              }}
+              onTouchEnd={(e) => {
+                if (e.touches.length) {
+                  touchBlocked.current = true;
+                  cancel();
+                  return;
+                }
+                const t = Array.from(e.changedTouches).find(
+                  (t) => t.identifier === gesture.current?.id,
+                );
+                if (!touchBlocked.current && t)
+                  finish(e.currentTarget, t.clientX, t.clientY);
+                touchOwned.current = false;
+                touchBlocked.current = false;
+              }}
+              onTouchCancel={() => {
+                cancel();
+                touchOwned.current = false;
+                touchBlocked.current = false;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ")
+                  suppressClick.current = false;
+              }}
+              onClick={() => {
+                if (
+                  suppressClick.current &&
+                  performance.now() - lastEnd.current < 700
+                ) {
                   suppressClick.current = false;
                   return;
                 }
+                suppressClick.current = false;
                 turn(forward);
               }}
             >
