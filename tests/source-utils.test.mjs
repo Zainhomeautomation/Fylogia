@@ -15,7 +15,7 @@ import { feedArticle } from "../scripts/feed-content.mjs";
 const item =
   "<item><title>Story</title><link>https://publisher.example/story</link><pubDate>Thu, 29 Oct 2026 08:00:00 GMT</pubDate></item>";
 test("curated directory preserves baseline sources with unique valid feeds and broad coverage", () => {
-  assert.ok(sources.length >= 150 && sources.length <= 200);
+  assert.ok(sources.length >= 150 && sources.length <= 250);
   assert.equal(new Set(sources.map((s) => s.id)).size, sources.length);
   assert.equal(
     new Set(sources.map((s) => canonicalStoryUrl(s.url))).size,

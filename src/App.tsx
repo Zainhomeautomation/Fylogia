@@ -48,6 +48,7 @@ import { StoryCard } from "./StoryCard";
 import { Reader } from "./Reader";
 import { Sources } from "./Sources";
 import { Magazines } from "./Magazines";
+import { CategoryBrowser } from "./CategoryBrowser";
 import { useOfflineLibrary } from "./useOfflineLibrary";
 import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
@@ -111,6 +112,7 @@ export default function App() {
   const newsRequest = useRef<AbortController | undefined>(undefined);
   const [edition, setEdition] = useState<Edition>(EMPTY),
     [filter, setFilter] = useState("All stories"),
+    [magazineCategory, setMagazineCategory] = useState("All categories"),
     [query, setQuery] = useState(""),
     [readableOnly, setReadableOnly] = useState(false),
     [reader, setReader] = useState<Article>(),
@@ -294,6 +296,7 @@ export default function App() {
   }, [prefs.complete, prefs.customSources, prefs.converter, setCustom]);
   function navigate(id: string) {
     setBackupPassword("");
+    setMagazineCategory("All categories");
     setView(id);
     setFilter("All stories");
     setReadableOnly(false);
@@ -962,30 +965,25 @@ export default function App() {
           />
         )}
         {view === "categories" && (
-          <>
-            <p className="section-intro">
-              Follow your curiosity. Browse every subject in the current
-              edition.
-            </p>
-            <div className="category-grid">
-              {categories.map((c, i) => (
-                <button
-                  key={c}
-                  onClick={() => {
-                    setView("explore");
-                    setFilter(c);
-                  }}
-                >
-                  <span>{String(i + 1).padStart(2, "0")}</span>
-                  <h2>{c}</h2>
-                  <small>
-                    {all.filter((a) => a.categories.includes(c)).length} stories{" "}
-                    <ArrowRight size={15} />
-                  </small>
-                </button>
-              ))}
-            </div>
-          </>
+          <CategoryBrowser
+            articles={all}
+            interests={prefs.interests}
+            onToggleInterest={(category) =>
+              patch({
+                interests: prefs.interests.includes(category)
+                  ? prefs.interests.filter((c) => c !== category)
+                  : [...prefs.interests, category],
+              })
+            }
+            onSelect={(category) => {
+              navigate("explore");
+              setFilter(category);
+            }}
+            onMagazines={(category) => {
+              navigate("magazines");
+              setMagazineCategory(category);
+            }}
+          />
         )}
         {view === "offline" && (
           <OfflineLibrary
@@ -1001,7 +999,16 @@ export default function App() {
             }
           />
         )}
-        {view === "magazines" && <Magazines onHome={() => navigate("home")} />}
+        {view === "magazines" && (
+          <Magazines
+            onHome={() => navigate("home")}
+            initialCategory={magazineCategory}
+            onBrowseSource={(name) => {
+              navigate("explore");
+              setQuery(name);
+            }}
+          />
+        )}
         {view === "settings" && (
           <div className="settings">
             <section>

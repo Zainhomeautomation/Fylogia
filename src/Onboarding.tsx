@@ -1,3 +1,4 @@
+import { normalizeInterestSearch } from "./interest-taxonomy";
 import { recommendSources } from "./source-utils";
 import { useState } from "react";
 import { ArrowRight, Check, ArrowLeft, BookOpen } from "lucide-react";
@@ -101,9 +102,9 @@ export function Onboarding({
               </label>
               {interestGroups.map((group) => {
                 const matching = group.categories.filter((c) =>
-                  (c + " " + (subcategories[c] || []).join(" "))
-                    .toLowerCase()
-                    .includes(interestSearch.trim().toLowerCase()),
+                  normalizeInterestSearch(
+                    c + " " + (subcategories[c] || []).join(" "),
+                  ).includes(normalizeInterestSearch(interestSearch.trim())),
                 );
                 return matching.length ? (
                   <section
@@ -134,9 +135,9 @@ export function Onboarding({
               {interestSearch &&
                 !interestGroups.some((g) =>
                   g.categories.some((c) =>
-                    (c + " " + (subcategories[c] || []).join(" "))
-                      .toLowerCase()
-                      .includes(interestSearch.trim().toLowerCase()),
+                    normalizeInterestSearch(
+                      c + " " + (subcategories[c] || []).join(" "),
+                    ).includes(normalizeInterestSearch(interestSearch.trim())),
                   ),
                 ) && (
                   <p role="status">No matching interests. Try another topic.</p>

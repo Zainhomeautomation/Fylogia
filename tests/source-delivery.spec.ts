@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { defaults } from "../src/catalog";
+import { defaults, sources } from "../src/catalog";
 async function fixture(page: any) {
   await page.addInitScript(
     (p: any) => {
@@ -73,7 +73,9 @@ test("every indexed source preserves its contributing stories, attribution, and 
   );
   const index = await (await request.get("data/source-index.json")).json();
   const full = await (await request.get("data/edition.json")).json();
-  expect(index.sources.length).toBe(194);
+  expect(index.sources.map((source: { id: string }) => source.id)).toEqual(
+    sources.map((source) => source.id),
+  );
   expect(index.generatedAt).toBe(full.generatedAt);
   // Include a combined feed entry to cover alternate-source ownership as well as ordinary full text.
   const ids = new Set([

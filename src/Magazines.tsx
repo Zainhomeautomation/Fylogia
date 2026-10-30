@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { BookOpen, Upload, ExternalLink, Trash2 } from "lucide-react";
+import { normalizeInterestSearch } from "./interest-taxonomy";
+import { categories, sources } from "./catalog";
 const PdfReader = lazy(() => import("./PdfReader"));
 interface Magazine {
   id: string;
@@ -8,15 +10,41 @@ interface Magazine {
   file?: ArrayBuffer;
   cover?: string;
   description: string;
+  categories?: string[];
+  publisher?: string;
+  original?: string;
+  issue?: string;
 }
 const editions: Magazine[] = [
   {
     id: "nasa-spinoff-2025",
+    publisher: "NASA",
+    categories: ["Science", "Space", "Engineering"],
+    issue: "2025 annual edition",
+    original: "https://spinoff.nasa.gov/",
     title: "NASA Spinoff 2025",
     cover: import.meta.env.BASE_URL + "covers/nasa-spinoff-2025.jpg",
     url: import.meta.env.BASE_URL + "editions/nasa-spinoff-2025.pdf",
     description:
       "NASA’s annual publication on space technology improving life on Earth. Original PDF, provided by NASA.",
+  },
+  {
+    id: "hackspace-75",
+    cover: import.meta.env.BASE_URL + "covers/hackspace-75.jpg",
+    title: "HackSpace 75",
+    publisher: "Raspberry Pi Ltd",
+    issue: "February 2024 · Issue 75",
+    categories: [
+      "Technology",
+      "Computing",
+      "3D Printing",
+      "Engineering",
+      "Photography",
+    ],
+    url: import.meta.env.BASE_URL + "editions/hackspace-75.pdf",
+    original: "https://magazine.raspberrypi.com/hackspace/issues/75",
+    description:
+      "Original 100-page issue · CC BY-NC-SA 3.0 except where noted. Electronics, making, photography, and 3D printing. Online PDF (64 MB); publisher credits and exceptions preserved.",
   },
 ];
 function db() {
@@ -55,7 +83,28 @@ async function records(
     database.close();
   }
 }
-export function Magazines({ onHome }: { onHome: () => void }) {
+export function Magazines({
+  onHome,
+  initialCategory = "All categories",
+  onBrowseSource,
+}: {
+  onHome: () => void;
+  initialCategory?: string;
+  onBrowseSource: (name: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState(initialCategory);
+  const matches = (m: {
+    title?: string;
+    name?: string;
+    categories?: string[];
+  }) =>
+    (category === "All categories" || m.categories?.includes(category)) &&
+    normalizeInterestSearch(
+      `${m.title || m.name} ${(m.categories || []).join(" ")}`,
+    ).includes(normalizeInterestSearch(query.trim()));
+  const publications = sources.filter(matches);
+  const [publicationLimit, setPublicationLimit] = useState(24);
   const [local, setLocal] = useState<Magazine[]>([]),
     [active, setActive] = useState<{
       id: string;
@@ -118,6 +167,37 @@ export function Magazines({ onHome }: { onHome: () => void }) {
         Original pages, unhurried reading. Explore a freely available
         publication or bring a PDF you have permission to read.
       </p>
+      <div className="magazine-filters">
+        <label>
+          Find a publication{" "}
+          <input
+            aria-label="Find a publication"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPublicationLimit(24);
+            }}
+            placeholder="Title or subject"
+          />
+        </label>
+        <label>
+          Category{" "}
+          <select
+            aria-label="Magazine category"
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setPublicationLimit(24);
+            }}
+          >
+            <option>All categories</option>
+            {categories.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <h2>Complete editions & your PDFs</h2>
       <label className="secondary file-button">
         <Upload size={17} />
         {busy ? "Saving PDF…" : "Import a PDF"}
@@ -138,7 +218,7 @@ export function Magazines({ onHome }: { onHome: () => void }) {
       </p>
       {error && <p role="alert">{error}</p>}
       <div className="magazine-grid">
-        {[...editions, ...local].map((m, i) => (
+        {[...editions, ...local].filter(matches).map((m, i) => (
           <article className="magazine" key={m.id} data-magazine-id={m.id}>
             <button
               aria-label={`Open ${m.title}`}
@@ -167,11 +247,12 @@ export function Magazines({ onHome }: { onHome: () => void }) {
                   decoding="async"
                 />
               )}
-              <span>{m.url ? "NASA" : "YOUR LIBRARY"}</span>
+              <span>{m.publisher || "YOUR LIBRARY"}</span>
               <BookOpen size={70} strokeWidth={0.8} />
               <h2>{m.title}</h2>
               <span>Open edition ↗</span>
             </button>
+            {m.issue && <p className="quiet">{m.issue}</p>}
             <p>{m.description}</p>
             {m.url ? (
               <a
@@ -179,7 +260,7 @@ export function Magazines({ onHome }: { onHome: () => void }) {
                 href={
                   m.id === "nasa-spinoff-2025"
                     ? "https://ntts-prod.s3.amazonaws.com/t2p/prod/spinoff/NASA.Spinoff_2025_508.pdf"
-                    : m.url
+                    : m.original || m.url
                 }
                 target="_blank"
                 rel="noreferrer"
@@ -206,6 +287,62 @@ export function Magazines({ onHome }: { onHome: () => void }) {
           </article>
         ))}
       </div>
+      {![...editions, ...local].some(matches) && (
+        <p className="quiet">
+          No complete editions in this selection. Browse official publications
+          below, or import a PDF you have permission to read.
+        </p>
+      )}
+      <section className="publication-directory">
+        <h2>Publications & articles</h2>
+        <p className="quiet">
+          Read publisher-provided articles and previews. RSS articles are not
+          complete magazine issues. Official sites offer their own editions and
+          subscriptions.
+        </p>
+        {publications.slice(0, publicationLimit).map((source) => (
+          <article
+            className="publication-card"
+            key={source.id}
+            data-publication-id={source.id}
+          >
+            <h3>{source.name}</h3>
+            <p className="quiet">
+              {source.categories.join(" · ")} ·{" "}
+              {source.full ? "Permitted full articles" : "Publisher previews"}
+            </p>
+            <button
+              className="text-button"
+              onClick={() => onBrowseSource(source.name)}
+            >
+              Browse articles
+            </button>
+            <a
+              className="text-button"
+              href={source.site}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Official publication <ExternalLink size={14} />
+            </a>
+          </article>
+        ))}
+        {publications.length > publicationLimit && (
+          <button
+            className="secondary"
+            onClick={() => setPublicationLimit((limit) => limit + 24)}
+          >
+            Show more publications ({publications.length - publicationLimit}{" "}
+            remaining)
+          </button>
+        )}
+        {!publications.length && (
+          <p>
+            No matching publications. Try another category or visit My Sources
+            for the complete source directory.
+          </p>
+        )}
+      </section>
       {active && (
         <Suspense fallback={<div className="loading">Opening magazine…</div>}>
           <PdfReader
