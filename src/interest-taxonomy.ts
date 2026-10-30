@@ -67,7 +67,7 @@ export const sourceTopics: Record<
 > = {
   "apartment-therapy": {
     categories: ["Home & Garden", "Architecture"],
-    topics: ["Interiors", "Decoration", "Home improvement"],
+    topics: ["Interiors", "Design", "Decoration", "Home improvement"],
   },
   "smithsonian-magazine": {
     categories: ["History & Culture"],

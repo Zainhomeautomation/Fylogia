@@ -21,6 +21,12 @@ const added = [
 ];
 test("additive taxonomy retains old interests and gives new categories real attributed feed entries", async () => {
   assert.equal(categories.length, 32);
+  for (const topic of ["Interiors", "Design"])
+    assert.ok(
+      sources
+        .find((source) => source.id === "apartment-therapy")
+        .topics.includes(topic),
+    );
   assert.equal(
     normalizeInterestSearch("Men’s Fashion"),
     normalizeInterestSearch("MEN'S FASHION"),
