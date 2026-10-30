@@ -1,3 +1,9 @@
+import {
+  selectedSports,
+  sourceSports,
+  sportsPreferenceMatches,
+  sportsRecommendationBoost,
+} from "./sports-taxonomy.ts";
 import { topicMatchesText } from "./interest-taxonomy.ts";
 import type { Article, Source, Preferences, FeedStatus } from "./catalog";
 export const feedArray = (v: any): any[] =>
@@ -159,10 +165,19 @@ export function recommendSources(
   statuses: FeedStatus[],
   limit = 12,
 ) {
+  const selected = selectedSports(prefs.topics);
   const ranked = all
     .filter(
       (s) =>
         s.categories.some((c) => prefs.interests.includes(c)) &&
+        (!selected.length ||
+          !s.categories.includes("Sports") ||
+          s.categories.some(
+            (category) =>
+              category !== "Sports" && prefs.interests.includes(category),
+          ) ||
+          !sourceSports(s).length ||
+          sourceSports(s).some((id) => selected.includes(id))) &&
         (prefs.region === "Worldwide" ||
           s.region === "Worldwide" ||
           s.region === prefs.region) &&
@@ -174,6 +189,7 @@ export function recommendSources(
       const score = (s: Source) =>
         s.categories.filter((c) => prefs.interests.includes(c)).length * 3 +
         (s.full ? 4 : 0) +
+        (selected.length ? sportsRecommendationBoost(s.id) : 0) +
         (prefs.topics || []).filter((t) =>
           topicMatchesText(t, (s.topics || []).join(" · ")),
         ).length *
@@ -187,6 +203,16 @@ export function recommendSources(
     if (chosen.length >= limit) break;
     if (chosen.some((s) => s.categories.includes(category))) continue;
     const candidate = ranked.find((s) => s.categories.includes(category));
+    if (candidate) chosen.push(candidate);
+  }
+  // Represent each followed sport before filling the remaining recommendation slots.
+  for (const sport of selected) {
+    if (
+      chosen.length >= limit ||
+      chosen.some((s) => sourceSports(s).includes(sport))
+    )
+      continue;
+    const candidate = ranked.find((s) => sourceSports(s).includes(sport));
     if (candidate) chosen.push(candidate);
   }
   return [
@@ -225,7 +251,8 @@ export function sourceMatches(
 
 export function articleMatchesLibrary(
   article: Article,
-  prefs: Pick<Preferences, "sourceIds" | "region">,
+  prefs: Pick<Preferences, "sourceIds" | "region"> &
+    Partial<Pick<Preferences, "topics" | "customSources" | "interests">>,
 ) {
   const contexts = article.feedContexts || [
     {
@@ -239,12 +266,15 @@ export function articleMatchesLibrary(
       region: article.region,
     })),
   ];
-  return contexts.some(
-    (c) =>
-      prefs.sourceIds.includes(c.sourceId) &&
-      (prefs.region === "Worldwide" ||
-        c.region === prefs.region ||
-        (c.region === "Worldwide" && !c.categories.includes("World News"))),
+  return (
+    sportsPreferenceMatches(article, prefs) &&
+    contexts.some(
+      (c) =>
+        prefs.sourceIds.includes(c.sourceId) &&
+        (prefs.region === "Worldwide" ||
+          c.region === prefs.region ||
+          (c.region === "Worldwide" && !c.categories.includes("World News"))),
+    )
   );
 }
 

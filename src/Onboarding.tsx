@@ -1,3 +1,4 @@
+import { sportLabel, sportForTopic } from "./sports-taxonomy";
 import { normalizeInterestSearch } from "./interest-taxonomy";
 import { recommendSources } from "./source-utils";
 import { useState } from "react";
@@ -29,13 +30,22 @@ export function Onboarding({
   const [draft, setDraft] = useState(initial);
   const [step, setStep] = useState(0);
   const [interestSearch, setInterestSearch] = useState("");
+  const sameTopic = (a: string, b: string) =>
+    a === b ||
+    (!!sportForTopic(a) && sportForTopic(a)?.id === sportForTopic(b)?.id);
+  const topicSelected = (topic: string) =>
+    draft.topics.some((value) => sameTopic(value, topic));
   const toggle = (key: "interests" | "topics" | "sourceIds", item: string) =>
-    setDraft((p) => ({
-      ...p,
-      [key]: p[key].includes(item)
-        ? p[key].filter((i) => i !== item)
-        : [...p[key], item],
-    }));
+    setDraft((p) => {
+      const matches = (value: string) =>
+        key === "topics" ? sameTopic(value, item) : value === item;
+      return {
+        ...p,
+        [key]: p[key].some(matches)
+          ? p[key].filter((value) => !matches(value))
+          : [...p[key], item],
+      };
+    });
   const collection = [...sources, ...draft.customSources];
   const picks = recommendSources(collection, draft, statuses);
   const recommended = [
@@ -159,23 +169,26 @@ export function Onboarding({
               <details>
                 <summary>Fine-tune your interests</summary>
                 <p className="quiet">
-                  These topics help prioritize relevant headlines.
+                  Topics prioritize headlines. Selected sports also focus your
+                  Sports stories.
                 </p>
                 <div className="topics">
                   {[
                     ...new Set(
-                      draft.interests.flatMap((c) => subcategories[c] || []),
+                      draft.interests
+                        .flatMap((c) => subcategories[c] || [])
+                        .map((t) => sportForTopic(t)?.topic || t),
                     ),
                   ].map((t) => (
                     <button
                       className={
-                        "choice " + (draft.topics.includes(t) ? "selected" : "")
+                        "choice " + (topicSelected(t) ? "selected" : "")
                       }
-                      aria-pressed={draft.topics.includes(t)}
+                      aria-pressed={topicSelected(t)}
                       key={t}
                       onClick={() => toggle("topics", t)}
                     >
-                      {t}
+                      {sportLabel(t)}
                     </button>
                   ))}
                 </div>

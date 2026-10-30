@@ -3035,3 +3035,57 @@ html[data-theme="light"] .brand-mark-light {
 .pdf-spread[data-browser-zoomed="true"] {
   touch-action: pan-x pan-y pinch-zoom;
 }
+
+/* Sports stays inside the editorial reading flow; controls wrap on narrow screens. */
+.sports-navigation {
+  margin: 0.5rem 0 1.25rem;
+  padding: 1rem 0;
+  border-block: 1px solid var(--line);
+}
+.sports-navigation .filter-tabs {
+  max-width: 100%;
+}
+.sports-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+.sports-actions label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+.sports-actions select {
+  max-width: min(100%, 23rem);
+  min-height: 44px;
+}
+.sports-detail {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  margin-block: 0.75rem 0;
+}
+.sports-official-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.82rem;
+  margin-top: 0.6rem;
+}
+.sports-official-links a {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+@media (max-width: 480px) {
+  .sports-actions label {
+    width: 100%;
+  }
+  .sports-actions select {
+    flex: 1;
+    min-width: 0;
+  }
+}
