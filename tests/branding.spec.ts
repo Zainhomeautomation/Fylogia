@@ -95,4 +95,31 @@ test("official logo, light variant, favicons, maskable safe area and offline bra
   expect(
     await page.evaluate(() => localStorage.getItem("folio.v1.preferences")),
   ).toBe(before);
+  if (
+    await page
+      .getByRole("button", { name: "Open navigation", exact: true })
+      .isVisible()
+  )
+    await page
+      .getByRole("button", { name: "Open navigation", exact: true })
+      .click();
+  await page
+    .getByRole("navigation", { name: "Main navigation", exact: true })
+    .getByRole("button", { name: "Saved Articles", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Keep something worth returning to.",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator(".empty .brand-mark img:visible")
+        .evaluate(
+          (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
+        ),
+    )
+    .toBeTruthy();
 });

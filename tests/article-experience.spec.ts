@@ -101,6 +101,9 @@ test("long article repaginates without losing or clipping text and scroll progre
   await intact(page);
   expect(await body.innerText()).toBe(original);
   await (await readerOption(page, "Switch to scrolling")).click();
+  // Setting scrollTop before React commits the new mode uses paginated geometry.
+  await expect(page.locator(".reader-viewport")).toHaveClass(/scrolling/);
+  await page.evaluate(() => document.fonts.ready);
   await page.locator(".reader-viewport").evaluate((el) => {
     el.scrollTop = (el.scrollHeight - el.clientHeight) * 0.55;
   });
@@ -124,6 +127,11 @@ test("long article repaginates without losing or clipping text and scroll progre
         .evaluate((el) => el.scrollTop / (el.scrollHeight - el.clientHeight)),
     )
     .toBeGreaterThan(0.4);
+  // Page mode snaps to a page boundary. Reopening must retain that actual
+  // position, rather than a fixed fraction from before the mode round trip.
+  const resumePosition = await page
+    .locator(".reader-viewport")
+    .evaluate((el) => el.scrollTop / (el.scrollHeight - el.clientHeight));
   await page.getByRole("button", { name: "Back to previous section" }).click();
   await page.locator(".story-open").click();
   await expect
@@ -132,7 +140,7 @@ test("long article repaginates without losing or clipping text and scroll progre
         .locator(".reader-viewport")
         .evaluate((el) => el.scrollTop / (el.scrollHeight - el.clientHeight)),
     )
-    .toBeGreaterThan(0.5);
+    .toBeCloseTo(resumePosition, 2);
   await (await readerOption(page, "Switch to pages")).click();
   await expect(page.locator(".reader-footer")).not.toContainText("Page 1 of");
   await intact(page);
