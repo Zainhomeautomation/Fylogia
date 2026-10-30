@@ -1,3 +1,4 @@
+import { deriveApple, publisherTags } from "../src/apple-taxonomy.ts";
 import { restrictedMediaNotice } from "../src/media-rights.ts";
 import { feedImage } from "../src/feed-images.ts";
 import {
@@ -93,7 +94,22 @@ export function feedArticle(
   const date = new Date(
     str(item.pubDate || item.published || item.updated || item["dc:date"]),
   );
+  const tags = publisherTags(item);
+  const apple = deriveApple(
+    {
+      title: text(item.title),
+      excerpt,
+      content: "",
+      url,
+      sourceId: source.id,
+      categories: source.categories,
+      publisherTags: tags,
+    },
+    raw,
+  );
   return {
+    ...(tags.length ? { publisherTags: tags } : {}),
+    ...(apple.topics.length || apple.kind ? { apple } : {}),
     id: url,
     contentDetails: {
       availability: cleaned

@@ -1,3 +1,13 @@
+import { AppleNavigation } from "./AppleNavigation";
+import {
+  appleSection,
+  selectedApple,
+  matchesApple,
+  applePreferenceScore,
+  appleSearchMatches,
+  appleRelevance,
+  type AppleSelection,
+} from "./apple-taxonomy";
 import { SportsNavigation } from "./SportsNavigation";
 import {
   matchesSport,
@@ -93,6 +103,8 @@ export default function App() {
   const [dailyOpen, setDailyOpen] = useState<DailyMetadata>();
   const [custom, setCustom, customError] = useStored<Article[]>("custom", []);
   const [view, setView] = useSectionRoute();
+  const [apple, setApple] = useState<AppleSelection>("all");
+  const [magazineApple, setMagazineApple] = useState<AppleSelection>("all");
   const [sport, setSport] = useState<SportSelection>("all");
   const [magazineSport, setMagazineSport] = useState<SportSelection>("all");
   const newsScope = useMemo(() => {
@@ -308,6 +320,8 @@ export default function App() {
   function navigate(id: string) {
     setBackupPassword("");
     setMagazineCategory("All categories");
+    setApple("all");
+    setMagazineApple("all");
     setSport("all");
     setMagazineSport("all");
     setPublicationId("");
@@ -397,22 +411,35 @@ export default function App() {
     if (readableOnly) result = result.filter((a) => a.full);
     if (filter !== "All stories")
       result = result.filter((a) => a.categories.includes(filter));
+    if (filter === "Apple")
+      result = result.filter((a) => matchesApple(a, apple));
     if (filter === "Sports")
       result = result.filter((a) =>
         matchesSport(a, sport, prefs.customSources),
       );
     if (query.trim())
       result = result.filter((a) =>
-        (a.title + " " + a.source + " " + a.excerpt)
-          .toLowerCase()
-          .includes(query.trim().toLowerCase()),
+        filter === "Apple"
+          ? appleSearchMatches(a, query)
+          : (a.title + " " + a.source + " " + a.excerpt)
+              .toLowerCase()
+              .includes(query.trim().toLowerCase()),
       );
+    if (filter === "Apple" && appleSection(apple)) {
+      const relevance = new Map(
+        result.map((a) => [a.id, appleRelevance(a, apple)]),
+      );
+      result = [...result].sort(
+        (a, b) => relevance.get(b.id)! - relevance.get(a.id)!,
+      );
+    }
     if (view === "home") {
       const score = (a: Article) =>
         prefs.topics.reduce(
           (n, t) => n + (topicMatchesText(t, a.title) ? 3 : 0),
           0,
         ) +
+        applePreferenceScore(a, prefs) * 10 +
         (a.image ? 1 : 0) +
         (a.full ? 2 : 0);
       const scores = new Map(
@@ -450,6 +477,7 @@ export default function App() {
     readableOnly,
     publicationId,
     sport,
+    apple,
     prefs.customSources,
   ]);
   const dailyId = `${localDay()}-${dailyPreferenceKey(prefs)}`;
@@ -829,6 +857,56 @@ export default function App() {
                 ))}
               </div>
             </div>
+            {filter === "Apple" && (
+              <AppleNavigation
+                value={apple}
+                onChange={setApple}
+                following={selectedApple(prefs.topics).some(
+                  (id) => id === apple,
+                )}
+                onReset={() => {
+                  setApple("all");
+                  setQuery("");
+                  setPublicationId("");
+                  setReadableOnly(false);
+                }}
+                onFollow={() => {
+                  const selected = appleSection(apple);
+                  if (!selected) return;
+                  setPrefs((p) => {
+                    const followed = selectedApple(p.topics).includes(
+                      selected.id,
+                    );
+                    const topics = p.topics.filter(
+                      (t) => appleSection(t)?.id !== selected.id,
+                    );
+                    if (followed) return { ...p, topics };
+                    const additions = recommendSources(
+                      [...sources, ...p.customSources],
+                      {
+                        interests: ["Apple"],
+                        region: p.region,
+                        topics: [selected.name],
+                      },
+                      edition.statuses,
+                      3,
+                    ).map((s) => s.id);
+                    return {
+                      ...p,
+                      interests: [...new Set([...p.interests, "Apple"])],
+                      topics: [...topics, selected.name],
+                      sourceIds: [...new Set([...p.sourceIds, ...additions])],
+                    };
+                  });
+                }}
+                onMagazines={() => {
+                  const selection = apple;
+                  navigate("magazines");
+                  setMagazineApple(selection);
+                  setMagazineCategory("Apple");
+                }}
+              />
+            )}
             {filter === "Sports" && (
               <SportsNavigation
                 value={sport}
@@ -1093,9 +1171,14 @@ export default function App() {
             onHome={() => navigate("home")}
             initialCategory={magazineCategory}
             initialSport={magazineSport}
-            onBrowseSource={(id, selectedSport) => {
+            initialApple={magazineApple}
+            onBrowseSource={(id, selectedSport, selectedApple) => {
               navigate("explore");
               setPublicationId(id);
+              if (selectedApple) {
+                setFilter("Apple");
+                setApple(selectedApple);
+              }
               if (selectedSport) {
                 setFilter("Sports");
                 setSport(selectedSport);

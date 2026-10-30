@@ -1,3 +1,4 @@
+import { classifyApple } from "./apple-taxonomy";
 import {
   mediaImage,
   restrictedNasaMedia,
@@ -651,6 +652,9 @@ export function Reader({
         >
           <div className="article-source">
             {article.source} · {dateLabel(article.published)}
+            {classifyApple(article).kind && (
+              <> · {classifyApple(article).kind}</>
+            )}
           </div>
           <h1>{article.title}</h1>
           {article.author && (

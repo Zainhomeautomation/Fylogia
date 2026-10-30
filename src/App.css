@@ -3089,3 +3089,67 @@ html[data-theme="light"] .brand-mark-light {
     min-width: 0;
   }
 }
+
+.apple-navigation {
+  margin-block: 0 1.5rem;
+  border-block: 1px solid var(--line);
+  padding-block: 0.6rem 1rem;
+}
+.apple-subnavigation {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+}
+.apple-navigation select {
+  max-width: min(100%, 22rem);
+}
+.editorial-label {
+  display: inline-block;
+  color: var(--green);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  margin-top: 0.6rem;
+}
+
+.apple-detail-compact {
+  display: none;
+}
+.apple-navigation > .filter-tabs {
+  margin-block: 0;
+  padding-block: 0.55rem;
+}
+@media (max-width: 600px) {
+  .apple-navigation .sports-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.3rem 0.75rem;
+    margin-top: 0.5rem;
+  }
+  .apple-navigation .sports-actions label {
+    width: auto;
+    min-width: 0;
+  }
+  .apple-navigation .sports-actions select {
+    width: 100%;
+    min-width: 0;
+  }
+  .apple-selector-label,
+  .apple-detail-wide {
+    display: none;
+  }
+  .apple-navigation .text-button {
+    min-height: 44px;
+  }
+  .apple-detail-compact {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .apple-detail-compact summary {
+    padding-block: 0.6rem;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .apple-detail-compact p {
+    margin-top: 0;
+  }
+}

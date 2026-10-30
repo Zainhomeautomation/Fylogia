@@ -1,3 +1,4 @@
+import { classifyApple } from "./apple-taxonomy";
 import { useState } from "react";
 import { mediaImage } from "./media-rights";
 import {
@@ -33,6 +34,7 @@ export function StoryCard({
   selected?: boolean;
 }) {
   const image = mediaImage(article);
+  const appleKind = classifyApple(article).kind;
   const [failedImage, setFailedImage] = useState<string>();
   return (
     <article className={"story " + (lead ? "lead" : "")}>
@@ -89,6 +91,7 @@ export function StoryCard({
               ? "Publisher preview"
               : "Saved link · Open publisher"}
         </span>
+        {appleKind && <span className="editorial-label">{appleKind}</span>}
         <h2>{article.title}</h2>
         {lead && <p>{article.excerpt}</p>}
       </button>
