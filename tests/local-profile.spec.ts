@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { defaults } from "../src/catalog";
 
 async function nav(page: Page, name: string) {
   // IndexedDB restoration may finish after the document load event.
@@ -14,26 +15,34 @@ async function nav(page: Page, name: string) {
 async function fixture(page: Page) {
   const edition = await (await page.request.get("data/edition.json")).json();
   const article = edition.articles
-    .filter((a: any) => a.full)
+    .filter((a: any) => a.full && a.sourceId === "nasa")
     .sort((a: any, b: any) => b.content.length - a.content.length)[0];
-  await page.route("**/data/edition.json*", (route) =>
-    route.fulfill({
-      json: {
-        ...edition,
-        articles: [
-          { ...article, image: undefined, offlineImagesAllowed: false },
-        ],
-      },
-    }),
+  // Exercise persistence against the actual static edition and installed worker.
+  // Page routing cannot reliably intercept a service-worker-owned refresh.
+  await page.addInitScript(
+    (prefs) => {
+      if (!sessionStorage.getItem("fylogia-persistence-fixture-initialized")) {
+        if (!localStorage.getItem("folio.v1.preferences"))
+          localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
+        sessionStorage.setItem("fylogia-persistence-fixture-initialized", "1");
+      }
+    },
+    { ...defaults, sourceIds: ["nasa"] },
   );
   return article;
 }
-async function onboard(page: Page) {
+async function onboard(page: Page, article: { title: string }) {
   await page.goto("./");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Create My Fylogia" }).click();
   await expect(page.locator(".story").first()).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Search stories", exact: true })
+    .fill(article.title);
+  await expect(
+    page.getByRole("heading", { name: article.title, exact: true }),
+  ).toBeVisible();
 }
 async function saved(page: Page) {
   await nav(page, "Settings");
@@ -62,11 +71,20 @@ test("anonymous profile and entire library recover offline from IndexedDB after 
   context,
 }) => {
   const article = await fixture(page);
-  await onboard(page);
+  await onboard(page, article);
   await bookmark(page);
   await page.locator(".story-open").first().click();
   await expect(page.getByRole("button", { name: "Next page" })).toBeEnabled();
   await page.getByRole("button", { name: "Next page" }).click();
+  // Advance beyond a cover-only boundary: this storage test intentionally does
+  // not download publisher images, so their offline absence can repaginate text.
+  while (
+    (await page.evaluate(
+      (id) => JSON.parse(localStorage.getItem("folio.v1.progress")!)[id] || 0,
+      article.id,
+    )) < 0.25
+  )
+    await page.getByRole("button", { name: "Next page" }).click();
   // A late publisher image load must not restore the previous page before close.
   await page.locator(".reader-content").dispatchEvent("load");
   await page.getByRole("button", { name: "Back to previous section" }).click();
@@ -126,7 +144,7 @@ test("IndexedDB preserves the library when localStorage writes are blocked", asy
     };
   });
   const article = await fixture(page);
-  await onboard(page);
+  await onboard(page, article);
   await bookmark(page);
   await saved(page);
   await page.reload();
@@ -155,7 +173,7 @@ test("complete storage failure is visible and current in-memory library can stil
     };
   });
   const article = await fixture(page);
-  await onboard(page);
+  await onboard(page, article);
   await bookmark(page);
   await nav(page, "Settings");
   await expect(page.getByTestId("local-save-state")).toHaveText(
@@ -179,7 +197,7 @@ test("encrypted backup restores on another device without cloning identity; wron
   browser,
 }) => {
   const article = await fixture(page);
-  await onboard(page);
+  await onboard(page, article);
   await bookmark(page);
   await page
     .locator(".story")
@@ -224,8 +242,8 @@ test("encrypted backup restores on another device without cloning identity; wron
   });
   try {
     const other = await device.newPage();
-    await fixture(other);
-    await onboard(other);
+    const otherArticle = await fixture(other);
+    await onboard(other, otherArticle);
     await saved(other);
     await other.getByText("Advanced settings", { exact: true }).click();
     const before = await values(other);
@@ -276,8 +294,8 @@ test("encrypted backup restores on another device without cloning identity; wron
 test("invalid backup sections and a failed restore transaction cannot partially replace the library", async ({
   page,
 }) => {
-  await fixture(page);
-  await onboard(page);
+  const article = await fixture(page);
+  await onboard(page, article);
   await bookmark(page);
   await saved(page);
   const before = await values(page);

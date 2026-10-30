@@ -1,3 +1,4 @@
+import { mockEdition } from "./edition-fixture";
 import { test, expect } from "@playwright/test";
 
 test("paper turns, facing pages, intact text and reduced motion", async ({
@@ -11,9 +12,7 @@ test("paper turns, facing pages, intact text and reduced motion", async ({
   // rendering is covered separately by the offline suite.
   article.image = undefined;
   article.content = article.content.replace(/<img[^>]*>/gi, "");
-  await page.route("**/data/edition.json*", (route) =>
-    route.fulfill({ json: { ...edition, articles: [article] } }),
-  );
+  await mockEdition(page, { ...edition, articles: [article] });
   await page.goto("./");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();

@@ -1,3 +1,4 @@
+import { mockEdition } from "./edition-fixture";
 import { test, expect, type Page } from "@playwright/test";
 import { defaults } from "../src/catalog";
 async function fixture(
@@ -23,9 +24,7 @@ async function fixture(
   );
   expect(preview).toBeTruthy();
   const articles = [...full, { ...preview, image: undefined }];
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...data, articles } }),
-  );
+  await mockEdition(page, { ...data, articles });
   await page.addInitScript(
     (p) =>
       localStorage.getItem("folio.v1.preferences") ||

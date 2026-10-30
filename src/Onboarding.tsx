@@ -16,8 +16,10 @@ export function Onboarding({
   statuses,
   onComplete,
   onArticles,
+  onSourcesNeeded,
 }: {
   onArticles: (a: Article[]) => void;
+  onSourcesNeeded?: () => void;
   initial: Preferences;
   statuses: FeedStatus[];
   onComplete: (p: Preferences) => void;
@@ -42,6 +44,7 @@ export function Onboarding({
     ),
   ];
   function next() {
+    if (step === 0) onSourcesNeeded?.();
     if (step === 0 && !initial.complete)
       setDraft((p) => ({
         ...p,

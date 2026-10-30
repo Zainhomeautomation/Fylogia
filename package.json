@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/copy-pdf-codecs.mjs && node scripts/write-sw.mjs",
+    "build": "tsc -b && vite build && node scripts/copy-pdf-codecs.mjs && node scripts/write-source-editions.mjs && node scripts/write-sw.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
     "feeds": "node scripts/refresh-feeds.mjs",

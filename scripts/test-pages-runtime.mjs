@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { mkdir, rm, readdir } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
+import { testNewsProxy } from "./test-news-proxy.mjs";
 const wrangler = resolve("node_modules/wrangler/bin/wrangler.js");
 // Each run owns a disposable local database. This never queries production.
 const persistence = resolve(".wrangler/sync-tests", randomUUID());
@@ -40,7 +41,7 @@ const server = spawn(
     "--ip",
     "127.0.0.1",
     "--port",
-    "8788",
+    "8790",
     "--compatibility-date",
     "2026-10-29",
     "--persist-to",
@@ -48,9 +49,12 @@ const server = spawn(
   ],
   { stdio: "inherit", env },
 );
+const proxy = testNewsProxy("http://127.0.0.1:8790");
 for (const signal of ["SIGTERM", "SIGINT"])
   process.once(signal, () => server.kill(signal));
 server.once("exit", async (code) => {
+  proxy.closeAllConnections();
+  proxy.close();
   await rm(persistence, { recursive: true, force: true });
   process.exit(code || 0);
 });

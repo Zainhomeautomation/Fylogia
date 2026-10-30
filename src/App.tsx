@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { incomingPairCode } from "./pair-link";
 const SyncPanel = lazy(() => import("./SyncPanel"));
+import { loadEdition } from "./edition-delivery";
 import { DailyMagazine } from "./DailyMagazine";
 import {
   createDailyMagazine,
@@ -47,7 +48,6 @@ import { StoryCard } from "./StoryCard";
 import { Reader } from "./Reader";
 import { Sources } from "./Sources";
 import { Magazines } from "./Magazines";
-import { loadCustom } from "./feeds";
 import { useOfflineLibrary } from "./useOfflineLibrary";
 import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
@@ -78,9 +78,36 @@ export default function App() {
   const [dailyEditions, setDailyEditions, dailyError] = useStored<
     DailyMetadata[]
   >("dailyEditions", []);
+  const [newsRequested, setNewsRequested] = useState(false);
+  const newsEnabled = prefs.complete || newsRequested;
   const [dailyOpen, setDailyOpen] = useState<DailyMetadata>();
   const [custom, setCustom, customError] = useStored<Article[]>("custom", []);
   const [view, setView] = useSectionRoute();
+  const newsScope = useMemo(() => {
+    if (!prefs.complete || (view === "sources" && !dailyOpen)) return "health";
+    if (view === "explore" || view === "categories") return "*";
+    const ids = [...prefs.sourceIds];
+    if (dailyOpen) {
+      const names = new Set(dailyOpen.stories.map((story) => story.source));
+      ids.push(
+        ...[...sources, ...prefs.customSources]
+          .filter((source) => names.has(source.name))
+          .map((source) => source.id),
+      );
+    }
+    if (view === "saved" || view === "history")
+      ids.push(...(view === "saved" ? saved : history).map((a) => a.sourceId));
+    return [...new Set(ids)].sort().join("\n");
+  }, [
+    prefs.complete,
+    prefs.sourceIds,
+    prefs.customSources,
+    dailyOpen,
+    view,
+    saved,
+    history,
+  ]);
+  const newsRequest = useRef<AbortController | undefined>(undefined);
   const [edition, setEdition] = useState<Edition>(EMPTY),
     [filter, setFilter] = useState("All stories"),
     [query, setQuery] = useState(""),
@@ -137,35 +164,68 @@ export default function App() {
     [setPrefs],
   );
   const refresh = useCallback(async () => {
+    newsRequest.current?.abort();
+    const controller = new AbortController();
+    newsRequest.current = controller;
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 20000);
     setBusy(true);
     try {
-      const res = await fetch(
-        import.meta.env.BASE_URL + "data/edition.json?t=" + Date.now(),
-        { cache: "no-cache" },
+      const data = await loadEdition(
+        import.meta.env.BASE_URL,
+        newsScope,
+        controller.signal,
       );
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      if (!Array.isArray(data.articles) || !data.articles.length)
-        throw new Error();
-      setEdition(data);
-      setNotice("");
+      if (controller.signal.aborted) return;
+      setEdition((previous) =>
+        data.delivery === "health" && previous.articles.length
+          ? { ...previous, statuses: data.statuses }
+          : data.delivery === "all" || previous.generatedAt !== data.generatedAt
+            ? data
+            : {
+                ...data,
+                articles: [
+                  ...new Map(
+                    [...previous.articles, ...data.articles].map((a) => [
+                      a.id,
+                      a,
+                    ]),
+                  ).values(),
+                ],
+              },
+      );
+      setNotice((previous) =>
+        previous ===
+        "Could not refresh. Your cached edition and saved articles remain available."
+          ? ""
+          : previous,
+      );
     } catch {
-      setNotice(
-        "Could not refresh. Your cached edition and saved articles remain available.",
-      );
+      if (!controller.signal.aborted || timedOut)
+        setNotice(
+          "Could not refresh. Your cached edition and saved articles remain available.",
+        );
     } finally {
-      setBusy(false);
+      clearTimeout(timeout);
+      if (newsRequest.current === controller) setBusy(false);
     }
-  }, []);
+  }, [newsScope]);
   useEffect(() => {
+    if (!newsEnabled) return;
     void refresh();
     const interval = setInterval(refresh, 15 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [refresh]);
+    return () => {
+      clearInterval(interval);
+      newsRequest.current?.abort();
+    };
+  }, [refresh, newsEnabled]);
   useEffect(() => {
     const on = () => {
         setOnline(true);
-        void refresh();
+        if (newsEnabled) void refresh();
       },
       off = () => setOnline(false);
     window.addEventListener("online", on);
@@ -174,7 +234,7 @@ export default function App() {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
-  }, [refresh]);
+  }, [refresh, newsEnabled]);
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
@@ -203,20 +263,30 @@ export default function App() {
   useEffect(() => {
     if (!prefs.customSources.length || !prefs.complete) return;
     let active = true;
-    Promise.allSettled(
-      prefs.customSources.map((s) => loadCustom(s, prefs.converter)),
-    ).then((results) => {
-      if (!active) return;
-      const articles = results.flatMap((r) =>
-        r.status === "fulfilled" ? r.value : [],
-      );
-      if (articles.length)
-        setCustom((old) =>
-          [
-            ...new Map([...old, ...articles].map((a) => [a.id, a])).values(),
-          ].slice(-500),
+    import("./feeds")
+      .then(({ loadCustom }) =>
+        Promise.allSettled(
+          prefs.customSources.map((s) => loadCustom(s, prefs.converter)),
+        ),
+      )
+      .then((results) => {
+        if (!active) return;
+        const articles = results.flatMap((r) =>
+          r.status === "fulfilled" ? r.value : [],
         );
-    });
+        if (articles.length)
+          setCustom((old) =>
+            [
+              ...new Map([...old, ...articles].map((a) => [a.id, a])).values(),
+            ].slice(-500),
+          );
+      })
+      .catch(() => {
+        if (active)
+          setNotice(
+            "Custom sources could not be refreshed. Your saved articles and offline copies remain available.",
+          );
+      });
     return () => {
       active = false;
     };
@@ -280,6 +350,10 @@ export default function App() {
     ],
     [edition, custom, prefs.customSources, online, offline.items],
   );
+  const displayedReader =
+    reader && !(reader.content || reader.excerpt)
+      ? all.find((a) => a.id === reader.id) || reader
+      : reader;
   const sourceLabels = useMemo(
     () => new Map([...sources, ...prefs.customSources].map((s) => [s.id, s])),
     [prefs.customSources],
@@ -474,6 +548,7 @@ export default function App() {
         </button>
         {syncPanel}
         <Onboarding
+          onSourcesNeeded={() => setNewsRequested(true)}
           onArticles={(items) =>
             setCustom((old) => [
               ...items,
@@ -1212,27 +1287,27 @@ export default function App() {
           }}
         />
       )}
-      {reader && (
+      {displayedReader && (
         <Reader
           downloadNotice={offline.error || offline.message}
-          article={reader}
+          article={displayedReader}
           prefs={prefs}
-          saved={saved.some((a) => a.id === reader.id)}
-          initialProgress={progress[reader.id] || 0}
+          saved={saved.some((a) => a.id === displayedReader.id)}
+          initialProgress={progress[displayedReader.id] || 0}
           onDownload={() =>
             void offline.download(
-              [all.find((a) => a.id === reader.id) || reader],
+              [all.find((a) => a.id === displayedReader.id) || displayedReader],
               readingMetadata,
             )
           }
-          downloaded={offline.items.some((r) => r.id === reader.id)}
-          downloading={offline.working.includes(reader.id)}
+          downloaded={offline.items.some((r) => r.id === displayedReader.id)}
+          downloading={offline.working.includes(displayedReader.id)}
           offlineLabel={
-            offline.items.some((r) => r.id === reader.id)
+            offline.items.some((r) => r.id === displayedReader.id)
               ? "Offline copy stored on this device. Missing or excluded publisher images may be omitted."
               : undefined
           }
-          onSave={() => save(reader)}
+          onSave={() => save(displayedReader)}
           onPrefs={patch}
           onProgress={onProgress}
           onHome={() => {

@@ -1,7 +1,7 @@
+import { parseFeedDocument } from "../src/feed-parser.ts";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { sources } from "../src/catalog.ts";
 import {
-  parseFeedDocument,
   latestPublication,
   feedFreshness,
   deduplicateArticles,

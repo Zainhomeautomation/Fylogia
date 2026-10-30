@@ -16,9 +16,6 @@ test("licensed feed articles, read-here filter, immersive pagination and preview
   );
   expect(mit).toBeTruthy();
   expect(ha).toBeTruthy();
-  await page.route("**/data/edition.json*", (r) =>
-    r.fulfill({ json: { ...edition, articles: [mit, ha, preview] } }),
-  );
   await page.goto("./");
   await expect(page).toHaveTitle(/Fylogia/);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -28,6 +25,7 @@ test("licensed feed articles, read-here filter, immersive pagination and preview
     name: "Open navigation",
     exact: true,
   });
+  await expect(page.locator(".mobile-header")).toBeAttached();
   if (await menu.isVisible()) await menu.click();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
@@ -36,7 +34,11 @@ test("licensed feed articles, read-here filter, immersive pagination and preview
   await page
     .getByRole("button", { name: "Full articles only", exact: true })
     .click();
-  await expect(page.locator(".story")).toHaveCount(2);
+  await expect(page.locator(".story").first()).toBeVisible();
+  await expect(page.locator(".story .content-label.preview")).toHaveCount(0);
+  await page
+    .getByRole("textbox", { name: "Search stories", exact: true })
+    .fill(mit.title);
   await page.locator(".story-open").filter({ hasText: mit.title }).click();
   await expect(page.locator(".article-body")).toContainText(mit.author);
   await expect(page.locator(".article-body")).toContainText(
@@ -58,6 +60,9 @@ test("licensed feed articles, read-here filter, immersive pagination and preview
   await page
     .getByRole("button", { name: "Full articles only", exact: true })
     .click();
+  await page
+    .getByRole("textbox", { name: "Search stories", exact: true })
+    .fill(preview.title);
   await page.locator(".story-open").filter({ hasText: preview.title }).click();
   if (preview.image) {
     // Exercise image-failure recovery independently of service-worker/CDN caches.

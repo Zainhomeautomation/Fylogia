@@ -1,14 +1,12 @@
 import { feedImage } from "./feed-images";
-import { parseFeedDocument } from "./source-utils";
+import { parseFeedDocument } from "./feed-parser";
+import { plain } from "./article-html";
 import DOMPurify from "dompurify";
 import type { Article, Source } from "./catalog";
 import { safeUrl } from "./storage";
 const array = (v: unknown): any[] => (!v ? [] : Array.isArray(v) ? v : [v]);
 const value = (v: any): string =>
   typeof v === "string" ? v : String(v?.["#text"] || "");
-export function plain(html: string) {
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [] });
-}
 export async function loadCustom(
   source: Source,
   converter: boolean,
