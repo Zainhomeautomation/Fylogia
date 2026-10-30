@@ -172,6 +172,10 @@ export function recommendSources(
         s.categories.some((c) => prefs.interests.includes(c)) &&
         (!selected.length ||
           !s.categories.includes("Sports") ||
+          s.categories.some(
+            (category) =>
+              category !== "Sports" && prefs.interests.includes(category),
+          ) ||
           !sourceSports(s).length ||
           sourceSports(s).some((id) => selected.includes(id))) &&
         (prefs.region === "Worldwide" ||
@@ -248,7 +252,7 @@ export function sourceMatches(
 export function articleMatchesLibrary(
   article: Article,
   prefs: Pick<Preferences, "sourceIds" | "region"> &
-    Partial<Pick<Preferences, "topics" | "customSources">>,
+    Partial<Pick<Preferences, "topics" | "customSources" | "interests">>,
 ) {
   const contexts = article.feedContexts || [
     {

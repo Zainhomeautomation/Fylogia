@@ -197,3 +197,72 @@ test("general-feed college and NFL URLs cannot enter the soccer view", () => {
     assert.equal(matchesSport(a, "football"), false);
   }
 });
+test("individual sports never erase a separately followed Cars or Health interest", () => {
+  const car = {
+    ...story(
+      "road-track",
+      "VW Suspends ID.Golf EV Development Amid Financial Pressures: Report",
+    ),
+    categories: ["Cars", "Sports"],
+  };
+  const health = {
+    ...story("runners-world", "Nutrition advice for runners"),
+    categories: ["Health", "Sports"],
+  };
+  const prefs = {
+    ...defaults,
+    interests: ["Sports", "Cars", "Health"],
+    topics: ["Football"],
+    sourceIds: ["road-track", "runners-world", "bbc-sport-football"],
+  };
+  assert.ok(articleMatchesLibrary(car, prefs));
+  assert.ok(articleMatchesLibrary(health, prefs));
+  const daily = createDailyMagazine(
+    [car, health, story("bbc-sport-football")],
+    prefs,
+  );
+  assert.ok(daily.stories.some((s) => s.id === car.id));
+  assert.ok(daily.stories.some((s) => s.id === health.id));
+  assert.equal(
+    articleMatchesLibrary(car, { ...prefs, interests: ["Sports"] }),
+    false,
+  );
+  assert.equal(
+    articleMatchesLibrary(health, { ...prefs, interests: ["Sports"] }),
+    false,
+  );
+  const selected = recommendSources(
+    sources.filter((s) =>
+      ["runners-world", "bbc-sport-football"].includes(s.id),
+    ),
+    { ...prefs, interests: ["Sports", "Health"] },
+    [],
+    2,
+  );
+  assert.ok(selected.some((s) => s.id === "runners-world"));
+  assert.ok(selected.some((s) => s.id === "bbc-sport-football"));
+});
+test("broad Outside feeds retain article-level cycling as well as outdoor coverage", () => {
+  const article = story(
+    "outside",
+    "Time to Get Off the E-Mountain Bike Fence and Onto the Trail",
+  );
+  assert.ok(articleSports(article).includes("cycling"));
+  assert.ok(articleSports(article).includes("outdoor"));
+  assert.ok(matchesSport(article, "cycling"));
+  assert.ok(
+    articleMatchesLibrary(article, {
+      sourceIds: ["outside"],
+      region: "Worldwide",
+      topics: ["Cycling"],
+    }),
+  );
+  assert.equal(
+    articleMatchesLibrary(article, {
+      sourceIds: ["outside"],
+      region: "Worldwide",
+      topics: ["Football"],
+    }),
+    false,
+  );
+});

@@ -443,6 +443,7 @@ export default function App() {
     prefs.sourceIds,
     prefs.region,
     prefs.topics,
+    prefs.interests,
     sourceLabels,
     filter,
     query,

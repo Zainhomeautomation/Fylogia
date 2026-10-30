@@ -21,9 +21,9 @@ The sport tabs and selector work inside Explore/For You and the existing Magazin
 | Cricket                    |                      16 |
 | Golf                       |                      17 |
 | Combat Sports              |                      31 |
-| Cycling                    |                      32 |
+| Cycling                    |                      33 |
 | Rugby                      |                      19 |
-| Athletics & Olympics       |                      25 |
+| Athletics & Olympics       |                      26 |
 | Swimming & Water Sports    |                      32 |
 | Outdoor & Adventure Sports |                      17 |
 

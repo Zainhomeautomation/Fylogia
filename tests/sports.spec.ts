@@ -282,3 +282,49 @@ test("unavailable publisher photos retain Fylogia’s editorial cover fallback",
   await expect(card.locator(".type-art strong")).toHaveText(article.source);
   await expect(card.locator("h2")).toHaveText(article.title);
 });
+test("followed Cars stories remain in For You when Football is selected", async ({
+  page,
+}) => {
+  const edition = await (await page.request.get("data/edition.json")).json();
+  const car = edition.articles.find((a: any) => a.sourceId === "road-track");
+  expect(car).toBeTruthy();
+  await page.addInitScript(
+    (p) => localStorage.setItem("folio.v1.preferences", JSON.stringify(p)),
+    {
+      ...defaults,
+      complete: true,
+      interests: ["Cars", "Sports"],
+      topics: ["Football"],
+      sourceIds: ["road-track", "bbc-sport-football"],
+    },
+  );
+  await page.goto("./");
+  await expect(
+    page.getByRole("heading", { name: car.title, exact: true }),
+  ).toBeVisible();
+});
+test("Outside cycling publication browsing opens its real mountain-biking story", async ({
+  page,
+}) => {
+  const { outsideCyclingArticle } = await import("./sports-fixture");
+  const edition = await (await page.request.get("data/edition.json")).json();
+  await mockEdition(page, { ...edition, articles: [outsideCyclingArticle] });
+  await seed(page);
+  await page
+    .getByRole("combobox", { name: "Choose a sport", exact: true })
+    .selectOption("cycling");
+  await page
+    .getByRole("button", { name: "Magazines & publications →", exact: true })
+    .click();
+  const outside = page.locator('[data-publication-id="outside"]');
+  await outside
+    .getByRole("button", { name: "Browse articles", exact: true })
+    .click();
+  await expect(page.locator(".publication-selection")).toContainText("Outside");
+  await expect(
+    page.getByRole("heading", {
+      name: outsideCyclingArticle.title,
+      exact: true,
+    }),
+  ).toBeVisible();
+});

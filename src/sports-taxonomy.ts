@@ -167,7 +167,10 @@ export function articleSports(
         [],
     ),
   );
-  if (scoped.length) return scoped;
+  // Outside is a broad outdoor publication, not a single-sport feed. Its
+  // recommendation scope must not hide article-level cycling/water coverage.
+  const broad = ids.has("outside");
+  if (scoped.length && !broad) return scoped;
   if (!article.categories.includes("Sports")) return [];
   const text =
     article.title +
@@ -182,13 +185,14 @@ export function articleSports(
     ) ||
     /\/(?:college|high-school)\/[^?#]*\/football(?:\/|$)/i.test(article.url);
   const basketball = sports[1].pattern.test(text);
-  return sports
+  const inferred = sports
     .filter(
       (s) =>
         (s.id === "american-football" ? american : s.pattern.test(text)) &&
         !(s.id === "football" && (american || basketball)),
     )
     .map((s) => s.id);
+  return [...new Set([...scoped, ...inferred])];
 }
 export function matchesSport(
   article: Article,
@@ -203,12 +207,16 @@ export function matchesSport(
 }
 export function sportsPreferenceMatches(
   article: Article,
-  prefs: Partial<Pick<Preferences, "topics" | "customSources">>,
+  prefs: Partial<Pick<Preferences, "topics" | "customSources" | "interests">>,
 ) {
   const chosen = selectedSports(prefs.topics);
   return (
     !chosen.length ||
     !article.categories.includes("Sports") ||
+    !!prefs.interests?.some(
+      (category) =>
+        category !== "Sports" && article.categories.includes(category),
+    ) ||
     articleSports(article, prefs.customSources).some((id) =>
       chosen.includes(id),
     )
