@@ -183,3 +183,44 @@ test("interruptions cancel native drags and release every temporary PDF image", 
     .poll(() => page.evaluate(() => (window as any).paperImages.size))
     .toBe(0);
 });
+
+test("a second pointer or motion change cancels a held corner without a late page advance", async ({
+  page,
+}) => {
+  await open(page);
+  const corner = page.getByRole("button", {
+    name: "Drag or tap to turn forward",
+    exact: true,
+  });
+  const box = (await corner.boundingBox())!;
+  const width = (await page
+    .locator(".pdf-spread > .pdf-pages canvas")
+    .last()
+    .boundingBox())!.width;
+  const hold = async () => {
+    await page.mouse.move(box.x + 24, box.y + 24);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 24 - width * 0.7, box.y, { steps: 8 });
+    await expect(page.locator(".paper-fold")).toHaveCount(1);
+  };
+  await hold();
+  await page
+    .locator(".pdf-spread")
+    .dispatchEvent("pointerdown", {
+      pointerId: 4,
+      pointerType: "touch",
+      isPrimary: false,
+      button: 0,
+    });
+  await expect(page.locator(".paper-fold")).toHaveCount(0);
+  await page.mouse.up();
+  await page
+    .locator(".pdf-spread")
+    .dispatchEvent("pointercancel", { pointerId: 4 });
+  await expect(page.locator(".reader-footer")).toContainText("Page 1–2 of 15");
+  await hold();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".paper-fold")).toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.locator(".reader-footer")).toContainText("Page 1–2 of 15");
+});

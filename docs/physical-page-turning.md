@@ -29,3 +29,18 @@ The next spread is prepared before a committed animation. The painted destinatio
 Regression tests cover nonidentical curved-band geometry, stationary content and spine, real reverse-page images, forward/backward order, one-tap edges, cancelled/partial drags, resize, second-pointer/reduced-motion interruption, object-URL cleanup, bounded cache resolution/eviction, native PDF progress, offline turns and existing zoom behavior. Existing browser tests also cover article pagination, reflow anchors, bookmarks, tutorial persistence and accessibility.
 
 Chromium and WebKit with phone, unfolded/facing-page, iPad and desktop viewports are automated browser tests. Held-drag screenshots of the actual NASA publication provide visual verification. These are not physical iPhone Duo tests or a guarantee of 60 FPS on every device. Native iOS simulators require a full Xcode installation and runtimes; this Mac currently has Command Line Tools only, with no connected iPhone/iPad.
+
+### Local measurement, 30 October 2026
+
+The unthrottled Mac lab run measured six completed article turns per scenario, awaiting the changed page number and layer cleanup each time:
+
+| Engine   | Viewport  | Median / p95 frame interval | Largest sampled Event Timing duration |
+| -------- | --------- | --------------------------- | ------------------------------------- |
+| Chromium | 390 × 844 | 16.7 / 16.8 ms              | 24 ms                                 |
+| Chromium | 844 × 740 | 16.7 / 16.8 ms              | 40 ms                                 |
+| WebKit   | 390 × 844 | 17 / 20 ms                  | 24 ms                                 |
+| WebKit   | 844 × 740 | 17 / 23 ms                  | 32 ms                                 |
+
+Each scenario finished with zero paper layers. Maximum frame gaps were 47–54 ms, so occasional missed frames remain; these measurements do not guarantee sustained physical-device 60 FPS. The separate real NASA PDF smoke run passed forward/backward order, held drag, fitted spine and bookmark/progress reopening in desktop Chromium, unfolded WebKit and phone WebKit. Its full-spread phone layout remains zoomable as described above.
+
+Reproduce the real-publication smoke check with `node scripts/verify-physical-pages.mjs --url=https://fylogia.com/ --commit=EXPECTED_GIT_SHA --out=/tmp/fylogia-physical-pages`. This uses the actual external NASA PDF and may be affected by publisher availability; the regular offline PDF regressions use an original deterministic fixture instead.

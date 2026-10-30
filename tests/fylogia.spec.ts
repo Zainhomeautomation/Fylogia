@@ -254,32 +254,42 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
             !node.classList.contains("turn-leaf")
           )
             continue;
-          const canvases = [...node.querySelectorAll("canvas")];
-          let ink = false;
-          for (const canvas of canvases) {
-            const ctx = canvas.getContext("2d")!;
-            const { data } = ctx.getImageData(
-              0,
-              0,
-              canvas.width,
-              canvas.height,
-            );
-            for (let i = 0; i < data.length; i += 64 * 4)
-              if (
-                data[i + 3] &&
-                Math.min(data[i], data[i + 1], data[i + 2]) < 150
-              ) {
-                ink = true;
-                break;
-              }
-          }
-          const surface = document.querySelector(".pdf-spread")!;
-          (window as any).__pdfPaper = {
-            hidden: node.inert && node.getAttribute("aria-hidden") === "true",
-            ink,
-            pixels: canvases.reduce((n, c) => n + c.width * c.height, 0),
-            max: surface.clientWidth * surface.clientHeight * 1.1,
-          };
+          // Each face shares one decoded image; inspect its real pixels rather
+          // than requiring the previous implementation's per-strip canvases.
+          void (async () => {
+            const images = [...node.querySelectorAll<HTMLImageElement>("img")];
+            await Promise.all(images.map((img) => img.decode()));
+            const unique = [
+              ...new Map(images.map((img) => [img.src, img])).values(),
+            ];
+            const scratch = document.createElement("canvas");
+            scratch.width = scratch.height = 128;
+            const ctx = scratch.getContext("2d")!;
+            let ink = false;
+            for (const img of unique) {
+              ctx.clearRect(0, 0, 128, 128);
+              ctx.drawImage(img, 0, 0, 128, 128);
+              const { data } = ctx.getImageData(0, 0, 128, 128);
+              for (let i = 0; i < data.length; i += 4)
+                if (
+                  data[i + 3] &&
+                  Math.min(data[i], data[i + 1], data[i + 2]) < 150
+                ) {
+                  ink = true;
+                  break;
+                }
+            }
+            (window as any).__pdfPaper = {
+              hidden: node.inert && node.getAttribute("aria-hidden") === "true",
+              ink,
+              sharedImages: unique.length,
+              pixels: unique.reduce(
+                (n, img) => n + img.naturalWidth * img.naturalHeight,
+                0,
+              ),
+              max: 4_001_000,
+            };
+          })();
           observer.disconnect();
         }
     });
@@ -294,6 +304,8 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
   const paper = await page.evaluate(() => (window as any).__pdfPaper);
   expect(paper.hidden).toBe(true);
   expect(paper.ink).toBe(true);
+  expect(paper.sharedImages).toBeGreaterThan(0);
+  expect(paper.sharedImages).toBeLessThanOrEqual(2);
   expect(paper.pixels).toBeLessThanOrEqual(paper.max);
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
   await expect(page.locator(".reader-footer")).not.toContainText("Page 1 ");
@@ -326,10 +338,8 @@ test("real original PDF renders, turns pages, bookmarks and persists", async ({
         0,
       ),
     );
-  const previewBounds = (await surface.boundingBox())!;
-  expect(previewPixels).toBeLessThanOrEqual(
-    previewBounds.width * previewBounds.height,
-  );
+  // Up to two adjacent PDF pages, each bounded at two megapixels.
+  expect(previewPixels).toBeLessThanOrEqual(4_001_000);
   await page.mouse.up();
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
   await page.getByRole("button", { name: "Bookmark page" }).click();

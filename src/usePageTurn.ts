@@ -90,9 +90,13 @@ function createEngine(
     clearTimeout(s.timer);
     s.underlay?.remove();
     s.view?.dispose();
-    delete s.surface.dataset.pageTurn;
-    if (current.current === s) current.current = null;
-    if (runQueue && alive.current) {
+    const owned = current.current === s;
+    if (owned) {
+      delete s.surface.dataset.pageTurn;
+      current.current = null;
+      if (!runQueue) queued.current = null;
+    }
+    if (owned && runQueue && alive.current) {
       const q = queued.current;
       queued.current = null;
       if (q) navigate(q.forward, q.turn);
@@ -247,10 +251,7 @@ function createEngine(
   }
   async function end(commit: boolean, turn: () => void) {
     const s = current.current;
-    if (!s) {
-      if (commit) turn();
-      return;
-    }
+    if (!s) return;
     if (s.ending) return;
     s.ending = true;
     s.apply = turn;
@@ -331,11 +332,12 @@ function createEngine(
     const down = (e: PointerEvent) => {
       nativePointers.current.add(e.pointerId);
       if (nativePointers.current.size > 1) {
-        const g = gesture.current;
         gesture.current = null;
-        if (g?.dragging) void end(false, () => {});
+        if (current.current && !current.current.ending)
+          void end(false, () => {});
         return;
       }
+      if (!surface.contains(e.target as Node)) return;
       const cfg = getOptions().interaction;
       if (
         !getOptions().enabled ||
@@ -448,7 +450,7 @@ function createEngine(
         if (g.dragging) void end(false, () => {});
       }
     };
-    surface.addEventListener("pointerdown", down);
+    window.addEventListener("pointerdown", down, true);
     surface.addEventListener("pointermove", move, { passive: false });
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", cancel);
@@ -458,7 +460,7 @@ function createEngine(
       observer.disconnect();
       media.removeEventListener("change", motion);
       document.removeEventListener("visibilitychange", visible);
-      surface.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointerdown", down, true);
       surface.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", cancel);
