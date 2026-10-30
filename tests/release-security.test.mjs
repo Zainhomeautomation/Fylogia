@@ -1,4 +1,5 @@
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { securityHeaders } from "../scripts/write-security-headers.mjs";
@@ -51,4 +52,17 @@ test("NASA third-party copyrighted photographs are omitted without truncating ag
   assert.match(a.content, /allowed.jpg/);
   assert.match(a.content, /Final agency paragraph/);
   assert.ok(a.content.includes(paragraph));
+});
+
+test("production CSP permits only the existing Cloudflare beacon in addition to self-hosted scripts", async () => {
+  const template = await readFile(
+    new URL("../public/_headers", import.meta.url),
+    "utf8",
+  );
+  const policy = securityHeaders(template, "<script>startup()</script>");
+  const directive = policy.match(/script-src ([^;]+)/)[1];
+  assert.match(directive, /https:\/\/static\.cloudflareinsights\.com(?: |$)/);
+  assert.equal((directive.match(/https:/g) || []).length, 1);
+  assert.doesNotMatch(directive, /unsafe-inline|https:\s|\*/);
+  assert.match(policy, /script-src-attr 'none'/);
 });
