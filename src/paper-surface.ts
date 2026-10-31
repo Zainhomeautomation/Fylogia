@@ -235,6 +235,22 @@ export async function paper(
     el.append(clip);
     const lighting = document.createElement("div");
     lighting.className = "paper-light";
+    // Tangent angles depend only on band index, not turn progress. Keep these
+    // variables on the empty lighting layer: changing inherited variables on
+    // the band every frame invalidates every printed descendant in WebKit.
+    const angle =
+      kind === "bend" ? ((i + 0.5) * Math.PI) / 12 : isBack ? Math.PI : 0;
+    lighting.style.setProperty(
+      "--fold-shade",
+      String(
+        kind === "bend" ? 0.05 + Math.sin(angle) * 0.25 : isBack ? 0.035 : 0,
+      ),
+    );
+    lighting.style.setProperty(
+      "--fold-highlight",
+      String(kind === "bend" ? Math.max(0, Math.sin(angle - 0.7)) * 0.16 : 0),
+    );
+    el.style.zIndex = String(10 + i);
     clip.append(lighting);
     leaf.append(el);
     bands.push({ el, kind, index: i, back: isBack });
@@ -271,7 +287,9 @@ export async function paper(
         low - 0.35,
         high + 0.35,
       );
-      b.el.style.visibility = polygon.length < 3 ? "hidden" : "visible";
+      const visibility = polygon.length < 3 ? "hidden" : "visible";
+      if (b.el.style.visibility !== visibility)
+        b.el.style.visibility = visibility;
       const clip = b.el.firstElementChild as HTMLElement;
       clip.style.clipPath = `polygon(${polygon.map((p) => (verticalTurn ? `${p.y}px ${p.x}px` : `${p.x}px ${p.y}px`)).join(",")})`;
       const u =
@@ -284,25 +302,6 @@ export async function paper(
         forward,
         w,
         h,
-      );
-      b.el.style.zIndex = String(10 + b.index);
-      b.el.style.setProperty(
-        "--fold-shade",
-        String(
-          b.kind === "bend"
-            ? 0.05 + Math.sin(plane.angle) * 0.25
-            : b.back
-              ? 0.035
-              : 0,
-        ),
-      );
-      b.el.style.setProperty(
-        "--fold-highlight",
-        String(
-          b.kind === "bend"
-            ? Math.max(0, Math.sin(plane.angle - 0.7)) * 0.16
-            : 0,
-        ),
       );
     }
   }

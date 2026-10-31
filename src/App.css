@@ -3169,7 +3169,12 @@ html[data-theme="light"] .brand-mark-light {
   backface-visibility: visible;
   will-change: transform;
 }
+.paper-texture {
+  will-change: transform;
+}
 .paper-clip {
+  contain: paint;
+  will-change: clip-path;
   background: var(--sheet-color);
   position: absolute;
   inset: 0;
