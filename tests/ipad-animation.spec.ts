@@ -2,6 +2,13 @@ import { test, expect, type Page, type CDPSession } from "@playwright/test";
 import { defaults } from "../src/catalog";
 import { magazineFixture } from "./pdf-fixture";
 
+// Timing-sensitive frame sampling must not compete with automatic trace
+// screenshots/DOM snapshots. Keep action traces and our explicit held-page
+// screenshots + frame arrays, with exactly the same visible-animation checks.
+test.use({
+  trace: { mode: "retain-on-failure", screenshots: false, snapshots: false },
+});
+
 const trusted = new WeakMap<Page, CDPSession>();
 
 async function open(page: Page, kind: "article" | "pdf", landscape: boolean) {
@@ -291,15 +298,19 @@ for (const kind of ["article", "pdf"] as const)
                 intervals: number[];
               },
           );
-          expect(Math.max(...frames.values)).toBeGreaterThan(distance);
-          expect(
-            new Set(frames.values.map((n) => n.toFixed(3))).size,
-            "multiple rendered animation frames, not an immediate page switch",
-          ).toBeGreaterThan(3);
           await info.attach(
             `${kind}-${axis}-${forward ? "next" : "previous"}-frames`,
             { body: JSON.stringify(frames), contentType: "application/json" },
           );
+          const distinct = new Set(frames.values.map((n) => n.toFixed(3))).size;
+          console.log(
+            `[paper frames] ${info.project.name} ${kind} ${axis} ${forward ? "next" : "previous"}: ${distinct} distinct frames`,
+          );
+          expect(Math.max(...frames.values)).toBeGreaterThan(distance);
+          expect(
+            distinct,
+            "multiple rendered animation frames, not an immediate page switch",
+          ).toBeGreaterThan(3);
 
           await expect(status).not.toHaveText(start);
           await expect(fold).toHaveCount(0);
