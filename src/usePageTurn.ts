@@ -287,11 +287,16 @@ function createEngine(
     if (current.current !== s || s.controller.signal.aborted) return;
     const from = s.distance,
       to = commit ? 2 : 0,
-      start = performance.now(),
       vertical = s.vertical;
+    let start: number | undefined;
     const duration = commit ? Math.max(280, (620 * (2 - from)) / 2) : 240;
     const tick = (now: number) => {
       if (current.current !== s) return;
+      if (start === undefined) {
+        start = now;
+        s.frame = requestAnimationFrame(tick);
+        return; // The prepared pose is already drawn; avoid repainting it.
+      }
       const t = Math.min(1, (now - start) / duration),
         ease = t * t * (3 - 2 * t);
       s.distance = from + (to - from) * ease;
@@ -300,7 +305,12 @@ function createEngine(
       if (t < 1) s.frame = requestAnimationFrame(tick);
       else void finish(s, commit);
     };
-    s.frame = requestAnimationFrame(tick);
+    // Let the newly created paper layers paint before starting their clock.
+    // WebKit can defer first-frame delivery/rasterization past the entire turn
+    // duration; construction time must never consume visible motion.
+    s.frame = requestAnimationFrame(() => {
+      if (current.current === s) s.frame = requestAnimationFrame(tick);
+    });
     // Suspended WebKit frames must neither strand a layer nor lose navigation.
     s.timer = setTimeout(() => {
       void finish(s, commit);

@@ -431,3 +431,75 @@ test.describe("phone-sized high-density animation", () => {
     });
   }
 });
+
+test("a delayed first animation frame cannot consume the visible paper turn", async ({
+  page,
+}, info) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await open(page, "article", false);
+  const status = page.locator(".reader-footer [role=status]"),
+    before = await status.innerText();
+  await expect(
+    page.getByRole("button", { name: "Next page", exact: true }),
+  ).toBeEnabled();
+  await page.evaluate(() => {
+    const nativeFrame = window.requestAnimationFrame.bind(window);
+    let delayNext = true,
+      delayed = 0;
+    const began = performance.now(),
+      values: { elapsed: number; distance: number }[] = [];
+    (window as any).__delayedPaperFrames = new Promise((resolve) => {
+      let seen = false;
+      const sample = () => {
+        const leaf = document.querySelector<HTMLElement>(".paper-fold");
+        if (leaf) {
+          seen = true;
+          values.push({
+            elapsed: performance.now() - began,
+            distance: Number(leaf.dataset.distance),
+          });
+        }
+        if ((seen && !leaf) || performance.now() - began > 5000) {
+          resolve({ values, delayed });
+          return;
+        }
+        nativeFrame(sample);
+      };
+      nativeFrame(sample);
+    });
+    window.requestAnimationFrame = (callback) => {
+      if (delayNext) {
+        delayNext = false;
+        delayed++;
+        return nativeFrame(() =>
+          setTimeout(() => callback(performance.now()), 900),
+        );
+      }
+      return nativeFrame(callback);
+    };
+    const button = [
+      ...document.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((b) => b.getAttribute("aria-label") === "Next page")!;
+    button.click();
+  });
+  const frames = await page.evaluate(
+    async () => await (window as any).__delayedPaperFrames,
+  );
+  await info.attach("delayed-first-frame", {
+    body: JSON.stringify(frames),
+    contentType: "application/json",
+  });
+  expect(frames.delayed).toBe(1);
+  const firstMoving = frames.values.find(
+    (v: { distance: number }) => v.distance > 0,
+  );
+  expect(firstMoving.elapsed).toBeGreaterThan(850);
+  expect(
+    new Set(
+      frames.values.map((v: { distance: number }) => v.distance.toFixed(3)),
+    ).size,
+    "late first-frame delivery still shows a progressing paper animation",
+  ).toBeGreaterThan(3);
+  await expect(status).not.toHaveText(before);
+  await expect(page.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
+});
