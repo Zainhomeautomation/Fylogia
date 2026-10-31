@@ -1,6 +1,6 @@
 import {
   crease,
-  clipBand,
+  bandMask,
   foldPlane,
   planeMatrix,
   verticalPlaneMatrix,
@@ -231,7 +231,11 @@ export async function paper(
     el.style.cssText = `position:absolute;left:0;top:0;width:${box.width}px;height:${box.height}px;transform-origin:0 0;`;
     const clip = document.createElement("div");
     clip.className = "paper-clip";
-    clip.append(face(isBack));
+    const print = document.createElement("div");
+    print.className = "paper-print";
+    print.style.cssText = `width:${box.width}px;height:${box.height}px;`;
+    print.append(face(isBack));
+    clip.append(print);
     el.append(clip);
     const lighting = document.createElement("div");
     lighting.className = "paper-light";
@@ -251,7 +255,7 @@ export async function paper(
       String(kind === "bend" ? Math.max(0, Math.sin(angle - 0.7)) * 0.16 : 0),
     );
     el.style.zIndex = String(10 + i);
-    clip.append(lighting);
+    print.append(lighting);
     leaf.append(el);
     bands.push({ el, kind, index: i, back: isBack });
   }
@@ -280,18 +284,16 @@ export async function paper(
           : b.kind === "back"
             ? Infinity
             : -a + (b.index + 1) * ((2 * a) / 12);
-      const polygon = clipBand(
-        foldWidth,
-        foldHeight,
-        f,
-        low - 0.35,
-        high + 0.35,
-      );
-      const visibility = polygon.length < 3 ? "hidden" : "visible";
+      // A rotated rectangular overflow mask represents the same crease band.
+      // Polygon clip-path mutations repaint all printed regions in software
+      // WebKit; keep the printed texture fixed and move cheap rectangular clips.
+      const mask = bandMask(box.width, box.height, f, low, high, verticalTurn);
+      const visibility = mask.visible ? "visible" : "hidden";
       if (b.el.style.visibility !== visibility)
         b.el.style.visibility = visibility;
       const clip = b.el.firstElementChild as HTMLElement;
-      clip.style.clipPath = `polygon(${polygon.map((p) => (verticalTurn ? `${p.y}px ${p.x}px` : `${p.x}px ${p.y}px`)).join(",")})`;
+      clip.style.transform = mask.transform;
+      (clip.firstElementChild as HTMLElement).style.transform = mask.inverse;
       const u =
         b.kind === "front" ? -a : b.kind === "back" ? a : (low + high) / 2;
       const plane = foldPlane(f, u, b.kind);
@@ -329,7 +331,7 @@ export async function paper(
       back = { snapshot: dest, box: other, image: image?.img };
       for (const b of bands)
         if (b.back)
-          b.el.firstElementChild?.firstElementChild?.replaceWith(face(true));
+          b.el.querySelector(".paper-texture")?.replaceWith(face(true));
       draw(lastDistance, lastVertical);
     },
     dispose() {

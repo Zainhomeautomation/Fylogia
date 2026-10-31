@@ -118,3 +118,39 @@ export function verticalPlaneMatrix(
     .map(Number);
   return `matrix(${m[3]},${m[2]},${m[1]},${m[0]},${m[5]},${m[4]})`;
 }
+
+// A pair of inverse rotations makes a rectangular compositor clip equivalent
+// to the original page/crease-band intersection. The printed page keeps its
+// fixed dimensions and original coordinates; only its mask moves each frame.
+export function bandMask(
+  width: number,
+  height: number,
+  fold: Fold,
+  low: number,
+  high: number,
+  vertical = false,
+) {
+  const nx = vertical ? fold.ny : fold.nx;
+  const ny = vertical ? fold.nx : fold.ny;
+  const min =
+    Math.min(0, nx * width, ny * height, nx * width + ny * height) - fold.mid;
+  const max =
+    Math.max(0, nx * width, ny * height, nx * width + ny * height) - fold.mid;
+  const start = Math.max(min - 1, low - 0.35);
+  const end = Math.min(max + 1, high + 0.35);
+  const u = fold.mid + start;
+  const v =
+    Math.min(0, -ny * width, nx * height, -ny * width + nx * height) - 1;
+  const extent =
+    Math.max(0, -ny * width, nx * height, -ny * width + nx * height) + 1 - v;
+  const span = Math.max(0.01, end - start);
+  // Keep the clipping box at 1 × 1. Its transform and the inverse texture
+  // transform change, never layout dimensions or polygon paint resources.
+  return {
+    visible: end > start,
+    width: 1,
+    height: 1,
+    transform: `matrix(${nx * span},${ny * span},${-ny * extent},${nx * extent},${nx * u - ny * v},${ny * u + nx * v})`,
+    inverse: `matrix(${nx / span},${-ny / extent},${ny / span},${nx / extent},${-u / span},${-v / extent})`,
+  };
+}

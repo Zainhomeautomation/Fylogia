@@ -11,7 +11,7 @@ The existing article, Daily Magazine article and PDF readers share `usePageTurn`
 
 ## Changes
 
-Each tangent now uses an orthographic projection of the curved sheet, with an independently clipped printed texture. This avoids the problematic projective CSS divide while retaining a moving crease, bent paper, shadows/highlights, printed front/back faces and corner dragging. It is not a flat-sheet rotation or sliding transition. The geometry is shared by horizontal and vertical turns; text remains upright.
+Each tangent now uses an orthographic projection of the curved sheet, with an independently clipped printed texture. A fixed rectangular overflow mask and inverse texture transform represent the same crease intersection without repainting a polygon mask or changing layout dimensions each frame. Lighting is initialized once on an empty overlay instead of invalidating inherited styles on every printed text descendant. This avoids the problematic projective CSS divide while retaining a moving crease, bent paper, shadows/highlights, printed front/back faces and corner dragging. It is not a flat-sheet rotation or sliding transition. The geometry is shared by horizontal and vertical turns; text remains upright.
 
 One gesture owner locks the dominant axis: left/up advances, right/down goes back. Partial contacts cancel, page bounds and one queued turn remain enforced, and interactive taps retain their normal behavior. Both one-finger axes are owned only in paginated reading. Scrolling mode, two-finger zoom and zoomed panning remain available. Reduced Motion remains respected and is explained visibly.
 

@@ -166,7 +166,8 @@ for (const kind of ["article", "pdf"] as const)
           const geometry = await fold.evaluate((n) =>
             [...n.querySelectorAll<HTMLElement>(".paper-band")].map((e) => ({
               matrix: getComputedStyle(e).transform,
-              clip: getComputedStyle(e.firstElementChild!).clipPath,
+              clip: getComputedStyle(e.firstElementChild!).overflow,
+              mask: getComputedStyle(e.firstElementChild!).transform,
               visible: getComputedStyle(e).visibility,
             })),
           );
@@ -179,7 +180,9 @@ for (const kind of ["article", "pdf"] as const)
             geometry.filter((g) => g.visible === "visible").length,
           ).toBeGreaterThan(1);
           expect(
-            geometry.every((g) => g.clip.startsWith("polygon(")),
+            geometry.every(
+              (g) => g.clip === "hidden" && g.mask.startsWith("matrix("),
+            ),
           ).toBeTruthy();
           const during = await surface.screenshot({
             path: info.outputPath(

@@ -3155,7 +3155,7 @@ html[data-theme="light"] .brand-mark-light {
 }
 
 /* The projection and clipping must be separate compositing layers in WebKit.
-   Geometry already includes perspective; do not rotate/flatten the whole page. */
+   Tangents project the curved sheet; do not rotate/flatten the whole page. */
 .paper-fold.turn-leaf {
   -webkit-backface-visibility: visible;
   backface-visibility: visible;
@@ -3169,16 +3169,25 @@ html[data-theme="light"] .brand-mark-light {
   backface-visibility: visible;
   will-change: transform;
 }
-.paper-texture {
+.paper-clip {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  contain: strict;
+  transform-origin: 0 0;
   will-change: transform;
 }
-.paper-clip {
-  contain: paint;
-  will-change: clip-path;
-  background: var(--sheet-color);
+.paper-print {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
   overflow: hidden;
+  background: var(--sheet-color);
+  transform-origin: 0 0;
+  will-change: transform;
 }
 /* Paginated reading owns both one-finger axes. Scroll mode and zoomed PDF
    panning remain native; pinch zoom is never disabled for article text. */

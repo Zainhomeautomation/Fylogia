@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   crease,
+  bandMask,
   clipBand,
   foldPlane,
   planeMatrix,
@@ -120,4 +121,57 @@ test("adjacent affine paper tangents meet without projective gaps", () => {
       assert.match(planeMatrix(left, 0, 0, true, size, 700), /^matrix\(/);
     }
   }
+});
+
+test("rectangular crease masks preserve page coordinates and the original band intersection", () => {
+  const matrix = (s) => s.slice(7, -1).split(",").map(Number);
+  const apply = (m, p) => ({
+    x: m[0] * p.x + m[2] * p.y + m[4],
+    y: m[1] * p.x + m[3] * p.y + m[5],
+  });
+  for (const vertical of [false, true])
+    for (const distance of [0.01, 0.3, 0.8, 1.2, 1.9]) {
+      const w = 420,
+        h = 760,
+        f = crease(vertical ? h : w, vertical ? w : h, distance, -0.04),
+        a = (Math.PI * f.radius) / 2;
+      for (let i = -1; i <= 12; i++) {
+        const low = i < 0 ? -Infinity : i === 12 ? a : -a + (i * 2 * a) / 12;
+        const high =
+          i < 0 ? -a : i === 12 ? Infinity : -a + ((i + 1) * 2 * a) / 12;
+        const mask = bandMask(w, h, f, low, high, vertical),
+          outer = matrix(mask.transform),
+          inner = matrix(mask.inverse);
+        assert.doesNotMatch(mask.transform + mask.inverse, /NaN|Infinity/);
+        for (const p of [
+          { x: 0, y: 0 },
+          { x: w, y: h },
+          { x: w * 0.4, y: h * 0.7 },
+        ]) {
+          const restored = apply(outer, apply(inner, p));
+          assert.ok(
+            Math.hypot(p.x - restored.x, p.y - restored.y) < 1e-8,
+            "inverse rotations retain printed text position",
+          );
+        }
+        for (const original of clipBand(
+          vertical ? h : w,
+          vertical ? w : h,
+          f,
+          low,
+          high,
+        )) {
+          const p = vertical ? { x: original.y, y: original.x } : original,
+            local = apply(inner, p);
+          assert.ok(mask.visible);
+          assert.ok(
+            local.x >= -1e-7 &&
+              local.x <= mask.width + 1e-7 &&
+              local.y >= -1e-7 &&
+              local.y <= mask.height + 1e-7,
+            "crease polygon lies inside equivalent rectangular mask",
+          );
+        }
+      }
+    }
 });
