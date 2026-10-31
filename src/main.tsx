@@ -30,11 +30,15 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
         updateViaCache: "none",
       })
       .then((registration) => {
-        let last = 0;
+        // register() already checks on launch. Do not race its installation
+        // with an immediate explicit update (WebKit can reject that request).
+        let last = Date.now();
         const check = () => {
           if (
             document.hidden ||
             !navigator.onLine ||
+            registration.installing ||
+            registration.waiting ||
             Date.now() - last < 60_000
           )
             return;
@@ -43,7 +47,6 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
         };
         window.addEventListener("online", check);
         document.addEventListener("visibilitychange", check);
-        check();
       })
       .catch(() => {
         /* Reading remains available without offline caching. */
