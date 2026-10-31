@@ -85,7 +85,17 @@ export function NewsFeed({
       style={{ gridTemplateColumns: `repeat(${spread}, minmax(0, 1fr))` }}
     >
       {articles.slice(at, at + spread).map((a) => (
-        <div className="feed-sheet" key={a.id} data-story-id={a.id}>
+        <div
+          className="feed-sheet"
+          key={a.id}
+          data-story-id={a.id}
+          onClickCapture={(event) => {
+            // A facing spread has two possible entry points. Remember the one
+            // actually opened, including resizing while the reader overlays it.
+            if ((event.target as Element).closest("[data-feed-open]"))
+              setAnchor(a.id);
+          }}
+        >
           {renderStory(a)}
         </div>
       ))}

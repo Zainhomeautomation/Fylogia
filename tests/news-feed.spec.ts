@@ -314,3 +314,27 @@ test("rapid turns remain ordered and an abandoned mouse edge drag returns natura
   await expect(active(page)).toHaveText(before);
   await expect(page.locator(".reader")).toHaveCount(0);
 });
+
+test("opening either facing story then folding inside the reader returns to the tapped story", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1194, height: 834 });
+  await seed(page);
+  await expect(page.locator(".news-book > .news-feed-surface")).toHaveAttribute(
+    "data-paper-spread",
+    "2",
+  );
+  const story = active(page).locator(".feed-sheet").nth(1);
+  const id = await story.getAttribute("data-story-id");
+  await story.locator(".story-open").tap();
+  await expect(page.locator(".reader")).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  await expect(active(page).locator(".feed-sheet")).toHaveCount(1);
+  await expect(active(page).locator(".feed-sheet")).toHaveAttribute(
+    "data-story-id",
+    id!,
+  );
+});
