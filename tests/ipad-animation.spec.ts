@@ -137,7 +137,11 @@ for (const kind of ["article", "pdf"] as const)
         for (const forward of [true, false]) {
           const before = await surface.screenshot();
           const start = await status.innerText();
-          const delta = forward ? -115 : 115;
+          const bounds = (await surface.boundingBox())!;
+          const delta =
+            (forward ? -1 : 1) *
+            (axis === "vertical" ? bounds.height : bounds.width) *
+            0.4;
           await contact(page, selector, "touchstart");
           for (let i = 1; i <= 5; i++) {
             await contact(
@@ -167,6 +171,10 @@ for (const kind of ["article", "pdf"] as const)
             })),
           );
           expect(new Set(geometry.map((g) => g.matrix)).size).toBe(12);
+          expect(
+            geometry.every((g) => g.matrix.startsWith("matrix(")),
+            "curved tangents use continuous affine projection in WebKit",
+          ).toBeTruthy();
           expect(
             geometry.filter((g) => g.visible === "visible").length,
           ).toBeGreaterThan(1);

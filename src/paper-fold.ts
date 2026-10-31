@@ -95,18 +95,13 @@ export function planeMatrix(
   width: number,
   height: number,
 ) {
-  const sign = forward ? 1 : -1,
-    depth = 2400,
-    cx = width / 2,
-    cy = height / 2;
-  const d = 1 - plane.tz / depth;
-  const a = (sign * plane.xx - (cx * plane.zx) / depth) / d,
-    b = (plane.yx - (cy * plane.zx) / depth) / d;
-  const c = (sign * plane.xy - (cx * plane.zy) / depth) / d,
-    e = (hinge + sign * plane.tx - (cx * plane.tz) / depth) / d;
-  const f = (top + plane.ty - (cy * plane.tz) / depth) / d,
-    dy = (plane.yy - (cy * plane.zy) / depth) / d;
-  return `matrix3d(${a},${b},0,${-plane.zx / depth / d},${c},${dy},0,${-plane.zy / depth / d},0,0,1,0,${e},${f},0,1)`;
+  // Orthographic projection of each tangent of the curved 3D sheet. WebKit's
+  // projective matrix3d + polygon clipping tears adjacent bands into slivers.
+  // Affine tangents keep continuous paper without rotating/sliding a flat sheet.
+  void width;
+  void height;
+  const sign = forward ? 1 : -1;
+  return `matrix(${sign * plane.xx},${plane.yx},${sign * plane.xy},${plane.yy},${hinge + sign * plane.tx},${top + plane.ty})`;
 }
 
 export function verticalPlaneMatrix(
@@ -118,8 +113,8 @@ export function verticalPlaneMatrix(
   height: number,
 ) {
   const m = planeMatrix(plane, hinge, left, forward, height, width)
-    .slice(9, -1)
+    .slice(7, -1)
     .split(",")
     .map(Number);
-  return `matrix3d(${m[5]},${m[4]},0,${m[7]},${m[1]},${m[0]},0,${m[3]},0,0,1,0,${m[13]},${m[12]},0,1)`;
+  return `matrix(${m[3]},${m[2]},${m[1]},${m[0]},${m[5]},${m[4]})`;
 }

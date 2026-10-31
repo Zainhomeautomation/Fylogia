@@ -54,17 +54,17 @@ test("forward and reverse geometry share the same fixed spine with opposite hori
     front = foldPlane(f, 0, "front");
   const values = (forward) =>
     planeMatrix(front, 400, 20, forward, 800, 600)
-      .match(/matrix3d\((.*)\)/)[1]
+      .match(/matrix\((.*)\)/)[1]
       .split(",")
       .map(Number);
   const a = values(true),
     b = values(false);
-  assert.equal(a[12], 400);
-  assert.equal(b[12], 400);
+  assert.equal(a[4], 400);
+  assert.equal(b[4], 400);
   assert.equal(a[0], 1);
   assert.equal(b[0], -1);
-  assert.equal(a[13], 20);
-  assert.equal(b[13], 20);
+  assert.equal(a[5], 20);
+  assert.equal(b[5], 20);
   const end = crease(400, 600, 1.99999, 0),
     back = foldPlane(end, (Math.PI * end.radius) / 2, "back");
   assert.ok(back.xx < -0.999);
@@ -75,13 +75,13 @@ test("vertical paper uses a projected cylinder along the y axis without rotating
   const front = foldPlane(crease(700, 400, 0.1), 0, "front");
   for (const forward of [true, false]) {
     const m = verticalPlaneMatrix(front, 50, 20, forward, 400, 700)
-      .slice(9, -1)
+      .slice(7, -1)
       .split(",")
       .map(Number);
-    assert.equal(m[12], 20);
-    assert.equal(m[13], 50);
+    assert.equal(m[4], 20);
+    assert.equal(m[5], 50);
     assert.equal(m[0], 1);
-    assert.equal(m[5], forward ? 1 : -1);
+    assert.equal(m[3], forward ? 1 : -1);
   }
   const f = crease(700, 400, 0.8),
     a = (Math.PI * f.radius) / 2;
@@ -97,4 +97,27 @@ test("vertical paper uses a projected cylinder along the y axis without rotating
   );
   assert.equal(new Set(matrices).size, 12);
   for (const m of matrices) assert.doesNotMatch(m, /NaN|Infinity/);
+});
+test("adjacent affine paper tangents meet without projective gaps", () => {
+  for (const size of [320, 700, 1100]) {
+    const f = crease(size, 700, 0.8, -0.04),
+      a = (Math.PI * f.radius) / 2;
+    for (let i = 0; i < 11; i++) {
+      const u = -a + ((i + 1) * 2 * a) / 12;
+      const point = { x: f.nx * (f.mid + u), y: f.ny * (f.mid + u) };
+      const left = foldPlane(f, -a + ((i + 0.5) * 2 * a) / 12, "bend"),
+        right = foldPlane(f, -a + ((i + 1.5) * 2 * a) / 12, "bend");
+      const project = (p) => ({
+        x: p.xx * point.x + p.xy * point.y + p.tx,
+        y: p.yx * point.x + p.yy * point.y + p.ty,
+      });
+      const l = project(left),
+        r = project(right);
+      assert.ok(
+        Math.hypot(l.x - r.x, l.y - r.y) < 0.25,
+        "adjacent tangent seams stay subpixel",
+      );
+      assert.match(planeMatrix(left, 0, 0, true, size, 700), /^matrix\(/);
+    }
+  }
 });
