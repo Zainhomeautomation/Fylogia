@@ -70,9 +70,12 @@ async function nav(page: Page, name: string) {
 }
 const library = (page: Page) =>
   page.evaluate(() =>
-    ["preferences", "saved", "history", "progress"].map((k) =>
-      localStorage.getItem("folio.v1." + k),
-    ),
+    ["preferences", "saved", "history", "progress"].map((key) => {
+      const raw = localStorage.getItem("folio.v1." + key);
+      // Property order can change during normal startup normalization. Keep
+      // every field/value in the comparison; invalid JSON must still fail.
+      return raw === null ? null : JSON.parse(raw);
+    }),
   );
 
 test("For You favors new related reading while retaining private bookmarks and history", async ({
@@ -103,15 +106,25 @@ test("For You favors new related reading while retaining private bookmarks and h
   await expect(page.locator(".story h2").first()).toHaveText(
     "New device launch",
   );
-  expect(JSON.parse((await library(page))[1]!)).toEqual(JSON.parse(before[1]!));
+  expect((await library(page))[1]).toEqual(before[1]);
 });
 test("search finds category and publisher tags, ranks relevant titles and keeps its state after Back", async ({
   page,
 }) => {
   await seed(page);
   await page.goto("./explore");
+  await expect(page.locator(".story")).toHaveCount(3);
   const search = page.getByRole("textbox", { name: "Search stories" });
-  await search.fill("robotics");
+  const enter = async (text: string) => {
+    if (await search.inputValue())
+      await page
+        .getByRole("button", { name: "Clear search", exact: true })
+        .click();
+    await expect(search).toHaveValue("");
+    await search.pressSequentially(text);
+    await expect(search).toHaveValue(text);
+  };
+  await enter("robotics");
   await expect(page.locator(".story")).toHaveCount(2);
   await expect(page.locator(".story h2").first()).toHaveText(
     "Previously read robotics story",
@@ -121,9 +134,9 @@ test("search finds category and publisher tags, ranks relevant titles and keeps 
     .getByRole("button", { name: "Back to previous section", exact: true })
     .click();
   await expect(search).toHaveValue("robotics");
-  await search.fill("AI");
+  await enter("AI");
   await expect(page.locator(".story")).toHaveCount(2);
-  await search.fill("BBC research");
+  await enter("BBC research");
   await expect(page.locator(".story h2")).toHaveText("Fresh research dispatch");
 });
 test("reading settings explain live Reduce Motion without changing the saved preference or sync status", async ({
