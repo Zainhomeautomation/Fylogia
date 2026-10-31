@@ -3204,3 +3204,213 @@ html[data-theme="light"] .brand-mark-light {
   background: var(--paper);
   padding: 4px 8px;
 }
+
+/* News pages share the reader's printed-paper renderer and local story actions. */
+.feed-view-switch {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 8px 0;
+}
+.feed-view-switch [aria-pressed="true"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.news-book {
+  margin: 0 auto 24px;
+  max-width: 1320px;
+}
+.news-feed-surface {
+  position: relative;
+  height: clamp(480px, 74dvh, 860px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  touch-action: pan-y pinch-zoom;
+  background: var(--paper);
+  isolation: isolate;
+}
+.feed-spread {
+  display: grid;
+  height: 100%;
+  width: 100%;
+}
+.feed-sheet {
+  min-width: 0;
+  height: 100%;
+  padding: 24px 34px;
+  background: var(--paper);
+  overflow: hidden;
+}
+.feed-sheet + .feed-sheet {
+  border-left: 1px solid var(--line);
+  box-shadow: inset 12px 0 18px -18px #0009;
+}
+.feed-sheet .story {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border: 0;
+}
+.news-book .feed-sheet .story .story-open {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.news-book .feed-sheet .story .story-open img,
+.feed-sheet .type-art {
+  width: 100%;
+  height: clamp(150px, 32dvh, 360px);
+  min-height: 100px;
+  object-fit: cover;
+  flex-shrink: 1;
+  margin-bottom: 18px;
+}
+.news-book .feed-sheet .story .story-open h2 {
+  font-size: clamp(24px, 2.6vw, 40px);
+  line-height: 1.12;
+  margin: 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.news-book .feed-sheet .story .story-open p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.feed-read {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  margin-top: auto;
+  padding: 8px 0;
+}
+.feed-sheet .story-meta {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+.feed-sheet .story-offline-tools:empty {
+  display: none;
+}
+.feed-edge {
+  position: absolute;
+  z-index: 3;
+  top: 42%;
+  width: 36px;
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+.feed-edge-next {
+  right: 0;
+  border-radius: 18px 0 0 18px;
+  box-shadow: -4px 3px 10px #0002;
+}
+.feed-edge-previous {
+  left: 0;
+  border-radius: 0 18px 18px 0;
+}
+.feed-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.feed-pagination button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.feed-guidance {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.75;
+  margin: 0;
+}
+.feed-preload {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  width: min(100vw, 1320px);
+  height: 74dvh;
+  visibility: hidden;
+  pointer-events: none;
+}
+.feed-end {
+  display: grid;
+  place-items: center;
+  font-family: Georgia, serif;
+}
+.compact-edition {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.compact-edition .edition-intro .eyebrow,
+.compact-edition .edition-intro small {
+  display: none;
+}
+.compact-edition .edition-intro p {
+  font-size: 24px;
+  margin: 0 0 5px;
+}
+@media (max-width: 600px) {
+  .feed-sheet {
+    padding: 18px 28px;
+  }
+  .news-feed-surface {
+    height: clamp(510px, 78dvh, 760px);
+  }
+  .news-book .feed-sheet .story .story-open h2 {
+    font-size: 27px;
+  }
+  .news-book .feed-sheet .story .story-open img,
+  .feed-sheet .type-art {
+    height: 28dvh;
+  }
+  .feed-edge {
+    width: 27px;
+  }
+  .compact-edition .edition-intro {
+    flex-basis: 100%;
+  }
+}
+.news-pages-mode .page-heading {
+  padding: 14px 0;
+}
+.news-pages-mode .page-heading h1 {
+  font-size: clamp(28px, 3vw, 44px);
+}
+.news-pages-mode .search-field {
+  margin: 10px 0;
+}
+.news-pages-mode .download-toolbar {
+  gap: 8px 16px;
+}
+.news-pages-mode .edition-intro {
+  flex: 1 1 220px;
+}
+.news-pages-mode .compact-edition .edition-intro p {
+  font-size: 20px;
+}
+.news-pages-mode .compact-edition .text-button {
+  padding: 6px 0;
+}
+.news-pages-mode .feed-view-switch {
+  margin: 0;
+}

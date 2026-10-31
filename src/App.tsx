@@ -63,6 +63,7 @@ import { useStored, useLocalProfile } from "./storage";
 import { decodeLibrary, encryptLibrary } from "./library-backup";
 import { replaceLocalLibrary, snapshotLibrary } from "./local-library";
 import { Onboarding } from "./Onboarding";
+import { NewsFeed } from "./NewsFeed";
 import { StoryCard } from "./StoryCard";
 import { Reader } from "./Reader";
 import { Sources } from "./Sources";
@@ -585,6 +586,15 @@ export default function App() {
       setBackupBusy(false);
     }
   }
+  const [newsView, setNewsView] = useState(() => {
+    try {
+      return localStorage.getItem("fylogia.news.view") === "list"
+        ? "list"
+        : "pages";
+    } catch {
+      return "pages";
+    }
+  });
   if (!prefs.complete || personalizing)
     return (
       <>
@@ -619,6 +629,10 @@ export default function App() {
       </>
     );
   const current = navigation.find((n) => n.id === view)!;
+  const newsPages =
+    (view === "home" || view === "explore") &&
+    newsView === "pages" &&
+    !selecting;
   const storyView = ["home", "explore", "saved", "history"].includes(view);
   return (
     <>
@@ -709,7 +723,7 @@ export default function App() {
           aria-label="Close navigation overlay"
         />
       )}
-      <main id="main" className="main">
+      <main id="main" className={`main ${newsPages ? "news-pages-mode" : ""}`}>
         <div className="edition-bar">
           <span>
             {new Date().toLocaleDateString("en", {
@@ -765,7 +779,7 @@ export default function App() {
         )}
         {storyView && (
           <div
-            className={`download-toolbar ${view === "home" ? "daily-edition" : ""}`}
+            className={`download-toolbar ${view === "home" ? "daily-edition" : ""} ${newsPages ? "compact-edition" : ""}`}
           >
             {view === "home" && (
               <div className="edition-intro">
@@ -989,6 +1003,27 @@ export default function App() {
                 </button>
               )}
             </label>
+            {(view === "home" || view === "explore") && (
+              <div className="feed-view-switch" aria-label="News presentation">
+                {["pages", "list"].map((mode) => (
+                  <button
+                    key={mode}
+                    className="text-button"
+                    aria-pressed={newsView === mode}
+                    onClick={() => {
+                      setNewsView(mode);
+                      try {
+                        localStorage.setItem("fylogia.news.view", mode);
+                      } catch {
+                        /* This visit remains usable without storage. */
+                      }
+                    }}
+                  >
+                    {mode === "pages" ? "Magazine pages" : "Story list"}
+                  </button>
+                ))}
+              </div>
+            )}
             {busy && !all.length ? (
               <div className="empty" role="status">
                 <BrandMark />
@@ -1025,6 +1060,34 @@ export default function App() {
                   <ArrowRight size={16} />
                 </button>
               </div>
+            ) : newsPages ? (
+              <NewsFeed
+                key={[
+                  view,
+                  filter,
+                  query,
+                  sport,
+                  apple,
+                  publicationId,
+                  readableOnly,
+                ].join(":")}
+                articles={articles}
+                renderStory={(a) => (
+                  <StoryCard
+                    article={a}
+                    magazinePage
+                    imageRetryToken={imageRetryToken}
+                    saved={saved.some((s) => s.id === a.id)}
+                    onSave={() => save(a)}
+                    onOpen={() => open(a)}
+                    onDownload={() =>
+                      void offline.download([a], readingMetadata)
+                    }
+                    downloaded={offline.items.some((r) => r.id === a.id)}
+                    downloading={offline.working.includes(a.id)}
+                  />
+                )}
+              />
             ) : (
               <>
                 <div className="editorial-grid">

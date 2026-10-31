@@ -9,6 +9,7 @@ Production target: **https://fylogia.com/**, deployed from the personal [Zainhom
 - Three-step onboarding: grouped interests, subtopics, regions, recommended sources and custom RSS/Atom feeds.
 - Real publisher content from 285 curated feeds, scheduled for refresh every four hours by GitHub Actions (runs can be delayed). The app checks for a newer deployed edition every 15 minutes and on Refresh.
 - Editorial home, Explore, Categories, source management, saved articles, magazines, history and settings. For You uses bounded local history/bookmark subjects and freshness, with publisher diversity; its order stays stable on reader Back until Refresh, Home navigation or reopening.
+- For You and category feeds open as a bounded, page-flipping news book: horizontal touch swipes, mouse edge drags, visible navigation, responsive facing pages, adjacent-story preloading and stable story position on reader Back or resizing. Story List remains available. Reduce Motion disables animation without disabling navigation; vertical gestures remain native scrolling in the news feed.
 - Search covers title, publication, category, publisher topics and excerpts, with relevant titles first. Updates announce themselves passively without reloading an open reader.
 - Single-page article reading on small screens, two-column spreads on wide screens, swipes, keyboard/page controls, text-size adjustment and optional continuous scrolling. Pagination responds to resizing, rotation and folding.
 - Nine sources support permitted full text when their feed supplies a qualifying article body; other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
@@ -36,6 +37,8 @@ npm run preview
 npx playwright install chromium webkit
 npm test
 ```
+
+Existing list regressions explicitly select the supported Story List presentation; `news-feed.spec.ts` starts with empty presentation storage and verifies the actual default news book, printed intermediate curl poses, touch cancellation, rapid turns, responsive story preservation and offline operation. These are browser simulations, not physical iPad or installed-PWA certification.
 
 Tests cover Chromium desktop, WebKit iPhone/iPad, onboarding, saved stories, history, themes, search, regions, source selection, pagination, live resizing, scrolling, summaries, the real PDF reader, manifest, service worker and offline saved reading.
 

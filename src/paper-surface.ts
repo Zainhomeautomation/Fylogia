@@ -38,7 +38,9 @@ export function capture(surface: HTMLElement, offset = 0): Capture {
       ? articleSurface(surface, offset)
       : (surface.cloneNode(true) as HTMLElement);
   node
-    .querySelectorAll(".turn-leaf,.curl-underlay,.page-turn-controls")
+    .querySelectorAll(
+      ".turn-leaf,.curl-underlay,.page-turn-controls,.feed-edge",
+    )
     .forEach((n) => n.remove());
   node
     .querySelectorAll(".reader-content")

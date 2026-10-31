@@ -6,6 +6,8 @@ type Interaction = {
   next: boolean;
   step: (forward: boolean) => void;
   blocked?: () => boolean;
+  horizontalOnly?: boolean;
+  contentOpenSelector?: string;
 };
 type Session = {
   controller: AbortController;
@@ -440,9 +442,13 @@ function createEngine(
         cfg.blocked?.() ||
         e.button !== 0 ||
         !e.isPrimary ||
-        (e.target as HTMLElement).closest(
+        ((e.target as HTMLElement).closest(
           "button,input,textarea,select,[contenteditable=true]",
-        ) ||
+        ) &&
+          !(
+            cfg.contentOpenSelector &&
+            (e.target as HTMLElement).closest(cfg.contentOpenSelector)
+          )) ||
         (e.pointerType !== "touch" && (e.target as HTMLElement).closest("a"))
       )
         return;
@@ -481,7 +487,11 @@ function createEngine(
         touch: e.pointerType === "touch",
         edge: Math.abs(x - edge) <= 28,
         queued: false,
-        link: Boolean((e.target as HTMLElement).closest("a")),
+        link: Boolean(
+          (e.target as HTMLElement).closest("a") ||
+          (cfg.contentOpenSelector &&
+            (e.target as HTMLElement).closest(cfg.contentOpenSelector)),
+        ),
         axis: "horizontal",
       };
     };
@@ -497,7 +507,14 @@ function createEngine(
         if (Math.abs(dx) < slop && Math.abs(dy) < slop) {
           // Claim paginated motion before Safari starts a native scroll. Taps
           // and two-finger zoom retain their normal behavior.
-          e.preventDefault();
+          if (!getOptions().interaction?.horizontalOnly) e.preventDefault();
+          return;
+        }
+        if (
+          getOptions().interaction?.horizontalOnly &&
+          Math.abs(dy) > Math.abs(dx)
+        ) {
+          gesture.current = null;
           return;
         }
         const dominant = Math.max(Math.abs(dx), Math.abs(dy));
