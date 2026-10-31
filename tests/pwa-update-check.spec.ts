@@ -49,3 +49,14 @@ test("worker registration does not race itself with duplicate initial update che
     await (window as any).updateFinished;
   });
 });
+
+test("worker delivery forbids a long browser cache lifetime without changing offline library identity", async ({
+  page,
+}) => {
+  const response = await page.request.get("sw.js");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toContain("no-store");
+  const script = await response.text();
+  expect(script).toContain("freshNavigation");
+  expect(script).toContain("fyllora-offline-images-v1");
+});
