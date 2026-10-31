@@ -3164,11 +3164,13 @@ html[data-theme="light"] .brand-mark-light {
 .paper-fold .paper-band,
 .paper-fold .paper-flat {
   overflow: visible;
+  background: transparent;
   -webkit-backface-visibility: visible;
   backface-visibility: visible;
   will-change: transform;
 }
 .paper-clip {
+  background: var(--sheet-color);
   position: absolute;
   inset: 0;
   overflow: hidden;

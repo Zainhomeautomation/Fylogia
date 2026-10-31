@@ -1,11 +1,21 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type CDPSession } from "@playwright/test";
 import { defaults } from "../src/catalog";
 import { magazineFixture } from "./pdf-fixture";
+
+const trusted = new WeakMap<Page, CDPSession>();
 
 async function open(page: Page, kind: "article" | "pdf", landscape: boolean) {
   await page.setViewportSize(
     landscape ? { width: 1180, height: 820 } : { width: 820, height: 1180 },
   );
+  if (page.context().browser()?.browserType().name() === "chromium") {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Emulation.setTouchEmulationEnabled", {
+      enabled: true,
+      maxTouchPoints: 2,
+    });
+    trusted.set(page, session);
+  }
   const edition = await (await page.request.get("data/edition.json")).json();
   const sample = edition.articles.find((a: any) => a.full);
   const article = {
@@ -67,6 +77,31 @@ async function contact(
   dx = 0,
   dy = 0,
 ) {
+  const session = trusted.get(page);
+  if (session) {
+    const r = (await page.locator(selector).boundingBox())!;
+    await session.send("Input.dispatchTouchEvent", {
+      type: (
+        {
+          touchstart: "touchStart",
+          touchmove: "touchMove",
+          touchend: "touchEnd",
+          touchcancel: "touchCancel",
+        } as const
+      )[phase as "touchstart"],
+      touchPoints:
+        phase === "touchend" || phase === "touchcancel"
+          ? []
+          : [
+              {
+                x: r.x + r.width * 0.55 + dx,
+                y: r.y + r.height * 0.5 + dy,
+                id: 19,
+              },
+            ],
+    });
+    return;
+  }
   await page.locator(selector).evaluate(
     (surface, { phase, dx, dy }) => {
       const rect = surface.getBoundingClientRect();
@@ -143,6 +178,58 @@ for (const kind of ["article", "pdf"] as const)
               `${kind}-${landscape ? "landscape" : "portrait"}-${axis}-${forward ? "forward" : "backward"}.png`,
             ),
           });
+          const pigment = await page.evaluate(
+            async ({ before, during, kind }) => {
+              const measure = async (src: string) => {
+                const image = new Image();
+                image.src = "data:image/png;base64," + src;
+                await image.decode();
+                const c = document.createElement("canvas");
+                c.width = image.width;
+                c.height = image.height;
+                const ctx = c.getContext("2d")!;
+                ctx.drawImage(image, 0, 0);
+                const pixels = ctx.getImageData(0, 0, c.width, c.height).data;
+                let ink = 0;
+                for (
+                  let y = Math.floor(c.height * 0.1);
+                  y < c.height * 0.9;
+                  y++
+                )
+                  for (
+                    let x = Math.floor(c.width * 0.1);
+                    x < c.width * 0.9;
+                    x++
+                  ) {
+                    const i = (y * c.width + x) * 4,
+                      r = pixels[i],
+                      g = pixels[i + 1],
+                      b = pixels[i + 2];
+                    if (
+                      kind === "article"
+                        ? r > 150 && g > 140 && b > 100
+                        : g - r > 8 && g - b > 8
+                    )
+                      ink++;
+                  }
+                return ink;
+              };
+              return {
+                before: await measure(before),
+                during: await measure(during),
+              };
+            },
+            {
+              before: before.toString("base64"),
+              during: during.toString("base64"),
+              kind,
+            },
+          );
+          expect(pigment.before).toBeGreaterThan(20);
+          expect(
+            pigment.during,
+            "printed content remains visible while the page bends",
+          ).toBeGreaterThan(pigment.before * 0.4);
           expect(
             before.equals(during),
             "visible pixels change during a held paper fold",
