@@ -46,7 +46,9 @@ async function seed(page: Page) {
   // text snapshot; its delayed error does not change the story identity.
   await expect(
     page
-      .locator(".news-book > .news-feed-surface > .feed-spread .type-art")
+      .locator(
+        ".news-book > .news-feed-surface > .feed-spread > .feed-sheet:first-child .type-art",
+      )
       .first(),
   ).toBeVisible({ timeout: 15000 });
   await page.locator(".news-book").scrollIntoViewIfNeeded();
@@ -58,9 +60,15 @@ async function settled(page: Page) {
     page.locator(".news-book > .news-feed-surface"),
   ).not.toHaveAttribute("data-page-turn", /.+/);
 }
-async function gesture(page: Page, dx: number, dy = 0, cancel = false) {
+async function gesture(
+  page: Page,
+  dx: number,
+  dy = 0,
+  cancel = false,
+  releaseOnly = false,
+) {
   await page.evaluate(
-    async ({ dx, dy, cancel }) => {
+    async ({ dx, dy, cancel, releaseOnly }) => {
       const surface = document.querySelector(
         ".news-book > .news-feed-surface",
       )!;
@@ -88,7 +96,7 @@ async function gesture(page: Page, dx: number, dy = 0, cancel = false) {
         target.dispatchEvent(event);
       };
       fire("touchstart", [touch(x, y)], [touch(x, y)]);
-      for (let i = 1; i <= 6; i++) {
+      for (let i = 1; !releaseOnly && i <= 6; i++) {
         const p = touch(x + (dx * i) / 6, y + (dy * i) / 6);
         fire("touchmove", [p], [p]);
         await new Promise<void>((resolve) =>
@@ -97,7 +105,7 @@ async function gesture(page: Page, dx: number, dy = 0, cancel = false) {
       }
       fire(cancel ? "touchcancel" : "touchend", [], [touch(x + dx, y + dy)]);
     },
-    { dx, dy, cancel },
+    { dx, dy, cancel, releaseOnly },
   );
 }
 async function nav(page: Page, name: string) {
@@ -170,6 +178,18 @@ test("native touch swipes, cancellation and vertical scrolling do not open a sto
   await settled(page);
   await expect(active(page)).toHaveText(after);
   await gesture(page, 140);
+  await settled(page);
+  await expect(active(page)).toHaveText(before);
+  // Coalesced Safari contacts can omit every move event. Terminal vertical
+  // displacement must still scroll rather than invoke the reader fallback.
+  await gesture(page, 0, -140, false, true);
+  await gesture(page, 0, 140, false, true);
+  await settled(page);
+  await expect(active(page)).toHaveText(before);
+  await gesture(page, -140, 0, false, true);
+  await settled(page);
+  await expect(active(page)).not.toHaveText(before);
+  await gesture(page, 140, 0, false, true);
   await settled(page);
   await expect(active(page)).toHaveText(before);
 });

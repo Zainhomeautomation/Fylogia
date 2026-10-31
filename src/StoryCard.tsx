@@ -17,6 +17,7 @@ export function StoryCard({
   onOpen,
   lead = false,
   magazinePage = false,
+  imagePriority,
   onDownload,
   downloaded = false,
   downloading = false,
@@ -30,6 +31,7 @@ export function StoryCard({
   onOpen: () => void;
   lead?: boolean;
   magazinePage?: boolean;
+  imagePriority?: "high" | "low" | "auto";
   onDownload?: () => void;
   downloaded?: boolean;
   downloading?: boolean;
@@ -82,7 +84,7 @@ export function StoryCard({
             alt=""
             loading={lead || magazinePage ? "eager" : "lazy"}
             decoding="async"
-            fetchPriority={lead ? "high" : "auto"}
+            fetchPriority={imagePriority || (lead ? "high" : "auto")}
             referrerPolicy="no-referrer"
             onError={() =>
               setFailedImage({ url: image, token: imageRetryToken })

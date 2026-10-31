@@ -1072,10 +1072,11 @@ export default function App() {
                   readableOnly,
                 ].join(":")}
                 articles={articles}
-                renderStory={(a) => (
+                renderStory={(a, current) => (
                   <StoryCard
                     article={a}
                     magazinePage
+                    imagePriority={current ? "high" : "low"}
                     imageRetryToken={imageRetryToken}
                     saved={saved.some((s) => s.id === a.id)}
                     onSave={() => save(a)}

@@ -610,6 +610,8 @@ function createEngine(
       ) {
         const axis =
           Math.abs(releaseY) > Math.abs(releaseX) ? "vertical" : "horizontal";
+        if (axis === "vertical" && getOptions().interaction?.horizontalOnly)
+          return;
         const forward = (axis === "vertical" ? releaseY : releaseX) < 0;
         e.preventDefault();
         lastSwipe.current = performance.now();

@@ -9,7 +9,7 @@ export function NewsFeed({
   renderStory,
 }: {
   articles: Article[];
-  renderStory: (article: Article) => ReactNode;
+  renderStory: (article: Article, current: boolean) => ReactNode;
 }) {
   const surface = useRef<HTMLDivElement>(null);
   const neighbors = useRef<HTMLDivElement>(null);
@@ -96,7 +96,7 @@ export function NewsFeed({
               setAnchor(a.id);
           }}
         >
-          {renderStory(a)}
+          {renderStory(a, !neighbor)}
         </div>
       ))}
       {spread === 2 && at + 1 >= articles.length && (
