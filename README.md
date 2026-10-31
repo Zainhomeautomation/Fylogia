@@ -62,7 +62,7 @@ FYLOGIA_TEST_URL=http://127.0.0.1:8788/ npm test
 
 ## Initial publication verification — 29 October 2026 (historical)
 
-For the current release, see [the final release audit](docs/final-release-audit.md). The following figures describe the initial publication, not current coverage.
+The [earlier release audit](docs/final-release-audit.md) and the figures below are historical records. The current deployed commit is reported by `/build-info.json`; current validation is recorded in GitHub Actions. These initial-publication figures are not current coverage.
 
 The application is publicly available without registration at **https://fylogia.com/** through the `fylogia` Cloudflare Pages project. Both the personal repository integration and automatic production deployments use `main`; non-production branch builds are disabled. The domain-specific `Fylogia www to HTTPS apex` 301 rule preserves paths and query strings. Only the requested apex/www DNS records and this site's settings were configured.
 
