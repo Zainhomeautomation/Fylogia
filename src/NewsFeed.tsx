@@ -114,6 +114,7 @@ export function NewsFeed({
         className="news-feed-surface"
         data-paper-article="true"
         data-paper-spread={spread}
+        role="group"
         tabIndex={0}
         aria-label="News pages. Swipe horizontally or use the page buttons."
       >

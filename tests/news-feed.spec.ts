@@ -2,7 +2,7 @@ import { test, mockEdition } from "./edition-fixture";
 import { expect, type Page } from "@playwright/test";
 import { defaults } from "../src/catalog";
 // Exercise the actual default, independently of the retained list regressions.
-test.use({ storageState: { cookies: [], origins: [] } });
+test.use({ hasTouch: true, storageState: { cookies: [], origins: [] } });
 async function seed(page: Page) {
   const edition = await (await page.request.get("data/edition.json")).json();
   await mockEdition(page, {
@@ -42,6 +42,13 @@ async function seed(page: Page) {
       .locator(".news-book > .news-feed-surface > .feed-spread .story h2")
       .first(),
   ).toContainText("News page 1:");
+  // The intentionally broken photograph must reach its fallback before a
+  // text snapshot; its delayed error does not change the story identity.
+  await expect(
+    page
+      .locator(".news-book > .news-feed-surface > .feed-spread .type-art")
+      .first(),
+  ).toBeVisible({ timeout: 15000 });
   await page.locator(".news-book").scrollIntoViewIfNeeded();
 }
 const active = (page: Page) =>
@@ -182,7 +189,7 @@ test("tap to read and Back restore the exact feed page, bookmarks and scroll", a
   );
   await active(page).locator(".story-open").first().scrollIntoViewIfNeeded();
   const y = await page.evaluate(() => scrollY);
-  await active(page).locator(".story-open").first().click();
+  await active(page).locator(".story-open").first().tap();
   await expect(page.locator(".reader")).toBeVisible();
   await page
     .getByRole("button", { name: "Back to previous section", exact: true })
