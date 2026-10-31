@@ -6,14 +6,23 @@ import { magazineFixture } from "./pdf-fixture";
 // screenshots/DOM snapshots. Keep action traces and our explicit held-page
 // screenshots + frame arrays, with exactly the same visible-animation checks.
 test.use({
+  // These cases resize to tablet dimensions. Keep real iPad 2× density rather
+  // than accidentally rendering a huge 3× tablet in the iPhone project.
+  deviceScaleFactor: 2,
   trace: { mode: "retain-on-failure", screenshots: false, snapshots: false },
 });
 
 const trusted = new WeakMap<Page, CDPSession>();
 
-async function open(page: Page, kind: "article" | "pdf", landscape: boolean) {
+async function open(
+  page: Page,
+  kind: "article" | "pdf",
+  landscape: boolean,
+  viewport?: { width: number; height: number },
+) {
   await page.setViewportSize(
-    landscape ? { width: 1180, height: 820 } : { width: 820, height: 1180 },
+    viewport ||
+      (landscape ? { width: 1180, height: 820 } : { width: 820, height: 1180 }),
   );
   if (page.context().browser()?.browserType().name() === "chromium") {
     const session = await page.context().newCDPSession(page);
@@ -130,6 +139,32 @@ async function contact(
     { phase, dx, dy },
   );
 }
+async function sampleFrames(page: Page) {
+  await page.evaluate(() => {
+    (window as any).__paperFrames = (async () => {
+      const values: number[] = [],
+        intervals: number[] = [];
+      let previous = performance.now();
+      const start = previous;
+      await new Promise<void>((resolve) => {
+        const sample = (now: number) => {
+          const leaf = document.querySelector<HTMLElement>(".paper-fold");
+          if (!leaf || now - start > 5000) {
+            resolve();
+            return;
+          }
+          values.push(Number(leaf.dataset.distance));
+          intervals.push(now - previous);
+          previous = now;
+          requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      return { values, intervals };
+    })();
+  });
+}
+
 for (const kind of ["article", "pdf"] as const)
   for (const landscape of [false, true]) {
     test(`${kind}: visible horizontal and vertical paper animation in ${landscape ? "landscape simulated standalone" : "portrait browser"}`, async ({
@@ -260,30 +295,7 @@ for (const kind of ["article", "pdf"] as const)
           const distance = Number(await fold.getAttribute("data-distance"));
           // Start sampling while the finger is still held. Starting after the
           // release IPC can miss an entire animation on a busy test machine.
-          await page.evaluate(() => {
-            (window as any).__paperFrames = (async () => {
-              const values: number[] = [],
-                intervals: number[] = [];
-              let previous = performance.now();
-              const start = previous;
-              await new Promise<void>((resolve) => {
-                const sample = (now: number) => {
-                  const leaf =
-                    document.querySelector<HTMLElement>(".paper-fold");
-                  if (!leaf || now - start > 5000) {
-                    resolve();
-                    return;
-                  }
-                  values.push(Number(leaf.dataset.distance));
-                  intervals.push(now - previous);
-                  previous = now;
-                  requestAnimationFrame(sample);
-                };
-                requestAnimationFrame(sample);
-              });
-              return { values, intervals };
-            })();
-          });
+          await sampleFrames(page);
           await contact(
             page,
             selector,
@@ -358,4 +370,58 @@ test("reduced motion explains intentional animation suppression while navigation
     .click();
   await expect(page.locator(".reader-footer")).toContainText("Page 3");
   await expect(page.locator(".paper-fold")).toHaveCount(0);
+});
+
+test.describe("phone-sized high-density animation", () => {
+  test.use({ deviceScaleFactor: 3 });
+  for (const kind of ["article", "pdf"] as const) {
+    test(`${kind}: real phone dimensions retain visible 3× forward and backward paper frames`, async ({
+      page,
+    }, info) => {
+      const selector = await open(page, kind, false, {
+        width: 390,
+        height: 844,
+      });
+      const status = page.locator(".reader-footer [role=status]");
+      const initial = await status.innerText();
+      const guide = page.getByRole("button", { name: "Got it", exact: true });
+      if (await guide.isVisible()) await guide.click();
+      for (const forward of [true, false]) {
+        const before = await status.innerText(),
+          bounds = (await page.locator(selector).boundingBox())!;
+        const delta = (forward ? -1 : 1) * bounds.width * 0.4;
+        await contact(page, selector, "touchstart");
+        await contact(page, selector, "touchmove", delta, 0);
+        const fold = page.locator(".paper-fold");
+        await expect(fold).toBeVisible();
+        await expect(
+          page.locator(selector + "[data-page-turn=folding]"),
+        ).toBeVisible();
+        await expect(status).toHaveText(before);
+        const distance = Number(await fold.getAttribute("data-distance"));
+        await sampleFrames(page);
+        await contact(page, selector, "touchend", delta, 0);
+        const frames = await page.evaluate(
+          async () => await (window as any).__paperFrames,
+        );
+        await info.attach(
+          `${kind}-phone-${forward ? "next" : "previous"}-frames`,
+          { body: JSON.stringify(frames), contentType: "application/json" },
+        );
+        const distinct = new Set(frames.values.map((n: number) => n.toFixed(3)))
+          .size;
+        console.log(
+          `[paper frames] ${info.project.name} ${kind} phone 3× ${forward ? "next" : "previous"}: ${distinct} distinct frames`,
+        );
+        expect(Math.max(...frames.values)).toBeGreaterThan(distance);
+        expect(
+          distinct,
+          "phone-sized 3× density shows intermediate animation frames",
+        ).toBeGreaterThan(3);
+        await expect(status).not.toHaveText(before);
+        await expect(fold).toHaveCount(0);
+      }
+      await expect(status).toHaveText(initial);
+    });
+  }
 });

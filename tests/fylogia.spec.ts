@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { readerOption } from "./reader-controls";
 import { test, expect, type Page } from "@playwright/test";
 async function setup(page: Page, waitForStories = true) {
@@ -30,94 +31,109 @@ async function nav(page: Page, label: string) {
     .getByRole("button", { name: label, exact: true })
     .click();
 }
-test("onboarding, real stories, saves, history, theme and persistent preferences", async ({
-  page,
-}) => {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await setup(page);
-  await expect(page).toHaveTitle("Fylogia — Your World, One Page at a Time.");
-  // Use a real, permitted NASA photograph instead of depending on whichever
-  // publisher happens to lead the freshly ranked multi-source edition.
-  const edition = await (await page.request.get("data/edition.json")).json();
-  const illustrated = edition.articles.find(
-    (a: any) =>
-      a.sourceId === "nasa" && a.full && a.image && a.offlineImagesAllowed,
-  );
-  expect(illustrated).toBeTruthy();
-  await page
-    .getByRole("textbox", { name: "Search stories", exact: true })
-    .fill(illustrated.title);
-  await expect(page.locator(".story.lead h2")).toHaveText(illustrated.title);
-  await expect
-    .poll(
-      () =>
-        page
-          .locator(".story.lead img")
-          .evaluate(
-            (el: HTMLImageElement) => el.complete && el.naturalWidth > 0,
-          ),
-      { timeout: 25000 },
-    )
-    .toBeTruthy();
-  if (process.env.FYLOGIA_SCREENSHOTS)
-    await page.screenshot({
-      animations: "disabled",
-      scale: "css",
-      path:
-        process.env.FYLOGIA_SCREENSHOTS +
-        "/" +
-        test.info().project.name +
-        "-home.png",
-    });
-  await expect(page.locator(".story img").first()).toHaveAttribute(
-    "src",
-    /^https:\/\//,
-  );
-  const headline = await page.locator(".story h2").first().innerText();
-  await page
-    .locator(".story")
-    .first()
-    .getByRole("button", { name: /^Save / })
-    .click();
-  await page.locator(".story-open").first().click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /Read original/ }),
-  ).toHaveAttribute("href", /^https:\/\//);
-  await page
-    .getByRole("button", { name: "Save article", exact: true })
-    .count()
-    .then(async (n) => {
-      if (n)
-        await page
-          .getByRole("button", { name: "Save article", exact: true })
-          .click();
-    });
-  await page.getByRole("button", { name: "Back to previous section" }).click();
-  await nav(page, "Saved Articles");
-  await expect(
-    page.getByRole("heading", { name: headline, exact: true }),
-  ).toBeVisible();
-  await nav(page, "History");
-  await expect(
-    page.getByRole("heading", { name: headline, exact: true }),
-  ).toBeVisible();
-  await nav(page, "Settings");
-  await page
-    .getByRole("button", { name: "Editorial Green", exact: true })
-    .click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.reload();
-  await expect(
-    page.getByRole("heading", { name: "Settings", exact: true }),
-  ).toBeVisible();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await nav(page, "Saved Articles");
-  await expect(
-    page.getByRole("heading", { name: headline, exact: true }),
-  ).toBeVisible();
-  expect(errors).toEqual([]);
+test.describe("onboarding and library persistence", () => {
+  // Network stubs need page requests, not an installed service worker's fetch.
+  // Actual installation/worker/offline behavior is tested separately below.
+  test.use({ serviceWorkers: "block" });
+  test("onboarding, publisher stories, controlled image rendering, saves, history and preferences", async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    // Keep real publisher stories, but isolate this library/UI journey from the
+    // publisher CDN: it returned HTTP 429 to CI. The owned icon is an explicit
+    // test-only image fixture, never substituted into the production edition.
+
+    const edition = await (await page.request.get("data/edition.json")).json();
+    const illustrated = edition.articles.find(
+      (a: any) =>
+        a.sourceId === "nasa" && a.full && a.image && a.offlineImagesAllowed,
+    );
+    expect(illustrated).toBeTruthy();
+    const imageFixture = await readFile(
+      new URL("../public/icons/icon-192.png", import.meta.url),
+    );
+    await page.route(illustrated.image, (route) =>
+      route.fulfill({ body: imageFixture, contentType: "image/png" }),
+    );
+    await setup(page);
+    await expect(page).toHaveTitle("Fylogia — Your World, One Page at a Time.");
+    await page
+      .getByRole("textbox", { name: "Search stories", exact: true })
+      .fill(illustrated.title);
+    await expect(page.locator(".story.lead h2")).toHaveText(illustrated.title);
+    await expect
+      .poll(
+        () =>
+          page
+            .locator(".story.lead img")
+            .evaluate(
+              (el: HTMLImageElement) => el.complete && el.naturalWidth > 0,
+            ),
+        { timeout: 25000 },
+      )
+      .toBeTruthy();
+    if (process.env.FYLOGIA_SCREENSHOTS)
+      await page.screenshot({
+        animations: "disabled",
+        scale: "css",
+        path:
+          process.env.FYLOGIA_SCREENSHOTS +
+          "/" +
+          test.info().project.name +
+          "-home-image-fixture.png",
+      });
+    await expect(page.locator(".story img").first()).toHaveAttribute(
+      "src",
+      /^https:\/\//,
+    );
+    const headline = await page.locator(".story h2").first().innerText();
+    await page
+      .locator(".story")
+      .first()
+      .getByRole("button", { name: /^Save / })
+      .click();
+    await page.locator(".story-open").first().click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Read original/ }),
+    ).toHaveAttribute("href", /^https:\/\//);
+    await page
+      .getByRole("button", { name: "Save article", exact: true })
+      .count()
+      .then(async (n) => {
+        if (n)
+          await page
+            .getByRole("button", { name: "Save article", exact: true })
+            .click();
+      });
+    await page
+      .getByRole("button", { name: "Back to previous section" })
+      .click();
+    await nav(page, "Saved Articles");
+    await expect(
+      page.getByRole("heading", { name: headline, exact: true }),
+    ).toBeVisible();
+    await nav(page, "History");
+    await expect(
+      page.getByRole("heading", { name: headline, exact: true }),
+    ).toBeVisible();
+    await nav(page, "Settings");
+    await page
+      .getByRole("button", { name: "Editorial Green", exact: true })
+      .click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: "Settings", exact: true }),
+    ).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await nav(page, "Saved Articles");
+    await expect(
+      page.getByRole("heading", { name: headline, exact: true }),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
+  });
 });
 test("full article pagination, resize, summaries and scrolling", async ({
   page,
