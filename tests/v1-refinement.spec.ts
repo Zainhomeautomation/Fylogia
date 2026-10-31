@@ -1,0 +1,195 @@
+import { test, mockEdition } from "./edition-fixture";
+import { expect, type Page } from "@playwright/test";
+import { defaults, type Article } from "../src/catalog";
+async function seed(page: Page) {
+  const e = await (await page.request.get("data/edition.json")).json();
+  const sample = (
+    id: string,
+    sourceId: string,
+    title: string,
+    extra: Partial<Article> = {},
+  ): Article => ({
+    id,
+    url: `https://example.test/${id}`,
+    sourceId,
+    source:
+      sourceId === "bbc-tech"
+        ? "BBC Technology"
+        : sourceId === "nasa"
+          ? "NASA"
+          : "The Verge",
+    title,
+    categories: ["AI"],
+    region: "Worldwide",
+    published: new Date().toISOString(),
+    excerpt: "Original test document.",
+    content: "<p>Original refinement fixture, not production news.</p>",
+    full: false,
+    ...extra,
+  });
+  const seen = sample("seen", "nasa", "Previously read robotics story", {
+      publisherTags: ["Robotics"],
+    }),
+    related = sample("related", "bbc-tech", "Fresh research dispatch", {
+      publisherTags: ["Robotics"],
+    }),
+    other = sample("other", "verge", "New device launch", {
+      categories: ["Technology"],
+    });
+  await mockEdition(page, { ...e, articles: [seen, other, related] });
+  await page.addInitScript(
+    ({ prefs, seen, related }) => {
+      if (localStorage.getItem("folio.v1.preferences")) return;
+      localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
+      localStorage.setItem("folio.v1.history", JSON.stringify([seen]));
+      localStorage.setItem("folio.v1.saved", JSON.stringify([related]));
+      localStorage.setItem("folio.v1.progress", JSON.stringify({ seen: 0.5 }));
+    },
+    {
+      prefs: {
+        ...defaults,
+        complete: true,
+        interests: ["Technology", "AI"],
+        sourceIds: ["nasa", "bbc-tech", "verge"],
+      },
+      seen,
+      related,
+    },
+  );
+}
+async function nav(page: Page, name: string) {
+  const menu = page.getByRole("button", {
+    name: "Open navigation",
+    exact: true,
+  });
+  if (await menu.isVisible()) await menu.click();
+  await page
+    .getByRole("navigation", { name: "Main navigation", exact: true })
+    .getByRole("button", { name, exact: true })
+    .click();
+}
+const library = (page: Page) =>
+  page.evaluate(() =>
+    ["preferences", "saved", "history", "progress"].map((k) =>
+      localStorage.getItem("folio.v1." + k),
+    ),
+  );
+
+test("For You favors new related reading while retaining private bookmarks and history", async ({
+  page,
+}) => {
+  await seed(page);
+  await page.goto("./");
+  await expect(page.locator(".story h2").first()).toHaveText(
+    "Fresh research dispatch",
+  );
+  await expect(page.locator(".story")).toHaveCount(3);
+  const before = await library(page);
+  await nav(page, "Explore");
+  await nav(page, "For You");
+  await expect(page.locator(".story h2").first()).toHaveText(
+    "Fresh research dispatch",
+  );
+  expect(await library(page)).toEqual(before);
+  const order = await page.locator(".story h2").allTextContents();
+  await page.locator(".story-open").first().click();
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  await expect(page.locator(".story h2")).toHaveText(order);
+  await page
+    .getByRole("button", { name: "Refresh edition", exact: true })
+    .click();
+  await expect(page.locator(".story h2").first()).toHaveText(
+    "New device launch",
+  );
+  expect(JSON.parse((await library(page))[1]!)).toEqual(JSON.parse(before[1]!));
+});
+test("search finds category and publisher tags, ranks relevant titles and keeps its state after Back", async ({
+  page,
+}) => {
+  await seed(page);
+  await page.goto("./explore");
+  const search = page.getByRole("textbox", { name: "Search stories" });
+  await search.fill("robotics");
+  await expect(page.locator(".story")).toHaveCount(2);
+  await expect(page.locator(".story h2").first()).toHaveText(
+    "Previously read robotics story",
+  );
+  await page.locator(".story-open").first().click();
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  await expect(search).toHaveValue("robotics");
+  await search.fill("AI");
+  await expect(page.locator(".story")).toHaveCount(2);
+  await search.fill("BBC research");
+  await expect(page.locator(".story h2")).toHaveText("Fresh research dispatch");
+});
+test("reading settings explain live Reduce Motion without changing the saved preference or sync status", async ({
+  page,
+}) => {
+  await seed(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./settings");
+  const before = await library(page);
+  await expect(
+    page.getByText(/Your device’s Reduce Motion setting is on/),
+  ).toBeVisible();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(
+    page.getByText(/Your device’s Reduce Motion setting is on/),
+  ).toHaveCount(0);
+  await page.getByText("Advanced settings", { exact: true }).click();
+  await expect(
+    page.getByText(/Optional device sync shares private library metadata/),
+  ).toBeVisible();
+  await expect(page.getByText(/Secure device pairing is planned/)).toHaveCount(
+    0,
+  );
+  expect(await library(page)).toEqual(before);
+});
+test("a simulated worker replacement gives one passive notice, not a first-install notice or forced reload", async ({
+  page,
+}) => {
+  await seed(page);
+  await page.addInitScript(() => {
+    let controller: any = null;
+    Object.defineProperty(navigator.serviceWorker, "controller", {
+      get: () => controller,
+    });
+    (window as any).replaceController = () => {
+      controller = {};
+      navigator.serviceWorker.dispatchEvent(new Event("controllerchange"));
+    };
+  });
+  await page.goto("./");
+  await expect(page.locator(".story")).toHaveCount(3);
+  await page.waitForLoadState("load");
+  await page.evaluate(() => (window as any).replaceController());
+  await expect(page.getByText(/A new version of Fylogia is ready/)).toHaveCount(
+    0,
+  );
+  await page.locator(".story-open").first().click();
+  await expect(page.locator(".reader-content h1")).toHaveText(
+    "Fresh research dispatch",
+  );
+  const started = await page.evaluate(() => performance.timeOrigin);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  const before = await library(page);
+  await page.evaluate(() => (window as any).replaceController());
+  await expect(page.locator(".reader-content h1")).toHaveText(
+    "Fresh research dispatch",
+  );
+  expect(await page.evaluate(() => performance.timeOrigin)).toBe(started);
+  await expect(
+    page.getByText(/A new version of Fylogia is ready/),
+  ).toBeVisible();
+  expect(await library(page)).toEqual(before);
+  await expect(page.locator(".story")).toHaveCount(3);
+});

@@ -3,7 +3,6 @@ import {
   appleSection,
   selectedApple,
   matchesApple,
-  applePreferenceScore,
   appleSearchMatches,
   appleRelevance,
   type AppleSelection,
@@ -28,7 +27,9 @@ import {
   type DailyMagazine as DailyMetadata,
 } from "./daily-magazine";
 import { withCurrentCategories, articleMatchesLibrary } from "./source-utils";
-import { topicMatchesText } from "./interest-taxonomy";
+import { rankForYou, storySearchScore } from "./story-discovery";
+import { ReadingMotionNote } from "./ReadingMotionNote";
+import { PwaUpdateNotice } from "./PwaUpdateNotice";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Home,
@@ -91,6 +92,12 @@ export default function App() {
   );
   const [saved, setSaved, savedError] = useStored<Article[]>("saved", []);
   const [history, setHistory] = useStored<Article[]>("history", []);
+  // Keep a browsing session stable when Back closes an article. New local
+  // signals apply on Refresh, deliberate Home navigation, or the next launch.
+  const [recommendationSignals, setRecommendationSignals] = useState(() => ({
+    history,
+    saved,
+  }));
   const [progress, setProgress] = useStored<Record<string, number>>(
     "progress",
     {},
@@ -322,6 +329,7 @@ export default function App() {
     };
   }, [prefs.complete, prefs.customSources, prefs.converter, setCustom]);
   function navigate(id: string) {
+    if (id === "home") setRecommendationSignals({ history, saved });
     setBackupPassword("");
     setMagazineCategory("All categories");
     setApple("all");
@@ -421,14 +429,13 @@ export default function App() {
       result = result.filter((a) =>
         matchesSport(a, sport, prefs.customSources),
       );
+    const searchScores = new Map<string, number>();
     if (query.trim())
-      result = result.filter((a) =>
-        filter === "Apple"
-          ? appleSearchMatches(a, query)
-          : (a.title + " " + a.source + " " + a.excerpt)
-              .toLowerCase()
-              .includes(query.trim().toLowerCase()),
-      );
+      result = result.filter((a) => {
+        const score = storySearchScore(a, query);
+        searchScores.set(a.id, score);
+        return filter === "Apple" ? appleSearchMatches(a, query) : score > 0;
+      });
     if (filter === "Apple" && appleSection(apple)) {
       const relevance = new Map(
         result.map((a) => [a.id, appleRelevance(a, apple)]),
@@ -437,33 +444,17 @@ export default function App() {
         (a, b) => relevance.get(b.id)! - relevance.get(a.id)!,
       );
     }
-    if (view === "home") {
-      const score = (a: Article) =>
-        prefs.topics.reduce(
-          (n, t) => n + (topicMatchesText(t, a.title) ? 3 : 0),
-          0,
-        ) +
-        applePreferenceScore(a, prefs) * 10 +
-        (a.image ? 1 : 0) +
-        (a.full ? 2 : 0);
-      const scores = new Map(
-        result.map((article) => [article.id, score(article)]),
+    if (view === "home")
+      result = rankForYou(
+        result,
+        prefs,
+        recommendationSignals.history,
+        recommendationSignals.saved,
       );
+    if (query.trim()) {
       result = [...result].sort(
-        (a, b) =>
-          scores.get(b.id)! - scores.get(a.id)! ||
-          (b.published || "").localeCompare(a.published || ""),
+        (a, b) => searchScores.get(b.id)! - searchScores.get(a.id)!,
       );
-      const seen = new Set<string>();
-      const first: Article[] = [],
-        rest: Article[] = [];
-      for (const a of result) {
-        if (!seen.has(a.sourceId)) {
-          first.push(a);
-          seen.add(a.sourceId);
-        } else rest.push(a);
-      }
-      result = [...first, ...rest];
     }
     return result;
   }, [
@@ -471,18 +462,15 @@ export default function App() {
     all,
     saved,
     history,
-    prefs.sourceIds,
-    prefs.region,
-    prefs.topics,
-    prefs.interests,
+    prefs,
     sourceLabels,
+    recommendationSignals,
     filter,
     query,
     readableOnly,
     publicationId,
     sport,
     apple,
-    prefs.customSources,
   ]);
   const dailyId = `${localDay()}-${dailyPreferenceKey(prefs)}`;
   const daily = useMemo(
@@ -737,6 +725,7 @@ export default function App() {
               : `Offline · ${offline.items.length} downloads available`}
           </span>
         </div>
+        <PwaUpdateNotice />
         <div className="page-heading">
           <h1>{view === "home" ? "Your daily perspective." : current.label}</h1>
           {storyView && (
@@ -746,6 +735,7 @@ export default function App() {
               disabled={busy}
               onClick={() => {
                 setImageRetryToken((token) => token + 1);
+                setRecommendationSignals({ history, saved });
                 void refresh();
               }}
             >
@@ -1250,6 +1240,7 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              <ReadingMotionNote />
               <label className="field">
                 Reading size ({prefs.fontSize}px)
                 <input
@@ -1407,8 +1398,9 @@ export default function App() {
                   Passwords are never saved or sent to a server.
                 </p>
                 <p className="quiet">
-                  Cloud sync is not enabled. Secure device pairing is planned
-                  for the next phase. No private library data is uploaded.
+                  Optional device sync shares private library metadata only
+                  after you enable it. Article bodies, images and private PDFs
+                  stay on each device.
                 </p>
                 <p>
                   iOS can remove website data when storage is low. Add Fylogia
@@ -1434,10 +1426,10 @@ export default function App() {
                   passages. No API key or payment is required.
                 </p>
                 <p>
-                  Most publishers supply a preview. NASA and licensed Global
-                  Voices feed articles are available in full when supplied. Full
-                  stories, image credits, and publisher access conditions remain
-                  at the original source. Fylogia never bypasses paywalls.
+                  Sources marked Full article provide permitted publisher text
+                  when available. Other stories offer a preview and a clear link
+                  to continue at the publisher. Original credits and access
+                  conditions remain in place; Fylogia never bypasses paywalls.
                 </p>
                 <a
                   href="https://github.com/Zainhomeautomation/Fylogia"

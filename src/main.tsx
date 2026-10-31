@@ -1,3 +1,4 @@
+import { observeWorkerUpdates } from "./pwa-update";
 import { initializeCloudSync } from "./cloud-sync";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -24,6 +25,7 @@ void initializeLocalLibrary().then(async () => {
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
+    observeWorkerUpdates(navigator.serviceWorker);
     navigator.serviceWorker
       .register(import.meta.env.BASE_URL + "sw.js", {
         scope: import.meta.env.BASE_URL,
