@@ -203,14 +203,14 @@ for (const kind of ["article", "pdf"] as const) {
     );
     await expect(status).toHaveText(initial);
   });
-  test(`${kind}: vertical touch, cancellation and two fingers never change pages`, async ({
+  test(`${kind}: diagonal touch, cancellation and two fingers never change pages`, async ({
     page,
   }) => {
     await ready(page, kind);
     const selector = kind === "article" ? ".reader-viewport" : ".pdf-spread";
     const status = page.locator(".reader-footer [role=status]");
     const initial = (await status.textContent())!;
-    await touchSwipe(page, selector, 12, 100);
+    await touchSwipe(page, selector, 32, 32);
     await expect(status).toHaveText(initial);
     await page.evaluate((selector) => {
       const target = document.querySelector(selector)!;

@@ -1,3 +1,4 @@
+export type TurnAxis = "horizontal" | "vertical";
 export type Point = { x: number; y: number };
 export type Fold = { nx: number; ny: number; mid: number; radius: number };
 export function crease(
@@ -106,4 +107,19 @@ export function planeMatrix(
   const f = (top + plane.ty - (cy * plane.tz) / depth) / d,
     dy = (plane.yy - (cy * plane.zy) / depth) / d;
   return `matrix3d(${a},${b},0,${-plane.zx / depth / d},${c},${dy},0,${-plane.zy / depth / d},0,0,1,0,${e},${f},0,1)`;
+}
+
+export function verticalPlaneMatrix(
+  plane: ReturnType<typeof foldPlane>,
+  hinge: number,
+  left: number,
+  forward: boolean,
+  width: number,
+  height: number,
+) {
+  const m = planeMatrix(plane, hinge, left, forward, height, width)
+    .slice(9, -1)
+    .split(",")
+    .map(Number);
+  return `matrix3d(${m[5]},${m[4]},0,${m[7]},${m[1]},${m[0]},0,${m[3]},0,0,1,0,${m[13]},${m[12]},0,1)`;
 }

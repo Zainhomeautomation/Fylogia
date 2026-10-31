@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { BrandMark } from "./BrandMark";
 import App from "./App.tsx";
+import { PwaUpdates } from "./PwaUpdates";
 import { initializeLocalLibrary } from "./local-library";
 
 const root = createRoot(document.getElementById("root")!);
@@ -18,6 +19,7 @@ void initializeLocalLibrary().then(async () => {
   root.render(
     <StrictMode>
       <App />
+      <PwaUpdates />
     </StrictMode>,
   );
 });
@@ -27,6 +29,23 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
     navigator.serviceWorker
       .register(import.meta.env.BASE_URL + "sw.js", {
         scope: import.meta.env.BASE_URL,
+        updateViaCache: "none",
+      })
+      .then((registration) => {
+        let last = 0;
+        const check = () => {
+          if (
+            document.hidden ||
+            !navigator.onLine ||
+            Date.now() - last < 60_000
+          )
+            return;
+          last = Date.now();
+          void registration.update().catch(() => {});
+        };
+        window.addEventListener("online", check);
+        document.addEventListener("visibilitychange", check);
+        check();
       })
       .catch(() => {
         /* Reading remains available without offline caching. */

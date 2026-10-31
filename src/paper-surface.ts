@@ -1,4 +1,11 @@
-import { crease, clipBand, foldPlane, planeMatrix } from "./paper-fold";
+import {
+  crease,
+  clipBand,
+  foldPlane,
+  planeMatrix,
+  verticalPlaneMatrix,
+  type TurnAxis,
+} from "./paper-fold";
 import { articleSurface } from "./article-surface";
 export type PageBox = {
   x: number;
@@ -143,15 +150,29 @@ export async function paper(
   forward: boolean,
   signal: AbortSignal,
   corner = 1,
+  axis: TurnAxis = "horizontal",
 ) {
-  const box = pageBox(surface, forward),
-    w = snapshot.width,
+  const verticalTurn = axis === "vertical";
+  const horizontalBox = pageBox(surface, forward);
+  const box = verticalTurn
+    ? {
+        x: 0,
+        y: horizontalBox.y,
+        width: snapshot.width,
+        height: horizontalBox.height,
+        hinge: forward
+          ? horizontalBox.y
+          : horizontalBox.y + horizontalBox.height,
+      }
+    : horizontalBox;
+  const w = snapshot.width,
     h = snapshot.height;
   const leaf = document.createElement("div");
   leaf.className = "turn-leaf paper-fold";
   leaf.setAttribute("aria-hidden", "true");
   leaf.inert = true;
   leaf.dataset.hinge = String(box.hinge);
+  leaf.dataset.axis = axis;
   leaf.dataset.direction = forward ? "forward" : "backward";
   leaf.style.setProperty(
     "--sheet-color",
@@ -180,7 +201,10 @@ export async function paper(
     holder.style.cssText = `position:absolute;inset:0;width:${box.width}px;height:${box.height}px;overflow:hidden;`;
     const mirrored = isBack ? forward : !forward;
     holder.style.transformOrigin = "0 0";
-    if (mirrored) holder.style.transform = "translateX(100%) scaleX(-1)";
+    if (mirrored)
+      holder.style.transform = verticalTurn
+        ? "translateY(100%) scaleY(-1)"
+        : "translateX(100%) scaleX(-1)";
     const data = isBack ? back?.snapshot : snapshot,
       region = isBack ? back?.box : box;
     const bitmap = isBack ? back?.image : front?.img;
@@ -205,10 +229,13 @@ export async function paper(
     el.className = kind === "bend" ? "curl-strip paper-band" : "paper-flat";
     el.dataset.face = isBack ? "back" : "front";
     el.style.cssText = `position:absolute;left:0;top:0;width:${box.width}px;height:${box.height}px;transform-origin:0 0;`;
-    el.append(face(isBack));
+    const clip = document.createElement("div");
+    clip.className = "paper-clip";
+    clip.append(face(isBack));
+    el.append(clip);
     const lighting = document.createElement("div");
     lighting.className = "paper-light";
-    el.append(lighting);
+    clip.append(lighting);
     leaf.append(el);
     bands.push({ el, kind, index: i, back: isBack });
   }
@@ -218,7 +245,9 @@ export async function paper(
   function draw(distance: number, vertical = 0) {
     lastDistance = distance;
     lastVertical = vertical;
-    const f = crease(box.width, box.height, distance, vertical, corner),
+    const foldWidth = verticalTurn ? box.height : box.width;
+    const foldHeight = verticalTurn ? box.width : box.height;
+    const f = crease(foldWidth, foldHeight, distance, vertical, corner),
       a = (Math.PI * f.radius) / 2;
     leaf.dataset.distance = String(distance);
     leaf.dataset.crease = JSON.stringify(f);
@@ -236,21 +265,22 @@ export async function paper(
             ? Infinity
             : -a + (b.index + 1) * ((2 * a) / 12);
       const polygon = clipBand(
-        box.width,
-        box.height,
+        foldWidth,
+        foldHeight,
         f,
         low - 0.35,
         high + 0.35,
       );
       b.el.style.visibility = polygon.length < 3 ? "hidden" : "visible";
-      b.el.style.clipPath = `polygon(${polygon.map((p) => `${p.x}px ${p.y}px`).join(",")})`;
+      const clip = b.el.firstElementChild as HTMLElement;
+      clip.style.clipPath = `polygon(${polygon.map((p) => (verticalTurn ? `${p.y}px ${p.x}px` : `${p.x}px ${p.y}px`)).join(",")})`;
       const u =
         b.kind === "front" ? -a : b.kind === "back" ? a : (low + high) / 2;
       const plane = foldPlane(f, u, b.kind);
-      b.el.style.transform = planeMatrix(
+      b.el.style.transform = (verticalTurn ? verticalPlaneMatrix : planeMatrix)(
         plane,
         box.hinge,
-        box.y,
+        verticalTurn ? box.x : box.y,
         forward,
         w,
         h,
@@ -286,7 +316,10 @@ export async function paper(
       const dest = capture(target),
         other = { ...box, x: forward ? box.hinge - box.width : box.hinge };
       // Single-page mode shows the next page underneath and an unprinted verso.
-      if ((surface.dataset.paperSpread || surface.dataset.spread) !== "2")
+      if (
+        verticalTurn ||
+        (surface.dataset.paperSpread || surface.dataset.spread) !== "2"
+      )
         return;
       const image = dest.pdf ? await raster(dest, other, signal) : undefined;
       if (signal.aborted) {
@@ -296,7 +329,8 @@ export async function paper(
       if (image) urls.push(image.url);
       back = { snapshot: dest, box: other, image: image?.img };
       for (const b of bands)
-        if (b.back) b.el.firstElementChild?.replaceWith(face(true));
+        if (b.back)
+          b.el.firstElementChild?.firstElementChild?.replaceWith(face(true));
       draw(lastDistance, lastVertical);
     },
     dispose() {

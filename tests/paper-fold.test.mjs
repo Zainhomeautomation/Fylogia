@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { crease, clipBand, foldPlane, planeMatrix } from "../src/paper-fold.ts";
+import {
+  crease,
+  clipBand,
+  foldPlane,
+  planeMatrix,
+  verticalPlaneMatrix,
+} from "../src/paper-fold.ts";
 test("paper crease preserves a stationary region and changes tangents across a curved fold", () => {
   for (const [w, h] of [
     [320, 600],
@@ -63,4 +69,32 @@ test("forward and reverse geometry share the same fixed spine with opposite hori
     back = foldPlane(end, (Math.PI * end.radius) / 2, "back");
   assert.ok(back.xx < -0.999);
   assert.ok(Math.abs(back.xy) < 0.001);
+});
+
+test("vertical paper uses a projected cylinder along the y axis without rotating its text", () => {
+  const front = foldPlane(crease(700, 400, 0.1), 0, "front");
+  for (const forward of [true, false]) {
+    const m = verticalPlaneMatrix(front, 50, 20, forward, 400, 700)
+      .slice(9, -1)
+      .split(",")
+      .map(Number);
+    assert.equal(m[12], 20);
+    assert.equal(m[13], 50);
+    assert.equal(m[0], 1);
+    assert.equal(m[5], forward ? 1 : -1);
+  }
+  const f = crease(700, 400, 0.8),
+    a = (Math.PI * f.radius) / 2;
+  const matrices = Array.from({ length: 12 }, (_, i) =>
+    verticalPlaneMatrix(
+      foldPlane(f, -a + ((i + 0.5) * 2 * a) / 12, "bend"),
+      0,
+      0,
+      true,
+      400,
+      700,
+    ),
+  );
+  assert.equal(new Set(matrices).size, 12);
+  for (const m of matrices) assert.doesNotMatch(m, /NaN|Infinity/);
 });
