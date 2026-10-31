@@ -16,6 +16,8 @@ export function StoryCard({
   onSave,
   onOpen,
   lead = false,
+  magazinePage = false,
+  imagePriority,
   onDownload,
   downloaded = false,
   downloading = false,
@@ -28,6 +30,8 @@ export function StoryCard({
   onSave: () => void;
   onOpen: () => void;
   lead?: boolean;
+  magazinePage?: boolean;
+  imagePriority?: "high" | "low" | "auto";
   onDownload?: () => void;
   downloaded?: boolean;
   downloading?: boolean;
@@ -67,16 +71,20 @@ export function StoryCard({
           One story · {article.duplicateCount} feed entries combined
         </span>
       )}
-      <button className="story-open" onClick={onOpen}>
+      <button
+        className="story-open"
+        data-feed-open={magazinePage ? "true" : undefined}
+        onClick={onOpen}
+      >
         {image &&
         (failedImage?.url !== image ||
           failedImage.token !== imageRetryToken) ? (
           <img
             src={image}
             alt=""
-            loading={lead ? "eager" : "lazy"}
+            loading={lead || magazinePage ? "eager" : "lazy"}
             decoding="async"
-            fetchPriority={lead ? "high" : "auto"}
+            fetchPriority={imagePriority || (lead ? "high" : "auto")}
             referrerPolicy="no-referrer"
             onError={() =>
               setFailedImage({ url: image, token: imageRetryToken })
@@ -104,7 +112,12 @@ export function StoryCard({
         </span>
         {appleKind && <span className="editorial-label">{appleKind}</span>}
         <h2>{article.title}</h2>
-        {lead && <p>{article.excerpt}</p>}
+        {(lead || magazinePage) && <p>{article.excerpt}</p>}
+        {magazinePage && (
+          <span className="feed-read">
+            Tap to read <ArrowUpRight size={14} />
+          </span>
+        )}
       </button>
       <div className="story-meta">
         <span>

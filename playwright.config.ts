@@ -12,6 +12,17 @@ export default defineConfig({
   use: {
     baseURL: process.env.FYLOGIA_TEST_URL || origin + basePath,
     trace: "retain-on-failure",
+    // Keep existing list-specific regressions exercising the supported List
+    // presentation. news-feed.spec.ts overrides this to test the new default.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: new URL(process.env.FYLOGIA_TEST_URL || origin).origin,
+          localStorage: [{ name: "fylogia.news.view", value: "list" }],
+        },
+      ],
+    },
   },
   projects: [
     {
