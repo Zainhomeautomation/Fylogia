@@ -476,7 +476,8 @@ html[data-theme="light"] .brand-mark-light {
 .story-grid .story h2 {
   font-size: 23px;
 }
-.story-grid .story-open img {
+.story-grid .story-open img,
+.story-grid .story-open > .type-art {
   aspect-ratio: 1.8;
 }
 .edition-note {

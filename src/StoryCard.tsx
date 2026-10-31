@@ -21,6 +21,7 @@ export function StoryCard({
   downloading = false,
   onSelect,
   selected = false,
+  imageRetryToken = 0,
 }: {
   article: Article;
   saved: boolean;
@@ -32,10 +33,14 @@ export function StoryCard({
   downloading?: boolean;
   onSelect?: () => void;
   selected?: boolean;
+  imageRetryToken?: number;
 }) {
   const image = mediaImage(article);
   const appleKind = classifyApple(article).kind;
-  const [failedImage, setFailedImage] = useState<string>();
+  const [failedImage, setFailedImage] = useState<{
+    url: string;
+    token: number;
+  }>();
   return (
     <article className={"story " + (lead ? "lead" : "")}>
       <div className="story-offline-tools">
@@ -63,13 +68,19 @@ export function StoryCard({
         </span>
       )}
       <button className="story-open" onClick={onOpen}>
-        {image && failedImage !== image ? (
+        {image &&
+        (failedImage?.url !== image ||
+          failedImage.token !== imageRetryToken) ? (
           <img
             src={image}
             alt=""
             loading={lead ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={lead ? "high" : "auto"}
             referrerPolicy="no-referrer"
-            onError={() => setFailedImage(image)}
+            onError={() =>
+              setFailedImage({ url: image, token: imageRetryToken })
+            }
           />
         ) : (
           <div className="type-art" aria-hidden="true">
