@@ -7,7 +7,7 @@ Production target: **https://fylogia.com/**, deployed from the personal [Zainhom
 ## Features
 
 - Three-step onboarding: grouped interests, subtopics, regions, recommended sources and custom RSS/Atom feeds.
-- Real publisher content from 230 curated feeds, scheduled for refresh every four hours by GitHub Actions (runs can be delayed). The app checks for a newer deployed edition every 15 minutes and on Refresh.
+- Real publisher content from 285 curated feeds, scheduled for refresh every four hours by GitHub Actions (runs can be delayed). The app checks for a newer deployed edition every 15 minutes and on Refresh.
 - Editorial home, Explore, Categories, source management, saved articles, magazines, history and settings.
 - Single-page article reading on small screens, two-column spreads on wide screens, swipes, keyboard/page controls, text-size adjustment and optional continuous scrolling. Pagination responds to resizing, rotation and folding.
 - Nine sources support permitted full text when their feed supplies a qualifying article body; other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
@@ -86,7 +86,7 @@ React, TypeScript, Vite, Lucide icons, DOMPurify, fast-xml-parser and lazy-loade
 - `src/library-data.ts` and `src/library-backup.ts`: validated, transactional restore and optional AES-GCM encrypted recovery files.
 - `scripts/write-sw.mjs`: versioned app-shell cache and network-first edition refresh; excludes large online PDFs.
 
-The initial JavaScript chunks total about 132 KB gzipped in the audited build. Custom-feed XML parsing, QR UI and PDF rendering load on demand; the service worker precaches PDF code/codecs so imported magazines remain readable offline. DM Sans is self-hosted under its [SIL Open Font License](public/fonts/OFL.txt). Fylogia adds no application analytics itself. The existing Cloudflare host configuration injects its Web Analytics performance beacon, which receives timing/network metadata; publisher image CDNs receive ordinary network metadata, and images send no referrer. Optional sync uses a private Cloudflare D1 database for library metadata, with HttpOnly device credentials and no publisher bodies or uploads. Local browser storage is not encrypted at rest; password-encrypted exports are optional. Clearing site data removes the local library.
+Reader, PDF and custom-feed code is split into separate chunks; measure current bundle sizes with the production build rather than relying on historical totals. Custom-feed XML parsing, QR UI and PDF rendering load on demand; the service worker precaches PDF code/codecs so imported magazines remain readable offline. DM Sans is self-hosted under its [SIL Open Font License](public/fonts/OFL.txt). Fylogia adds no application analytics itself. The existing Cloudflare host configuration injects its Web Analytics performance beacon, which receives timing/network metadata; publisher image CDNs receive ordinary network metadata, and images send no referrer. Optional sync uses a private Cloudflare D1 database for library metadata, with HttpOnly device credentials and no publisher bodies or uploads. Local browser storage is not encrypted at rest; password-encrypted exports are optional. Clearing site data removes the local library.
 
 ## Content rights
 
@@ -248,3 +248,7 @@ Open **Today's Fylogia** from For You for a personal cover, grouped table of con
 The owner-approved cream F and sage page mark, light/monochrome variants, browser/PWA icons, 1024 app-icon master and social preview are in `public/brand` and `public/icons`. See [brand assets, export instructions and limited visual screening](docs/branding.md). No native application is included, and search-result favicon display remains controlled by search engines.
 
 Category and publication coverage: [October 30 expansion review](docs/category-magazine-expansion.md), including verified feed links, complete-issue permissions, and exclusions.
+
+Future Apple application integration and current device-testing limits: [native application foundation](docs/native-app-readiness.md).
+
+Headline photo availability and recovery behavior: [photo findings](docs/headline-photos.md).

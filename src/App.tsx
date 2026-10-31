@@ -144,6 +144,9 @@ export default function App() {
     [menu, setMenu] = useState(false),
     [personalizing, setPersonalizing] = useState(false),
     [online, setOnline] = useState(navigator.onLine);
+  // Only explicit refresh/reconnection retries failed photos. Healthy images keep
+  // their original DOM node and publisher URL; no cache busting or retry loop.
+  const [imageRetryToken, setImageRetryToken] = useState(0);
   const profile = useLocalProfile();
   const [syncOpen, setSyncOpen] = useState(Boolean(incomingPairCode));
   const syncPanel = syncOpen ? (
@@ -251,6 +254,7 @@ export default function App() {
   useEffect(() => {
     const on = () => {
         setOnline(true);
+        setImageRetryToken((token) => token + 1);
         if (newsEnabled) void refresh();
       },
       off = () => setOnline(false);
@@ -740,7 +744,10 @@ export default function App() {
               className="secondary refresh"
               aria-label="Refresh edition"
               disabled={busy}
-              onClick={() => void refresh()}
+              onClick={() => {
+                setImageRetryToken((token) => token + 1);
+                void refresh();
+              }}
             >
               <RefreshCw size={16} className={busy ? "spinning" : ""} />
               <span>{busy ? "Refreshing…" : "Refresh"}</span>
@@ -1035,6 +1042,7 @@ export default function App() {
                     <StoryCard
                       key={a.id}
                       article={a}
+                      imageRetryToken={imageRetryToken}
                       lead={i === 0}
                       saved={saved.some((s) => s.id === a.id)}
                       onDownload={() =>
@@ -1075,6 +1083,7 @@ export default function App() {
                         <StoryCard
                           key={a.id}
                           article={a}
+                          imageRetryToken={imageRetryToken}
                           saved={saved.some((s) => s.id === a.id)}
                           onDownload={() =>
                             void offline.download([a], readingMetadata)
