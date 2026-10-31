@@ -84,9 +84,14 @@ test("grouped searchable interests select niche topics and recommend relevant so
     expect.arrayContaining(["Linux", "Diving", "Archaeology"]),
   );
   await nav(page, "My Sources");
-  await page
-    .getByRole("textbox", { name: "Search sources", exact: true })
-    .fill("Linux");
+  // Use real keyboard input for this WebKit flow and assert the query itself,
+  // as well as the resulting publisher; a lost input event must not go unnoticed.
+  const sourceSearch = page.getByRole("textbox", {
+    name: "Search sources",
+    exact: true,
+  });
+  await sourceSearch.pressSequentially("Linux");
+  await expect(sourceSearch).toHaveValue("Linux");
   await expect(
     page.locator(".source-row").filter({ hasText: "Fedora Magazine" }),
   ).toBeVisible();
