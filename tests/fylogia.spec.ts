@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mediaImage } from "../src/media-rights";
 import { readerOption } from "./reader-controls";
 import { test, expect, type Page } from "@playwright/test";
 async function setup(page: Page, waitForStories = true) {
@@ -31,30 +31,37 @@ async function nav(page: Page, label: string) {
     .getByRole("button", { name: label, exact: true })
     .click();
 }
-test.describe("onboarding and library persistence", () => {
+test.describe("onboarding and real-publisher library persistence", () => {
   // Network stubs need page requests, not an installed service worker's fetch.
   // Actual installation/worker/offline behavior is tested separately below.
   test.use({ serviceWorkers: "block" });
-  test("onboarding, publisher stories, controlled image rendering, saves, history and preferences", async ({
+  test("onboarding, real stories and publisher image, saves, history and preferences", async ({
     page,
   }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    // Keep real publisher stories, but isolate this library/UI journey from the
-    // publisher CDN: it returned HTTP 429 to CI. The owned icon is an explicit
-    // test-only image fixture, never substituted into the production edition.
+    // Use an actual NASA agency image from the current feed. Download its exact
+    // bytes once and reuse them at the original URL to avoid duplicate CDN
+    // traffic; a failed publisher fetch is still an explicit test failure.
 
     const edition = await (await page.request.get("data/edition.json")).json();
     const illustrated = edition.articles.find(
-      (a: any) =>
-        a.sourceId === "nasa" && a.full && a.image && a.offlineImagesAllowed,
+      (a: any) => a.sourceId === "nasa-science" && a.full && mediaImage(a),
     );
     expect(illustrated).toBeTruthy();
-    const imageFixture = await readFile(
-      new URL("../public/icons/icon-192.png", import.meta.url),
-    );
+    const originalPhoto = await page.request.get(illustrated.image);
+    expect(
+      originalPhoto.ok(),
+      "actual NASA photograph request succeeds",
+    ).toBeTruthy();
+    const imageBytes = await originalPhoto.body();
+    expect(imageBytes.length).toBeGreaterThan(1000);
+    expect(originalPhoto.headers()["content-type"]).toMatch(/^image\//);
     await page.route(illustrated.image, (route) =>
-      route.fulfill({ body: imageFixture, contentType: "image/png" }),
+      route.fulfill({
+        body: imageBytes,
+        contentType: originalPhoto.headers()["content-type"],
+      }),
     );
     await setup(page);
     await expect(page).toHaveTitle("Fylogia — Your World, One Page at a Time.");
@@ -81,7 +88,7 @@ test.describe("onboarding and library persistence", () => {
           process.env.FYLOGIA_SCREENSHOTS +
           "/" +
           test.info().project.name +
-          "-home-image-fixture.png",
+          "-home.png",
       });
     await expect(page.locator(".story img").first()).toHaveAttribute(
       "src",
