@@ -1,4 +1,3 @@
-import { trackLocalOperation, beginLocalOperation } from "./pending-operations";
 import { AppleNavigation } from "./AppleNavigation";
 import { applePublications } from "./apple-publications";
 import { sourceHasAppleCoverage, type AppleSelection } from "./apple-taxonomy";
@@ -68,7 +67,7 @@ function db() {
     req.onerror = () => reject(req.error);
   });
 }
-const records = trackLocalOperation(async function records(
+async function records(
   action: "list" | "put" | "delete",
   value?: Magazine | string,
 ) {
@@ -89,13 +88,11 @@ const records = trackLocalOperation(async function records(
       tx.oncomplete = () =>
         resolve(action === "list" ? (req.result as Magazine[]) : []);
       tx.onerror = () => reject(tx.error);
-      tx.onabort = () =>
-        reject(tx.error || new Error("PDF storage was interrupted."));
     });
   } finally {
     database.close();
   }
-});
+}
 export function Magazines({
   onHome,
   initialCategory = "All categories",
@@ -203,7 +200,6 @@ export function Magazines({
   );
   async function add(file?: File) {
     if (!file) return;
-    const finish = beginLocalOperation();
     setBusy(true);
     try {
       if (file.size > 50 * 1024 * 1024)
@@ -233,7 +229,6 @@ export function Magazines({
       );
     } finally {
       setBusy(false);
-      finish();
     }
   }
   return (

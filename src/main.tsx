@@ -4,7 +4,6 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { BrandMark } from "./BrandMark";
 import App from "./App.tsx";
-import { PwaUpdates } from "./PwaUpdates";
 import { initializeLocalLibrary } from "./local-library";
 
 const root = createRoot(document.getElementById("root")!);
@@ -19,7 +18,6 @@ void initializeLocalLibrary().then(async () => {
   root.render(
     <StrictMode>
       <App />
-      <PwaUpdates />
     </StrictMode>,
   );
 });

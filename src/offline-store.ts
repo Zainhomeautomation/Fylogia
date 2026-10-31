@@ -1,4 +1,3 @@
-import { trackLocalOperation } from "./pending-operations";
 import DOMPurify from "dompurify";
 import type { Article } from "./catalog";
 // Keep legacy storage names so the brand change never discards downloads.
@@ -75,7 +74,7 @@ export const listDownloads = () =>
   transaction<DownloadedArticle[]>("readonly", (s) => s.getAll());
 const put = (record: DownloadedArticle) =>
   transaction("readwrite", (s) => s.put(record));
-export const updateReading = trackLocalOperation(async function updateReading(
+export async function updateReading(
   id: string,
   metadata: Partial<ReadingMetadata>,
 ) {
@@ -91,7 +90,7 @@ export const updateReading = trackLocalOperation(async function updateReading(
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
   });
-});
+}
 function publicUrl(value: string, base: string) {
   try {
     const u = new URL(value, base);
@@ -225,73 +224,69 @@ async function storageRoom() {
       "QuotaExceededError",
     );
 }
-export const downloadArticle = trackLocalOperation(
-  async function downloadArticle(
-    article: Article,
-    metadata: ReadingMetadata,
-    force: boolean = false,
-  ) {
-    if (!navigator.onLine)
-      throw new Error("Connect to the internet to download new articles.");
-    if (!article.content && !article.excerpt)
-      throw new Error(
-        "This saved link has no article text on this device. Open the publisher to read it.",
-      );
-    await storageRoom();
-    const existing = (await listDownloads()).find((r) => r.id === article.id);
-    const candidates = articleImages(article),
-      permitted = candidates.filter((u) => permittedImage(article, u));
-    const cached: string[] = [],
-      missing: string[] = [];
-    let bytes = new Blob([article.content]).size,
-      opaque = 0;
-    const cache = await caches.open(IMAGE_CACHE);
-    try {
-      for (const url of permitted) {
-        try {
-          const result = await cacheImage(url, cache, force);
-          cached.push(url);
-          bytes += result.bytes;
-          if (result.opaque) opaque++;
-        } catch (error) {
-          if (
-            error instanceof DOMException &&
-            error.name === "QuotaExceededError"
-          )
-            throw error;
-          missing.push(url);
-        }
-      }
-      const now = new Date().toISOString();
-      const record: DownloadedArticle = {
-        id: article.id,
-        article: offlineContent(article, cached),
-        downloadedAt: existing?.downloadedAt || now,
-        refreshedAt: now,
-        images: cached,
-        missingImages: missing,
-        excludedImages: candidates.length - permitted.length,
-        bytes,
-        opaqueImages: opaque,
-        bookmarked: metadata.bookmarked,
-        progress: metadata.progress,
-      };
-      await put(record);
-      await rememberDownloads();
-      return record;
-    } catch (error) {
-      await pruneImages();
-      throw error;
-    }
-  },
-);
-export const deleteDownload = trackLocalOperation(async function deleteDownload(
-  id: string,
+export async function downloadArticle(
+  article: Article,
+  metadata: ReadingMetadata,
+  force = false,
 ) {
+  if (!navigator.onLine)
+    throw new Error("Connect to the internet to download new articles.");
+  if (!article.content && !article.excerpt)
+    throw new Error(
+      "This saved link has no article text on this device. Open the publisher to read it.",
+    );
+  await storageRoom();
+  const existing = (await listDownloads()).find((r) => r.id === article.id);
+  const candidates = articleImages(article),
+    permitted = candidates.filter((u) => permittedImage(article, u));
+  const cached: string[] = [],
+    missing: string[] = [];
+  let bytes = new Blob([article.content]).size,
+    opaque = 0;
+  const cache = await caches.open(IMAGE_CACHE);
+  try {
+    for (const url of permitted) {
+      try {
+        const result = await cacheImage(url, cache, force);
+        cached.push(url);
+        bytes += result.bytes;
+        if (result.opaque) opaque++;
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          error.name === "QuotaExceededError"
+        )
+          throw error;
+        missing.push(url);
+      }
+    }
+    const now = new Date().toISOString();
+    const record: DownloadedArticle = {
+      id: article.id,
+      article: offlineContent(article, cached),
+      downloadedAt: existing?.downloadedAt || now,
+      refreshedAt: now,
+      images: cached,
+      missingImages: missing,
+      excludedImages: candidates.length - permitted.length,
+      bytes,
+      opaqueImages: opaque,
+      bookmarked: metadata.bookmarked,
+      progress: metadata.progress,
+    };
+    await put(record);
+    await rememberDownloads();
+    return record;
+  } catch (error) {
+    await pruneImages();
+    throw error;
+  }
+}
+export async function deleteDownload(id: string) {
   await transaction("readwrite", (s) => s.delete(id));
   await pruneImages();
   await rememberDownloads();
-});
+}
 async function pruneImages() {
   const used = new Set((await listDownloads()).flatMap((r) => r.images));
   const cache = await caches.open(IMAGE_CACHE);
@@ -335,35 +330,33 @@ export async function auditDownloads() {
   } catch {}
   return { records: audited, evicted };
 }
-export const refreshDownloadText = trackLocalOperation(
-  async function refreshDownloadText(latest: Article[]) {
-    const lookup = new Map(latest.map((a) => [a.id, a]));
-    let changed = 0;
-    for (const record of await listDownloads()) {
-      const article = lookup.get(record.id);
-      if (!article) continue;
-      const wanted = articleImages(article),
-        allowed = wanted.filter((u) => permittedImage(article, u));
-      const kept = record.images.filter((u) => allowed.includes(u));
-      const updated = offlineContent(article, kept);
-      if (
-        updated.content === record.article.content &&
-        updated.title === record.article.title &&
-        updated.image === record.article.image &&
-        JSON.stringify(kept) === JSON.stringify(record.images)
-      )
-        continue;
-      await put({
-        ...record,
-        article: updated,
-        images: kept,
-        missingImages: allowed.filter((u) => !kept.includes(u)),
-        excludedImages: wanted.length - allowed.length,
-        refreshedAt: new Date().toISOString(),
-      });
-      changed++;
-    }
-    if (changed) await pruneImages();
-    return changed;
-  },
-);
+export async function refreshDownloadText(latest: Article[]) {
+  const lookup = new Map(latest.map((a) => [a.id, a]));
+  let changed = 0;
+  for (const record of await listDownloads()) {
+    const article = lookup.get(record.id);
+    if (!article) continue;
+    const wanted = articleImages(article),
+      allowed = wanted.filter((u) => permittedImage(article, u));
+    const kept = record.images.filter((u) => allowed.includes(u));
+    const updated = offlineContent(article, kept);
+    if (
+      updated.content === record.article.content &&
+      updated.title === record.article.title &&
+      updated.image === record.article.image &&
+      JSON.stringify(kept) === JSON.stringify(record.images)
+    )
+      continue;
+    await put({
+      ...record,
+      article: updated,
+      images: kept,
+      missingImages: allowed.filter((u) => !kept.includes(u)),
+      excludedImages: wanted.length - allowed.length,
+      refreshedAt: new Date().toISOString(),
+    });
+    changed++;
+  }
+  if (changed) await pruneImages();
+  return changed;
+}
