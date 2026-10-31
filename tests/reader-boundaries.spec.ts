@@ -138,3 +138,84 @@ test("long-article turns and responsive pagination recover when animation callba
     (window as any).pauseReaderFrames = false;
   });
 });
+
+test("late font/layout measurements never publish the cover over restored article progress", async ({
+  browser,
+  baseURL,
+}) => {
+  const context = await browser.newContext({
+    baseURL,
+    viewport: { width: 834, height: 1194 },
+    hasTouch: true,
+    serviceWorkers: "block",
+  });
+  let release!: () => void;
+  const fonts = new Promise<void>((r) => (release = r));
+  try {
+    const page = await context.newPage();
+    await page.route("**/fonts/*.woff2", async (route) => {
+      await fonts;
+      await route.continue();
+    });
+    const e = await (await page.request.get("data/edition.json")).json();
+    const sample = e.articles.find((a: any) => a.full);
+    const article = {
+      ...sample,
+      id: "late-layout-fixture",
+      title: "Original late-layout reader fixture",
+      image: undefined,
+      content: Array.from(
+        { length: 55 },
+        (_, i) =>
+          `<p>Paragraph ${i + 1}. This original test text exercises restored reading positions through late fonts and changing page geometry. The reader must keep its place instead of anchoring an intermediate cover.</p>`,
+      ).join(""),
+    };
+    await page.addInitScript(
+      ({ prefs, article }) => {
+        localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
+        localStorage.setItem("folio.v1.saved", JSON.stringify([article]));
+        localStorage.setItem(
+          "folio.v1.progress",
+          JSON.stringify({ [article.id]: 0.6 }),
+        );
+      },
+      {
+        prefs: { ...defaults, complete: true, reading: "pages", fontSize: 24 },
+        article,
+      },
+    );
+    await page.goto("./saved", { waitUntil: "domcontentloaded" });
+    await page.locator(".story-open").click();
+    const previous = page.getByRole("button", {
+      name: "Previous page",
+      exact: true,
+    });
+    await expect(previous).toBeEnabled();
+    release();
+    await page.evaluate(() => document.fonts.ready);
+    for (const size of [
+      { width: 390, height: 844 },
+      { width: 1180, height: 850 },
+      { width: 834, height: 1194 },
+    ]) {
+      await page.setViewportSize(size);
+      await page.locator(".reader-content").dispatchEvent("load");
+      await page.evaluate(
+        () =>
+          new Promise<void>((r) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => r())),
+          ),
+      );
+      await expect(previous).toBeEnabled();
+      expect(
+        await page.evaluate(
+          (id) => JSON.parse(localStorage.getItem("folio.v1.progress")!)[id],
+          article.id,
+        ),
+      ).toBeGreaterThan(0.25);
+    }
+  } finally {
+    release();
+    await context.close();
+  }
+});

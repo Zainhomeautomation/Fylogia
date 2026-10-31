@@ -248,6 +248,32 @@ for (const kind of ["article", "pdf"] as const)
               { body: during, contentType: "image/png" },
             );
           const distance = Number(await fold.getAttribute("data-distance"));
+          // Start sampling while the finger is still held. Starting after the
+          // release IPC can miss an entire animation on a busy test machine.
+          await page.evaluate(() => {
+            (window as any).__paperFrames = (async () => {
+              const values: number[] = [],
+                intervals: number[] = [];
+              let previous = performance.now();
+              const start = previous;
+              await new Promise<void>((resolve) => {
+                const sample = (now: number) => {
+                  const leaf =
+                    document.querySelector<HTMLElement>(".paper-fold");
+                  if (!leaf || now - start > 5000) {
+                    resolve();
+                    return;
+                  }
+                  values.push(Number(leaf.dataset.distance));
+                  intervals.push(now - previous);
+                  previous = now;
+                  requestAnimationFrame(sample);
+                };
+                requestAnimationFrame(sample);
+              });
+              return { values, intervals };
+            })();
+          });
           await contact(
             page,
             selector,
@@ -255,27 +281,13 @@ for (const kind of ["article", "pdf"] as const)
             axis === "horizontal" ? delta : 0,
             axis === "vertical" ? delta : 0,
           );
-          const frames = await page.evaluate(async () => {
-            const values: number[] = [];
-            const intervals: number[] = [];
-            let previous = performance.now();
-            const start = previous;
-            await new Promise<void>((resolve) => {
-              const sample = (now: number) => {
-                const leaf = document.querySelector<HTMLElement>(".paper-fold");
-                if (!leaf || now - start > 2000) {
-                  resolve();
-                  return;
-                }
-                values.push(Number(leaf.dataset.distance));
-                intervals.push(now - previous);
-                previous = now;
-                requestAnimationFrame(sample);
-              };
-              requestAnimationFrame(sample);
-            });
-            return { values, intervals };
-          });
+          const frames = await page.evaluate(
+            async () =>
+              (await (window as any).__paperFrames) as {
+                values: number[];
+                intervals: number[];
+              },
+          );
           expect(Math.max(...frames.values)).toBeGreaterThan(distance);
           expect(
             new Set(frames.values.map((n) => n.toFixed(3))).size,
