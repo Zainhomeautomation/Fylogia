@@ -8,7 +8,8 @@ Production target: **https://fylogia.com/**, deployed from the personal [Zainhom
 
 - Three-step onboarding: grouped interests, subtopics, regions, recommended sources and custom RSS/Atom feeds.
 - Real publisher content from 285 curated feeds, scheduled for refresh every four hours by GitHub Actions (runs can be delayed). The app checks for a newer deployed edition every 15 minutes and on Refresh.
-- Editorial home, Explore, Categories, source management, saved articles, magazines, history and settings.
+- Editorial home, Explore, Categories, source management, saved articles, magazines, history and settings. For You uses bounded local history/bookmark subjects and freshness, with publisher diversity; its order stays stable on reader Back until Refresh, Home navigation or reopening.
+- Search covers title, publication, category, publisher topics and excerpts, with relevant titles first. Updates announce themselves passively without reloading an open reader.
 - Single-page article reading on small screens, two-column spreads on wide screens, swipes, keyboard/page controls, text-size adjustment and optional continuous scrolling. Pagination responds to resizing, rotation and folding.
 - Nine sources support permitted full text when their feed supplies a qualifying article body; other publishers receive conservative, attributed previews and original links. No article-page scraping or paywall bypass.
 - Original NASA Spinoff 2025 and licensed HackSpace 75 PDFs with PDF.js page rendering, page turns, spreads and bookmarks. Imported PDFs stay in IndexedDB on your device (50 MB per file).
