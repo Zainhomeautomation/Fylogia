@@ -13,30 +13,63 @@ concurrency:
   group: fylogia-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  validate:
+  quality:
     if: github.repository == 'Zainhomeautomation/Fylogia' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+          cache: npm
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test:server
       - run: npm run build:pages
-      - run: npx playwright install --with-deps chromium webkit
-      - run: npm test
+  browser:
+    if: github.repository == 'Zainhomeautomation/Fylogia' && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: desktop-chromium
+            engine: chromium
+          - project: iphone-webkit
+            engine: webkit
+          - project: ipad-webkit
+            engine: webkit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run build:pages
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+      - run: npm test -- --project=${{ matrix.project }}
         env:
           FYLOGIA_PAGES_RUNTIME: "1"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: browser-test-failures
+          name: browser-test-failures-${{ matrix.project }}
           path: test-results
           retention-days: 3
+  validate:
+    if: always() && github.repository == 'Zainhomeautomation/Fylogia' && github.event_name != 'schedule'
+    needs: [quality, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every quality and browser check
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: test "$QUALITY_RESULT" = success && test "$BROWSER_RESULT" = success
   refresh-news:
     if: github.repository == 'Zainhomeautomation/Fylogia' && github.event_name == 'schedule'
     runs-on: ubuntu-latest

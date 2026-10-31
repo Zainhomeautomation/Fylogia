@@ -3154,8 +3154,9 @@ html[data-theme="light"] .brand-mark-light {
   }
 }
 
-/* The projection and clipping must be separate compositing layers in WebKit.
-   Tangents project the curved sheet; do not rotate/flatten the whole page. */
+/* Rectangular masks and tangent projections share one layer. The inverse
+   printed texture is separate, avoiding projective clipping and an extra
+   compositor surface per band. Only temporary turn elements use these layers. */
 .paper-fold.turn-leaf {
   -webkit-backface-visibility: visible;
   backface-visibility: visible;
@@ -3163,21 +3164,11 @@ html[data-theme="light"] .brand-mark-light {
 }
 .paper-fold .paper-band,
 .paper-fold .paper-flat {
-  overflow: visible;
+  overflow: hidden;
+  contain: strict;
   background: transparent;
   -webkit-backface-visibility: visible;
   backface-visibility: visible;
-  will-change: transform;
-}
-.paper-clip {
-  width: 1px;
-  height: 1px;
-  position: absolute;
-  left: 0;
-  top: 0;
-  overflow: hidden;
-  contain: strict;
-  transform-origin: 0 0;
   will-change: transform;
 }
 .paper-print {

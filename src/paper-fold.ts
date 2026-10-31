@@ -154,3 +154,11 @@ export function bandMask(
     inverse: `matrix(${nx / span},${-ny / extent},${ny / span},${nx / extent},${-u / span},${-v / extent})`,
   };
 }
+
+// Combine a tangent and its rectangular mask into one moving CSS layer.
+// Printed texture keeps the inverse mask, so source coordinates remain exact.
+export function composeAffine(outer: string, inner: string) {
+  const a = outer.slice(7, -1).split(",").map(Number);
+  const b = inner.slice(7, -1).split(",").map(Number);
+  return `matrix(${a[0] * b[0] + a[2] * b[1]},${a[1] * b[0] + a[3] * b[1]},${a[0] * b[2] + a[2] * b[3]},${a[1] * b[2] + a[3] * b[3]},${a[0] * b[4] + a[2] * b[5] + a[4]},${a[1] * b[4] + a[3] * b[5] + a[5]})`;
+}

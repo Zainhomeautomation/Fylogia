@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   crease,
   bandMask,
+  composeAffine,
   clipBand,
   foldPlane,
   planeMatrix,
@@ -174,4 +175,51 @@ test("rectangular crease masks preserve page coordinates and the original band i
         }
       }
     }
+});
+
+test("composed tangent-mask layers retain the exact projected source points", () => {
+  const numbers = (s) => s.slice(7, -1).split(",").map(Number);
+  const apply = (m, p) => ({
+    x: m[0] * p.x + m[2] * p.y + m[4],
+    y: m[1] * p.x + m[3] * p.y + m[5],
+  });
+  for (const vertical of [false, true])
+    for (const forward of [false, true])
+      for (const distance of [0.01, 0.5, 0.8, 1.5, 1.99]) {
+        const w = 420,
+          h = 760,
+          f = crease(vertical ? h : w, vertical ? w : h, distance, 0.04),
+          a = (Math.PI * f.radius) / 2;
+        for (let i = 0; i < 12; i++) {
+          const low = -a + (i * 2 * a) / 12,
+            high = -a + ((i + 1) * 2 * a) / 12;
+          const mask = bandMask(w, h, f, low, high, vertical),
+            plane = foldPlane(f, (low + high) / 2, "bend");
+          const projection = (vertical ? verticalPlaneMatrix : planeMatrix)(
+            plane,
+            400,
+            20,
+            forward,
+            w,
+            h,
+          );
+          const combined = composeAffine(projection, mask.transform);
+          for (const p of [
+            { x: 0, y: 0 },
+            { x: w, y: h },
+            { x: w * 0.4, y: h * 0.7 },
+          ]) {
+            const actual = apply(
+                numbers(combined),
+                apply(numbers(mask.inverse), p),
+              ),
+              expected = apply(numbers(projection), p);
+            assert.ok(
+              Math.hypot(actual.x - expected.x, actual.y - expected.y) < 1e-7,
+              "one mask layer preserves curved printed projection",
+            );
+          }
+          assert.doesNotMatch(combined, /NaN|Infinity/);
+        }
+      }
 });

@@ -1,6 +1,7 @@
 import {
   crease,
   bandMask,
+  composeAffine,
   foldPlane,
   planeMatrix,
   verticalPlaneMatrix,
@@ -228,15 +229,12 @@ export async function paper(
     const el = document.createElement("div");
     el.className = kind === "bend" ? "curl-strip paper-band" : "paper-flat";
     el.dataset.face = isBack ? "back" : "front";
-    el.style.cssText = `position:absolute;left:0;top:0;width:${box.width}px;height:${box.height}px;transform-origin:0 0;`;
-    const clip = document.createElement("div");
-    clip.className = "paper-clip";
+    el.style.cssText = `position:absolute;left:0;top:0;width:1px;height:1px;transform-origin:0 0;`;
     const print = document.createElement("div");
     print.className = "paper-print";
     print.style.cssText = `width:${box.width}px;height:${box.height}px;`;
     print.append(face(isBack));
-    clip.append(print);
-    el.append(clip);
+    el.append(print);
     const lighting = document.createElement("div");
     lighting.className = "paper-light";
     // Tangent angles depend only on band index, not turn progress. Keep these
@@ -291,19 +289,20 @@ export async function paper(
       const visibility = mask.visible ? "visible" : "hidden";
       if (b.el.style.visibility !== visibility)
         b.el.style.visibility = visibility;
-      const clip = b.el.firstElementChild as HTMLElement;
-      clip.style.transform = mask.transform;
-      (clip.firstElementChild as HTMLElement).style.transform = mask.inverse;
+      (b.el.firstElementChild as HTMLElement).style.transform = mask.inverse;
       const u =
         b.kind === "front" ? -a : b.kind === "back" ? a : (low + high) / 2;
       const plane = foldPlane(f, u, b.kind);
-      b.el.style.transform = (verticalTurn ? verticalPlaneMatrix : planeMatrix)(
-        plane,
-        box.hinge,
-        verticalTurn ? box.x : box.y,
-        forward,
-        w,
-        h,
+      b.el.style.transform = composeAffine(
+        (verticalTurn ? verticalPlaneMatrix : planeMatrix)(
+          plane,
+          box.hinge,
+          verticalTurn ? box.x : box.y,
+          forward,
+          w,
+          h,
+        ),
+        mask.transform,
       );
     }
   }
