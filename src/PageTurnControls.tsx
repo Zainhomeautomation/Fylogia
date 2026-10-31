@@ -22,6 +22,15 @@ export function PageTurnControls({
       return false;
     }
   });
+  const [reduced, setReduced] = useState(
+    () => matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  useEffect(() => {
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const gesture = useRef<{
     id: number;
     native: boolean;
@@ -170,9 +179,15 @@ export function PageTurnControls({
   }
   return (
     <div className="page-turn-controls" aria-label="Page corners">
+      {reduced && (
+        <span className="motion-notice">
+          Reduced motion is on · Page animation is off
+        </span>
+      )}
       {!learned && (
         <aside className="turn-tutorial" aria-label="Page turning guide">
           <span>Drag or swipe to turn pages</span>
+          <small>Left or up: next · Right or down: previous</small>
           <small className="sr-only">
             Drag the folded corner inward. Release halfway to turn; drag back to
             cancel.

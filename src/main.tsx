@@ -27,6 +27,26 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
     navigator.serviceWorker
       .register(import.meta.env.BASE_URL + "sw.js", {
         scope: import.meta.env.BASE_URL,
+        updateViaCache: "none",
+      })
+      .then((registration) => {
+        // register() already checks on launch. Do not race its installation
+        // with an immediate explicit update (WebKit can reject that request).
+        let last = Date.now();
+        const check = () => {
+          if (
+            document.hidden ||
+            !navigator.onLine ||
+            registration.installing ||
+            registration.waiting ||
+            Date.now() - last < 60_000
+          )
+            return;
+          last = Date.now();
+          void registration.update().catch(() => {});
+        };
+        window.addEventListener("online", check);
+        document.addEventListener("visibilitychange", check);
       })
       .catch(() => {
         /* Reading remains available without offline caching. */

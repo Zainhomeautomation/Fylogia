@@ -1,3 +1,4 @@
+export type TurnAxis = "horizontal" | "vertical";
 export type Point = { x: number; y: number };
 export type Fold = { nx: number; ny: number; mid: number; radius: number };
 export function crease(
@@ -94,16 +95,70 @@ export function planeMatrix(
   width: number,
   height: number,
 ) {
-  const sign = forward ? 1 : -1,
-    depth = 2400,
-    cx = width / 2,
-    cy = height / 2;
-  const d = 1 - plane.tz / depth;
-  const a = (sign * plane.xx - (cx * plane.zx) / depth) / d,
-    b = (plane.yx - (cy * plane.zx) / depth) / d;
-  const c = (sign * plane.xy - (cx * plane.zy) / depth) / d,
-    e = (hinge + sign * plane.tx - (cx * plane.tz) / depth) / d;
-  const f = (top + plane.ty - (cy * plane.tz) / depth) / d,
-    dy = (plane.yy - (cy * plane.zy) / depth) / d;
-  return `matrix3d(${a},${b},0,${-plane.zx / depth / d},${c},${dy},0,${-plane.zy / depth / d},0,0,1,0,${e},${f},0,1)`;
+  // Orthographic projection of each tangent of the curved 3D sheet. WebKit's
+  // projective matrix3d + polygon clipping tears adjacent bands into slivers.
+  // Affine tangents keep continuous paper without rotating/sliding a flat sheet.
+  void width;
+  void height;
+  const sign = forward ? 1 : -1;
+  return `matrix(${sign * plane.xx},${plane.yx},${sign * plane.xy},${plane.yy},${hinge + sign * plane.tx},${top + plane.ty})`;
+}
+
+export function verticalPlaneMatrix(
+  plane: ReturnType<typeof foldPlane>,
+  hinge: number,
+  left: number,
+  forward: boolean,
+  width: number,
+  height: number,
+) {
+  const m = planeMatrix(plane, hinge, left, forward, height, width)
+    .slice(7, -1)
+    .split(",")
+    .map(Number);
+  return `matrix(${m[3]},${m[2]},${m[1]},${m[0]},${m[5]},${m[4]})`;
+}
+
+// A pair of inverse rotations makes a rectangular compositor clip equivalent
+// to the original page/crease-band intersection. The printed page keeps its
+// fixed dimensions and original coordinates; only its mask moves each frame.
+export function bandMask(
+  width: number,
+  height: number,
+  fold: Fold,
+  low: number,
+  high: number,
+  vertical = false,
+) {
+  const nx = vertical ? fold.ny : fold.nx;
+  const ny = vertical ? fold.nx : fold.ny;
+  const min =
+    Math.min(0, nx * width, ny * height, nx * width + ny * height) - fold.mid;
+  const max =
+    Math.max(0, nx * width, ny * height, nx * width + ny * height) - fold.mid;
+  const start = Math.max(min - 1, low - 0.35);
+  const end = Math.min(max + 1, high + 0.35);
+  const u = fold.mid + start;
+  const v =
+    Math.min(0, -ny * width, nx * height, -ny * width + nx * height) - 1;
+  const extent =
+    Math.max(0, -ny * width, nx * height, -ny * width + nx * height) + 1 - v;
+  const span = Math.max(0.01, end - start);
+  // Keep the clipping box at 1 × 1. Its transform and the inverse texture
+  // transform change, never layout dimensions or polygon paint resources.
+  return {
+    visible: end > start,
+    width: 1,
+    height: 1,
+    transform: `matrix(${nx * span},${ny * span},${-ny * extent},${nx * extent},${nx * u - ny * v},${ny * u + nx * v})`,
+    inverse: `matrix(${nx / span},${-ny / extent},${ny / span},${nx / extent},${-u / span},${-v / extent})`,
+  };
+}
+
+// Combine a tangent and its rectangular mask into one moving CSS layer.
+// Printed texture keeps the inverse mask, so source coordinates remain exact.
+export function composeAffine(outer: string, inner: string) {
+  const a = outer.slice(7, -1).split(",").map(Number);
+  const b = inner.slice(7, -1).split(",").map(Number);
+  return `matrix(${a[0] * b[0] + a[2] * b[1]},${a[1] * b[0] + a[3] * b[1]},${a[0] * b[2] + a[2] * b[3]},${a[1] * b[2] + a[3] * b[3]},${a[0] * b[4] + a[2] * b[5] + a[4]},${a[1] * b[4] + a[3] * b[5] + a[5]})`;
 }

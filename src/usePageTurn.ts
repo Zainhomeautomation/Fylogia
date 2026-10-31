@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { capture, paper, pageBox } from "./paper-surface";
+import type { TurnAxis } from "./paper-fold";
 type Interaction = {
   previous: boolean;
   next: boolean;
@@ -10,6 +11,7 @@ type Session = {
   controller: AbortController;
   view?: Awaited<ReturnType<typeof paper>>;
   surface: HTMLElement;
+  axis: TurnAxis;
   underlay?: HTMLElement;
   ready: Promise<void>;
   distance: number;
@@ -70,7 +72,11 @@ function createEngine(
   },
 ) {
   const current = cell<Session | null>(null),
-    queued = cell<{ forward: boolean; turn: () => void } | null>(null);
+    queued = cell<{
+      forward: boolean;
+      turn: () => void;
+      axis: TurnAxis;
+    } | null>(null);
   const alive = cell(true);
   const gesture = cell<{
     id: number;
@@ -84,6 +90,7 @@ function createEngine(
     edge: boolean;
     queued: boolean;
     link: boolean;
+    axis: TurnAxis;
   } | null>(null);
   const nativePointers = cell(new Set<number>());
   const lastSwipe = cell(-Infinity);
@@ -102,7 +109,7 @@ function createEngine(
     if (owned && runQueue && alive.current) {
       const q = queued.current;
       queued.current = null;
-      if (q) navigate(q.forward, q.turn);
+      if (q) navigate(q.forward, q.turn, q.axis);
     }
   }
   function clear() {
@@ -116,7 +123,7 @@ function createEngine(
     const cfg = getOptions().interaction;
     return !cfg || (forward ? cfg.next : cfg.previous);
   }
-  function begin(forward: boolean, corner = 1) {
+  function begin(forward: boolean, corner = 1, axis: TurnAxis = "horizontal") {
     const surface = getSurface();
     if (
       current.current ||
@@ -128,6 +135,7 @@ function createEngine(
     const controller = new AbortController();
     const s: Session = {
       surface,
+      axis,
       controller,
       distance: 0,
       vertical: 0,
@@ -175,6 +183,7 @@ function createEngine(
         forward,
         controller.signal,
         corner,
+        axis,
       );
       if (controller.signal.aborted) {
         v?.dispose();
@@ -203,7 +212,10 @@ function createEngine(
       image.inert = true;
       image.setAttribute("aria-hidden", "true");
       image.dataset.paperPdf = String(pdfSurface);
-      if ((surface.dataset.paperSpread || surface.dataset.spread) === "2")
+      if (
+        axis === "horizontal" &&
+        (surface.dataset.paperSpread || surface.dataset.spread) === "2"
+      )
         image.style.clipPath = forward
           ? "inset(0 0 0 50%)"
           : "inset(0 50% 0 0)";
@@ -275,11 +287,16 @@ function createEngine(
     if (current.current !== s || s.controller.signal.aborted) return;
     const from = s.distance,
       to = commit ? 2 : 0,
-      start = performance.now(),
       vertical = s.vertical;
+    let start: number | undefined;
     const duration = commit ? Math.max(280, (620 * (2 - from)) / 2) : 240;
     const tick = (now: number) => {
       if (current.current !== s) return;
+      if (start === undefined) {
+        start = now;
+        s.frame = requestAnimationFrame(tick);
+        return; // The prepared pose is already drawn; avoid repainting it.
+      }
       const t = Math.min(1, (now - start) / duration),
         ease = t * t * (3 - 2 * t);
       s.distance = from + (to - from) * ease;
@@ -288,13 +305,22 @@ function createEngine(
       if (t < 1) s.frame = requestAnimationFrame(tick);
       else void finish(s, commit);
     };
-    s.frame = requestAnimationFrame(tick);
+    // Let the newly created paper layers paint before starting their clock.
+    // WebKit can defer first-frame delivery/rasterization past the entire turn
+    // duration; construction time must never consume visible motion.
+    s.frame = requestAnimationFrame(() => {
+      if (current.current === s) s.frame = requestAnimationFrame(tick);
+    });
     // Suspended WebKit frames must neither strand a layer nor lose navigation.
     s.timer = setTimeout(() => {
       void finish(s, commit);
     }, duration + 1400);
   }
-  function navigate(forward: boolean, turn: () => void) {
+  function navigate(
+    forward: boolean,
+    turn: () => void,
+    axis: TurnAxis = "horizontal",
+  ) {
     if (!allowed(forward)) return;
     if (!getOptions().enabled || reduced()) {
       turn();
@@ -305,10 +331,10 @@ function createEngine(
       return;
     }
     if (current.current) {
-      if (!queued.current) queued.current = { forward, turn };
+      if (!queued.current) queued.current = { forward, turn, axis };
       return;
     }
-    if (begin(forward)) void end(true, turn);
+    if (begin(forward, 1, axis)) void end(true, turn);
     else turn();
   }
   function connect() {
@@ -432,7 +458,12 @@ function createEngine(
       const f = x >= surface.clientWidth / 2,
         box = pageBox(surface, f),
         edge = f ? box.x + box.width : box.x;
-      if (e.pointerType !== "touch" && Math.abs(x - edge) > 44) return;
+      if (
+        e.pointerType !== "touch" &&
+        Math.abs(x - edge) > 44 &&
+        Math.min(e.clientY - rect.top, rect.bottom - e.clientY) > 44
+      )
+        return;
       if (
         e.pointerType === "touch"
           ? !cfg.next && !cfg.previous
@@ -451,6 +482,7 @@ function createEngine(
         edge: Math.abs(x - edge) <= 28,
         queued: false,
         link: Boolean((e.target as HTMLElement).closest("a")),
+        axis: "horizontal",
       };
     };
     const move = (e: PointerEvent, fromTouch?: boolean) => {
@@ -462,16 +494,29 @@ function createEngine(
         dy = e.clientY - g.y,
         slop = g.touch ? 12 : 6;
       if (!g.dragging) {
-        if (Math.abs(dx) < slop && Math.abs(dy) < slop) return;
+        if (Math.abs(dx) < slop && Math.abs(dy) < slop) {
+          // Claim paginated motion before Safari starts a native scroll. Taps
+          // and two-finger zoom retain their normal behavior.
+          e.preventDefault();
+          return;
+        }
+        const dominant = Math.max(Math.abs(dx), Math.abs(dy));
+        const minor = Math.min(Math.abs(dx), Math.abs(dy));
+        if (dominant < minor * 1.2) {
+          e.preventDefault();
+          return;
+        }
+        g.axis = Math.abs(dy) > Math.abs(dx) ? "vertical" : "horizontal";
         if (
-          Math.abs(dy) > Math.abs(dx) * 1.2 ||
-          (!g.touch && dx * (g.forward ? -1 : 1) < 0)
+          !g.touch &&
+          g.axis === "horizontal" &&
+          dx * (g.forward ? -1 : 1) < 0
         ) {
           gesture.current = null;
           return;
         }
-        if (g.touch) {
-          g.forward = dx < 0;
+        if (g.touch || g.axis === "vertical") {
+          g.forward = (g.axis === "vertical" ? dy : dx) < 0;
           const cfg = getOptions().interaction;
           if (!(g.forward ? cfg?.next : cfg?.previous)) {
             gesture.current = null;
@@ -480,12 +525,26 @@ function createEngine(
           const box = pageBox(surface, g.forward);
           g.width = box.width;
           g.height = box.height;
+          if (g.axis === "vertical") {
+            const bounds = surface.getBoundingClientRect();
+            g.edge = Math.min(g.y - bounds.top, bounds.bottom - g.y) <= 28;
+          }
         }
         const r = surface.getBoundingClientRect();
         g.queued = Boolean(g.touch && current.current?.ending);
         if (
           !g.queued &&
-          !begin(g.forward, g.y - r.top < surface.clientHeight / 2 ? 0 : 1)
+          !begin(
+            g.forward,
+            (
+              g.axis === "vertical"
+                ? g.x - r.left < surface.clientWidth / 2
+                : g.y - r.top < surface.clientHeight / 2
+            )
+              ? 0
+              : 1,
+            g.axis,
+          )
         ) {
           gesture.current = null;
           return;
@@ -505,9 +564,13 @@ function createEngine(
       if (s && !s.ending && !g.queued) {
         s.distance = Math.max(
           0,
-          Math.min(1.98, (dx * (g.forward ? -1 : 1)) / g.width),
+          Math.min(
+            1.98,
+            ((g.axis === "vertical" ? dy : dx) * (g.forward ? -1 : 1)) /
+              (g.axis === "vertical" ? g.height : g.width),
+          ),
         );
-        s.vertical = dy / g.height;
+        s.vertical = g.axis === "vertical" ? dx / g.width : dy / g.height;
         s.view?.draw(s.distance, s.vertical);
       }
     };
@@ -524,13 +587,16 @@ function createEngine(
       if (
         !g.dragging &&
         g.touch &&
-        Math.abs(releaseX) >= 60 &&
-        Math.abs(releaseX) > Math.abs(releaseY) * 1.5
+        Math.max(Math.abs(releaseX), Math.abs(releaseY)) >= 60 &&
+        Math.max(Math.abs(releaseX), Math.abs(releaseY)) >
+          Math.min(Math.abs(releaseX), Math.abs(releaseY)) * 1.5
       ) {
-        const forward = releaseX < 0;
+        const axis =
+          Math.abs(releaseY) > Math.abs(releaseX) ? "vertical" : "horizontal";
+        const forward = (axis === "vertical" ? releaseY : releaseX) < 0;
         e.preventDefault();
         lastSwipe.current = performance.now();
-        navigate(forward, () => getOptions().interaction?.step(forward));
+        navigate(forward, () => getOptions().interaction?.step(forward), axis);
         return;
       }
       if (g.dragging) {
@@ -543,17 +609,22 @@ function createEngine(
         // Edge drags retain proportional release/cancel geometry like paper.
         const dx = e.clientX - g.x,
           dy = e.clientY - g.y;
+        const primary = g.axis === "vertical" ? dy : dx;
+        const secondary = g.axis === "vertical" ? dx : dy;
+        const length = g.axis === "vertical" ? g.height : g.width;
         const commit =
           g.touch && !g.edge
-            ? dx * (g.forward ? -1 : 1) >= 60 &&
-              Math.abs(dx) > Math.abs(dy) * 1.5
+            ? primary * (g.forward ? -1 : 1) >= 60 &&
+              Math.abs(primary) > Math.abs(secondary) * 1.5
             : (g.queued
-                ? (dx * (g.forward ? -1 : 1)) / g.width
+                ? (primary * (g.forward ? -1 : 1)) / length
                 : current.current?.distance || 0) >= 0.35;
         if (g.queued) {
           if (commit)
-            navigate(g.forward, () =>
-              getOptions().interaction?.step(g.forward),
+            navigate(
+              g.forward,
+              () => getOptions().interaction?.step(g.forward),
+              g.axis,
             );
         } else
           void end(commit, () => getOptions().interaction?.step(g.forward));

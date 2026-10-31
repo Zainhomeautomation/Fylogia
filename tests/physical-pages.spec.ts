@@ -55,7 +55,7 @@ test("actual PDF edge folds about a fixed spine with a readable reverse, then tu
       (e) => e.style.transform,
     ),
     clips: [...n.querySelectorAll<HTMLElement>(".paper-band")].map(
-      (e) => e.style.clipPath,
+      (e) => (e.firstElementChild as HTMLElement).style.transform,
     ),
     hidden: n.getAttribute("aria-hidden"),
     inert: (n as HTMLElement).inert,

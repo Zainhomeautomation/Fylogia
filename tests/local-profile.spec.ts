@@ -76,13 +76,14 @@ test("anonymous profile and entire library recover offline from IndexedDB after 
   await page.locator(".story-open").first().click();
   await expect(page.getByRole("button", { name: "Next page" })).toBeEnabled();
   await page.getByRole("button", { name: "Next page" }).click();
-  // Advance beyond a cover-only boundary: this storage test intentionally does
-  // not download publisher images, so their offline absence can repaginate text.
+  // Advance into the body text. This storage test intentionally does not
+  // download publisher photos: their offline absence can move cover-adjacent
+  // text onto the first spread while correctly preserving its text anchor.
   while (
     (await page.evaluate(
       (id) => JSON.parse(localStorage.getItem("folio.v1.progress")!)[id] || 0,
       article.id,
-    )) < 0.25
+    )) < 0.5
   )
     await page.getByRole("button", { name: "Next page" }).click();
   // A late publisher image load must not restore the previous page before close.

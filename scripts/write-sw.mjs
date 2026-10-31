@@ -1,3 +1,4 @@
+import { freshNavigation } from "./sw-navigation.mjs";
 import { readdir, writeFile, readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 const base = process.env.FYLOGIA_BASE_PATH || "/";
@@ -48,7 +49,7 @@ manifest.scope = base;
 await writeFile("dist/manifest.webmanifest", JSON.stringify(manifest, null, 2));
 await writeFile(
   "dist/sw.js",
-  `const CACHE=${JSON.stringify(cache)};const BASE=${JSON.stringify(base)};const FILES=${JSON.stringify(precache)};const IMAGES='fyllora-offline-images-v1';
+  `const CACHE=${JSON.stringify(cache)};const BASE=${JSON.stringify(base)};const FILES=${JSON.stringify(precache)};const IMAGES='fyllora-offline-images-v1';const freshNavigation=${freshNavigation.toString()};
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES.map(file=>new Request(file,{priority:"low"})))).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>{const previous=keys.filter(key=>(key.startsWith('fylogia-shell-')||key.startsWith('fyllora-shell-')||/^fyllora-\\d+$/.test(key)||/^folio-\\d+$/.test(key))&&key!==CACHE).sort((a,b)=>Number(b.match(/\\d+$/)?.[0]||0)-Number(a.match(/\\d+$/)?.[0]||0));return Promise.all(previous.slice(1).map(key=>caches.delete(key)))}).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
@@ -57,6 +58,12 @@ self.addEventListener('fetch',event=>{
   event.respondWith((async()=>{try{const images=await caches.open(IMAGES);const downloaded=await images.match(request.url,{ignoreVary:true});if(downloaded)return downloaded;const shell=await caches.open(CACHE);const bundled=await shell.match(request,{ignoreSearch:true,ignoreVary:true});if(bundled)return bundled}catch{}try{return await fetch(request)}catch{return new Response(null,{status:503,statusText:'Image unavailable',headers:{'Cache-Control':'no-store'}})}})());return;
  }
  if(url.origin!==self.location.origin||!url.pathname.startsWith(BASE)||url.pathname.includes('/editions/'))return;
+ // Refresh the document on online launches. Never clear article/PDF/download
+ // stores, and keep the version's precached shell as the offline fallback.
+ if(request.mode==='navigate'){
+  event.respondWith(freshNavigation(request,fetch,async()=>{const shell=await caches.open(CACHE);return (await shell.match(BASE,{ignoreVary:true}))||Response.error()}));return;
+ }
+
  if(url.pathname===BASE+'data/edition.json'||url.pathname===BASE+'data/source-index.json'||url.pathname.startsWith(BASE+'data/source-files/')){
   event.respondWith((async()=>{try{const response=await fetch(request);if(!response.ok)throw new Error('Edition unavailable');const cache=await caches.open(CACHE);await cache.put(url.pathname,response.clone());return response}catch{const shell=await caches.open(CACHE);const cached=await shell.match(url.pathname,{ignoreVary:true});return cached||new Response('Edition unavailable',{status:503})}})());return;
  }

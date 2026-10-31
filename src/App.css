@@ -3153,3 +3153,53 @@ html[data-theme="light"] .brand-mark-light {
     margin-top: 0;
   }
 }
+
+/* Rectangular masks and tangent projections share one layer. The inverse
+   printed texture is separate, avoiding projective clipping and an extra
+   compositor surface per band. Only temporary turn elements use these layers. */
+.paper-fold.turn-leaf {
+  -webkit-backface-visibility: visible;
+  backface-visibility: visible;
+  transform-style: flat;
+}
+.paper-fold .paper-band,
+.paper-fold .paper-flat {
+  overflow: hidden;
+  contain: strict;
+  background: transparent;
+  -webkit-backface-visibility: visible;
+  backface-visibility: visible;
+  will-change: transform;
+}
+.paper-print {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  background: var(--sheet-color);
+  transform-origin: 0 0;
+  will-change: transform;
+}
+/* Paginated reading owns both one-finger axes. Scroll mode and zoomed PDF
+   panning remain native; pinch zoom is never disabled for article text. */
+.reader-viewport.paginated,
+.pdf-spread[data-zoom="1"] {
+  touch-action: pinch-zoom;
+  overscroll-behavior: contain;
+}
+.reader-viewport.paginated[data-browser-zoomed="true"],
+.pdf-spread[data-browser-zoomed="true"] {
+  touch-action: pan-x pan-y pinch-zoom;
+}
+.motion-notice {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 140px);
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--muted);
+  background: var(--paper);
+  padding: 4px 8px;
+}

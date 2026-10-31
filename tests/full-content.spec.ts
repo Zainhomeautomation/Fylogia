@@ -31,6 +31,9 @@ test("licensed feed articles, read-here filter, immersive pagination and preview
     .getByRole("navigation", { name: "Main navigation", exact: true })
     .getByRole("button", { name: "Explore", exact: true })
     .click();
+  await expect(
+    page.getByRole("button", { name: "Refresh edition", exact: true }),
+  ).toBeEnabled({ timeout: 30000 });
   await page
     .getByRole("button", { name: "Full articles only", exact: true })
     .click();

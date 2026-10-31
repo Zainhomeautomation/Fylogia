@@ -56,6 +56,9 @@ async function open(page: Page) {
 test("daily cover, contents and continuous stories reuse pagination and preserve separate progress and bookmarks", async ({
   page,
 }) => {
+  // This journey completes every page before validating story continuation,
+  // reopen and bookmarks; software WebKit can need longer than one minute.
+  test.setTimeout(120000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await fixture(page);
@@ -73,6 +76,12 @@ test("daily cover, contents and continuous stories reuse pagination and preserve
   await first
     .getByRole("button", { name: "Save article", exact: true })
     .click();
+  await page.evaluate(() => document.fonts.ready);
+  // The full article must finish its first pagination measurement before the
+  // loop; otherwise an initially disabled Next could silently skip every page.
+  await expect(
+    first.getByRole("button", { name: "Next page", exact: true }),
+  ).toBeEnabled();
   let turns = 0;
   while (
     await first
@@ -86,6 +95,7 @@ test("daily cover, contents and continuous stories reuse pagination and preserve
     await expect(first.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
     expect(++turns).toBeLessThan(35);
   }
+  expect(turns).toBeGreaterThan(0);
   const stored = await page.evaluate(
     () => JSON.parse(localStorage.getItem("folio.v1.dailyEditions")!)[0],
   );
