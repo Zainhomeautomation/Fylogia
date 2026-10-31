@@ -15,7 +15,7 @@ Each tangent now uses an orthographic projection of the curved sheet, with an in
 
 One gesture owner locks the dominant axis: left/up advances, right/down goes back. Partial contacts cancel, page bounds and one queued turn remain enforced, and interactive taps retain their normal behavior. Both one-finger axes are owned only in paginated reading. Scrolling mode, two-finger zoom and zoomed panning remain available. Reduced Motion remains respected and is explained visibly.
 
-PWA registration checks updates without the HTTP cache on load, foreground and reconnection. Online navigation requests current HTML, with a bounded installed-shell fallback for offline/stalled connections. An explicit update prompt stays hidden while reading and will not reload during an incomplete local save. Offline image caches, private PDFs, IndexedDB, progress and preference keys are preserved; no destructive migration is used.
+PWA registration checks updates without the HTTP cache on load, foreground and reconnection. Online navigation requests current HTML, with a bounded installed-shell fallback for offline/stalled connections. An explicit update prompt stays hidden while reading and will not reload during an incomplete local save, PDF import or offline download. Operation-scoped guards also cover offline metadata writes, refreshes and deletion, including failure cleanup. Offline image caches, private PDFs, IndexedDB, progress and preference keys are preserved; no destructive migration is used.
 
 ## Verification boundary
 

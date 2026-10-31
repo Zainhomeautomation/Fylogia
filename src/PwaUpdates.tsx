@@ -1,3 +1,4 @@
+import { hasPendingLocalOperations } from "./pending-operations";
 import { useEffect, useState } from "react";
 import { getPersistenceStatus } from "./local-library";
 
@@ -35,7 +36,7 @@ export function PwaUpdates() {
         className="secondary"
         onClick={() => {
           const state = getPersistenceStatus();
-          if (state.saving || !state.durable) {
+          if (state.saving || !state.durable || hasPendingLocalOperations()) {
             setWaiting(true);
             return;
           }
