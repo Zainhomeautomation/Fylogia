@@ -1,3 +1,4 @@
+import "./check-distribution.mjs";
 // Build static delivery slices from the already-authorized edition. No new retrieval.
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";

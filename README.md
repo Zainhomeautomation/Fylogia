@@ -258,3 +258,7 @@ Category and publication coverage: [October 30 expansion review](docs/category-m
 Future Apple application integration and current device-testing limits: [native application foundation](docs/native-app-readiness.md).
 
 Headline photo availability and recovery behavior: [photo findings](docs/headline-photos.md).
+
+## Regulatory compliance foundation
+
+See the [architecture and compliance risk report](docs/compliance/risk-report.md) for Oman media licensing, copyright, privacy and international-distribution questions requiring professional review. No country or topic bans are activated. `config/content-distribution.json` records documented territorial policies; ingestion and production builds refuse approved territorial restrictions in public-snapshot mode because public Git history cannot enforce geographic access. The tested geographic evaluator is reserved for future private delivery, not a claim of live territorial enforcement. Do not add restricted content or activate rules before reviewing existing public/offline copies and obtaining owner approval.
