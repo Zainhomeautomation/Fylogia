@@ -1,3 +1,4 @@
+import { magazineSpread } from "./magazine-layout";
 import { BrandHome } from "./BrandHome";
 import { BrandMark } from "./BrandMark";
 import { getLibraryValue, setLibraryValue } from "./local-library";
@@ -157,8 +158,8 @@ export default function PdfReader({
   const surface = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
   const spread =
-    size.width >= 740 && ratio >= 0.85 && (size.height - 40) / ratio >= 280
-      ? 2
+    ratio >= 0.85 && (size.height - 40) / ratio >= 280
+      ? magazineSpread(size.width, window.innerWidth, window.innerHeight, 370)
       : 1;
   const pageWidth = Math.max(
     1,

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Article } from "./catalog";
+import { magazineSpread } from "./magazine-layout";
 import { usePageTurn } from "./usePageTurn";
 
 /** A bounded news book. Story identity survives resize and reader overlays. */
@@ -29,8 +30,7 @@ export function NewsFeed({
       const width = node.clientWidth;
       // Use available page space, not content height: long headlines must not
       // oscillate between one and two columns as the sheet grows.
-      const minimum = parseFloat(getComputedStyle(node).minHeight);
-      setSpread(width >= 760 && width / minimum >= 1.2 ? 2 : 1);
+      setSpread(magazineSpread(width, window.innerWidth, window.innerHeight));
     };
     const observer = new ResizeObserver(measure);
     observer.observe(node);
@@ -144,36 +144,29 @@ export function NewsFeed({
           {previous && pages(Math.max(0, start - spread), "previous")}
           {next && pages(start + spread, "next")}
         </div>
-        {previous && (
-          <button
-            className="feed-edge feed-edge-previous"
-            aria-label="Previous news page"
-            title="Previous news page"
-            onClick={() => turn(false)}
-          >
-            <ArrowLeft size={18} />
-          </button>
-        )}
-        {next && (
-          <button
-            className="feed-edge feed-edge-next"
-            aria-label="Next news page"
-            title="Next news page"
-            onClick={() => turn(true)}
-          >
-            <ArrowRight size={18} />
-          </button>
-        )}
-      </div>
-      <div className="feed-pagination">
         <button
-          className="icon-button"
+          className="feed-edge feed-edge-previous"
           aria-label="Previous stories"
           disabled={!previous}
+          data-page-turn-edge="previous"
+          title="Previous page or spread"
           onClick={() => turn(false)}
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
+        <button
+          className="feed-edge feed-edge-next"
+          aria-label="Next stories"
+          disabled={!next}
+          data-page-turn-edge="next"
+          title="Next page or spread"
+          onClick={() => turn(true)}
+        >
+          <ArrowRight size={18} />
+          <span className="feed-corner" aria-hidden="true" />
+        </button>
+      </div>
+      <div className="feed-pagination">
         <span aria-live="polite" aria-atomic="true">
           Story {start + 1}
           {spread === 2 && start + 1 < articles.length
@@ -181,14 +174,6 @@ export function NewsFeed({
             : ""}{" "}
           of {articles.length}
         </span>
-        <button
-          className="icon-button"
-          aria-label="Next stories"
-          disabled={!next}
-          onClick={() => turn(true)}
-        >
-          <ArrowRight size={20} />
-        </button>
       </div>
       <p className="feed-guidance">
         Swipe or drag the page edge to browse · Tap a story to read

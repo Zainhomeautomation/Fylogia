@@ -1,3 +1,4 @@
+import { magazineSpread } from "./magazine-layout";
 import { BrandHome } from "./BrandHome";
 import { BrandMark } from "./BrandMark";
 import { classifyApple } from "./apple-taxonomy";
@@ -298,7 +299,16 @@ export function Reader({
     measuring.current = true;
     navigation.current = false;
     setWidth(w);
-    setSpread(article.full && w >= Math.max(680, prefs.fontSize * 36) ? 2 : 1);
+    setSpread(
+      article.full
+        ? magazineSpread(
+            w,
+            window.innerWidth,
+            window.innerHeight,
+            Math.max(340, prefs.fontSize * 18),
+          )
+        : 1,
+    );
     let measured = false;
     const finishMeasurement = () => {
       if (measured) return;

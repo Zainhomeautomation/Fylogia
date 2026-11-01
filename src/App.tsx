@@ -707,7 +707,7 @@ export default function App() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <header className="mobile-header">
+      <header className={`mobile-header ${newsPages ? "magazine-header" : ""}`}>
         <button
           className="icon-button"
           aria-label="Open navigation"
@@ -734,7 +734,9 @@ export default function App() {
           <Search size={21} />
         </button>
       </header>
-      <aside className={"sidebar " + (menu ? "open" : "")}>
+      <aside
+        className={`sidebar ${menu ? "open" : ""} ${newsPages ? "magazine-sidebar" : ""}`}
+      >
         <div className="sidebar-brand">
           <BrandHome className="brand-lockup" onHome={goHome}>
             <span className="brand-name">

@@ -3237,7 +3237,7 @@ html[data-theme="light"] .brand-mark-light {
 }
 .feed-sheet {
   min-width: 0;
-  padding: 24px 40px;
+  padding: 24px 28px;
   background: var(--paper);
   container-type: inline-size;
 }
@@ -3348,9 +3348,15 @@ html[data-theme="light"] .brand-mark-light {
 .feed-edge {
   position: absolute;
   z-index: 3;
-  top: 42%;
-  width: 36px;
-  min-height: 64px;
+  top: min(42%, 32dvh);
+  width: 44px;
+  min-width: 44px;
+  height: 72px;
+  min-height: 44px;
+  touch-action: pan-y pinch-zoom;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
@@ -3374,10 +3380,6 @@ html[data-theme="light"] .brand-mark-light {
   gap: 16px;
   margin-top: 8px;
   font-size: 13px;
-}
-.feed-pagination button {
-  min-width: 44px;
-  min-height: 44px;
 }
 .feed-guidance {
   text-align: center;
@@ -3415,9 +3417,6 @@ html[data-theme="light"] .brand-mark-light {
   }
   .news-feed-surface {
     --feed-page-height: clamp(510px, 78dvh, 760px);
-  }
-  .feed-edge {
-    width: 27px;
   }
   .compact-edition .edition-intro {
     flex-basis: 100%;
@@ -3667,5 +3666,120 @@ html[data-theme="light"] .brand-mark-light {
   }
   .discovery-page .wordmark {
     font-size: 36px;
+  }
+}
+
+/* A single, reachable pair of page-edge controls. The outside gutters reserve
+   their space; headlines and story actions never sit underneath the targets. */
+.news-book .feed-edge {
+  width: 44px;
+  min-width: 44px;
+  height: 72px;
+  min-height: 44px;
+  touch-action: pan-y pinch-zoom;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+.news-book .feed-edge:not(:disabled):hover,
+.news-book .feed-edge:not(:disabled):active {
+  color: var(--green);
+  background: var(--wash);
+}
+.news-book .feed-edge:disabled {
+  opacity: 0.25;
+}
+.news-book .feed-spread > .feed-sheet:first-child {
+  padding-left: 52px;
+}
+.news-book .feed-spread > .feed-sheet:last-child {
+  padding-right: 52px;
+}
+.feed-corner {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    transparent 48%,
+    var(--green) 50%,
+    var(--paper) 95%
+  );
+  opacity: 0.6;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .feed-edge-next:not(:disabled) .feed-corner {
+    animation: feed-corner-hint 1.6s ease-in-out 2;
+  }
+  @keyframes feed-corner-hint {
+    50% {
+      transform: translate(-3px, -3px);
+      opacity: 1;
+    }
+  }
+}
+@media (max-width: 760px) {
+  .main.news-pages-mode {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .news-book .feed-sheet {
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+}
+/* Wide compact displays gain the space otherwise consumed by the persistent
+   sidebar. Reuse the same navigation drawer, brand and controls as on phones. */
+@media (min-width: 761px) and (max-width: 1100px) and (min-aspect-ratio: 9/10) {
+  .magazine-sidebar {
+    visibility: hidden;
+    transform: translateX(-100%);
+    width: 245px;
+    z-index: 60;
+    padding-top: max(25px, env(safe-area-inset-top));
+  }
+  .magazine-sidebar.open {
+    visibility: visible;
+    transform: translateX(0);
+  }
+  .magazine-sidebar .mobile-close {
+    display: flex;
+  }
+  .magazine-sidebar .brand-tagline {
+    display: none;
+  }
+  .magazine-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: max(8px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right)) 8px
+      max(16px, env(safe-area-inset-left));
+    background: var(--bg);
+  }
+  .magazine-header .brand-mark {
+    width: 29px;
+    height: 36px;
+  }
+  .magazine-header .wordmark {
+    font-size: 36px;
+  }
+  .magazine-header .brand-lockup {
+    align-items: center;
+    gap: 3px;
+  }
+  .main.news-pages-mode {
+    margin-left: 0;
+    padding: 0 max(20px, env(safe-area-inset-right)) 60px
+      max(20px, env(safe-area-inset-left));
+  }
+  body:has(.news-pages-mode) .menu-shade {
+    position: fixed;
+    inset: 0;
+    background: #0006;
+    z-index: 55;
   }
 }
