@@ -1,3 +1,5 @@
+import { BrandHome } from "./BrandHome";
+import { BrandMark } from "./BrandMark";
 import { getLibraryValue, setLibraryValue } from "./local-library";
 import type { LibraryData } from "./library-data";
 import { PageTurnControls } from "./PageTurnControls";
@@ -504,6 +506,10 @@ export default function PdfReader({
             <House />
           </button>
         </div>
+        <BrandHome className="reader-brand-home" onHome={goHome}>
+          <BrandMark />
+          <span className="wordmark">Fylogia</span>
+        </BrandHome>
         <strong>{title}</strong>
         <button
           className="icon-button focus-toggle"

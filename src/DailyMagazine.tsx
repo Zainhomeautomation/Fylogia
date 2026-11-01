@@ -1,3 +1,5 @@
+import { BrandHome } from "./BrandHome";
+import { BrandMark } from "./BrandMark";
 import { mediaImage } from "./media-rights";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -211,7 +213,10 @@ export function DailyMagazine({
               <House />
             </button>
           </div>
-          <span className="wordmark">Fylogia</span>
+          <BrandHome className="reader-brand-home" onHome={home}>
+            <BrandMark />
+            <span className="wordmark">Fylogia</span>
+          </BrandHome>
           <button
             className="secondary"
             disabled={!online || busy || !available.length}

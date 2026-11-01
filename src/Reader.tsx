@@ -1,3 +1,5 @@
+import { BrandHome } from "./BrandHome";
+import { BrandMark } from "./BrandMark";
 import { classifyApple } from "./apple-taxonomy";
 import {
   mediaImage,
@@ -479,7 +481,10 @@ export function Reader({
             <House />
           </button>
         </div>
-        <span className="wordmark">Fylogia</span>
+        <BrandHome className="reader-brand-home" onHome={goHome}>
+          <BrandMark />
+          <span className="wordmark">Fylogia</span>
+        </BrandHome>
         <button
           className="icon-button focus-toggle"
           aria-label={

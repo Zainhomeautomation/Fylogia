@@ -84,6 +84,7 @@ import { useOfflineLibrary } from "./useOfflineLibrary";
 import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
 import { BrandMark } from "./BrandMark";
+import { BrandHome } from "./BrandHome";
 import { useSectionRoute } from "./useSectionRoute";
 const newsSections = [
   "home",
@@ -386,6 +387,11 @@ export default function App() {
     setSelecting(false);
     setSelectedIds([]);
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }
+  function goHome() {
+    setReader(undefined);
+    setDailyOpen(undefined);
+    navigate("home");
   }
   function save(article: Article) {
     offline.metadata(article.id, {
@@ -697,7 +703,7 @@ export default function App() {
         >
           <Menu />
         </button>
-        <span className="brand-lockup">
+        <BrandHome className="brand-lockup" onHome={goHome}>
           <span className="brand-name">
             <BrandMark />
             <span className="wordmark">Fylogia</span>
@@ -707,7 +713,7 @@ export default function App() {
               Your World, One Page at a Time.
             </span>
           )}
-        </span>
+        </BrandHome>
         <button
           className="icon-button"
           aria-label="Search stories"
@@ -718,7 +724,7 @@ export default function App() {
       </header>
       <aside className={"sidebar " + (menu ? "open" : "")}>
         <div className="sidebar-brand">
-          <span className="brand-lockup">
+          <BrandHome className="brand-lockup" onHome={goHome}>
             <span className="brand-name">
               <BrandMark />
               <span className="wordmark">Fylogia</span>
@@ -728,7 +734,7 @@ export default function App() {
                 Your World, One Page at a Time.
               </span>
             )}
-          </span>
+          </BrandHome>
           <button
             className="icon-button mobile-close"
             aria-label="Close navigation"

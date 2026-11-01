@@ -3495,3 +3495,55 @@ html[data-theme="light"] .brand-mark-light {
 .sidebar {
   overflow-y: auto;
 }
+
+/* Preserve the editorial lockup; the complete mark/name is one Home target. */
+.brand-home {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  min-height: 44px;
+  border-radius: 3px;
+  touch-action: manipulation;
+}
+.brand-home:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+}
+@media (hover: hover) {
+  .brand-home:hover {
+    background: var(--wash);
+  }
+}
+.brand-home:active {
+  opacity: 0.72;
+}
+.reader-brand-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 44px;
+}
+.reader-brand-home .wordmark {
+  font-size: 25px;
+}
+.reader-brand-home > .brand-mark {
+  display: none;
+}
+.immersive.chrome-hidden .reader-brand-home {
+  display: none;
+}
+@media (max-width: 600px) {
+  .reader-brand-home > .wordmark {
+    display: none;
+  }
+  .reader-brand-home > .brand-mark {
+    display: inline-block;
+    width: 25px;
+    height: 32px;
+  }
+}
