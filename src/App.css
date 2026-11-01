@@ -3578,6 +3578,7 @@ html[data-theme="light"] .brand-mark-light {
   border-bottom: 1px solid var(--line);
 }
 .discovery-header > a {
+  color: inherit;
   text-decoration: none;
 }
 .discovery-breadcrumbs {

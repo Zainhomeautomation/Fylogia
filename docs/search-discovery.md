@@ -8,7 +8,7 @@ The build prerenders the existing homepage onboarding and 56 public collection p
 
 Public collections have original descriptions and attributed publisher-site links, not copied article bodies. They use the established logo, palette and typography. Their native links work without JavaScript; category entry links open the existing app with a transient category filter and do not change interests, saved stories or preferences. The homepage remains the existing onboarding/personalised reader, with a small public-collection link footer on onboarding. There is no bot-specific rendering or user-agent sniffing.
 
-The public collection pages ship without the application JavaScript bundle. All visitors and crawlers receive identical HTML. Only the existing theme initializer reads the saved appearance preference. Public Local News does not request country; approximate country is requested only after entering Local News in the application.
+The public collection pages ship without the application JavaScript bundle. All visitors and crawlers receive the same public collection content. Only the existing theme initializer reads the saved appearance preference. Public Local News does not request country; approximate country is requested only after entering Local News in the application.
 
 `WebSite` and `Organization` identify the Fylogia project, without inventing a legal company name, address, registration or staff. `CollectionPage`, `BreadcrumbList` and publisher `WebSite` list items describe the directories. No `Article`, `NewsArticle`, article body, author claim or publication date is invented for aggregated reporting. A future original editorial article needs its own editorial and rights review before receiving article schema.
 

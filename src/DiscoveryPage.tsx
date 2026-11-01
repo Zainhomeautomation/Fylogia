@@ -61,7 +61,7 @@ export function DiscoveryPage({ page }: { page: Page }) {
             );
           })}
         </nav>
-        <p className="eyebrow">YOUR WORLD, ONE PAGE AT A TIME.</p>
+        <p className="eyebrow">NEWS & MAGAZINE COLLECTIONS</p>
         <h1>{page.name}</h1>
         <p className="discovery-intro">{page.intro}</p>
         <p>
