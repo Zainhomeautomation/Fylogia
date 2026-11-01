@@ -73,6 +73,9 @@ export function useLocalCountry(enabled: boolean, paused = false) {
       active = false;
       refreshRef.current = undefined;
       controller?.abort();
+      setLocation((previous) =>
+        previous.loading ? { ...previous, loading: false } : previous,
+      );
       document.removeEventListener("visibilitychange", update);
       window.removeEventListener("focus", update);
       window.removeEventListener("online", update);

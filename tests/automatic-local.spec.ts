@@ -1,5 +1,5 @@
 import { test, mockEdition } from "./edition-fixture";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Route } from "@playwright/test";
 import { defaults } from "../src/catalog";
 test.use({
   serviceWorkers: "block",
@@ -301,4 +301,39 @@ test.describe("uncached country endpoint with installed worker", () => {
     );
     await context.setOffline(false);
   });
+});
+
+test("cancelling lookup then returning offline cannot leave Local News stuck loading", async ({
+  page,
+  context,
+}) => {
+  await seed(page, "OM");
+  let pending: Route | undefined;
+  await page.unroute("**/api/location");
+  await page.route("**/api/location", (r) => {
+    pending = r;
+  });
+  await page.goto("./local");
+  await expect(
+    page.getByText("Checking approximate country…", { exact: true }),
+  ).toBeVisible();
+  await nav(page, "Settings");
+  await context.setOffline(true);
+  await nav(page, "Local News");
+  await expect(
+    page.getByText(
+      "Country unavailable · Worldwide coverage is available in World News.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Finding local news…", { exact: true }),
+  ).toHaveCount(0);
+  await pending?.abort().catch(() => {});
+  await page.unroute("**/api/location");
+  await page.route("**/api/location", (r) =>
+    r.fulfill({ json: { country: "OM" } }),
+  );
+  await context.setOffline(false);
+  await expect(active(page).locator("h2")).toHaveText("Oman domestic news");
 });
