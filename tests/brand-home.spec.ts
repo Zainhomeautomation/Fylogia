@@ -59,6 +59,10 @@ test.beforeEach(async ({ page }) => {
     },
   );
   await page.goto("./");
+  await expect(
+    page.getByRole("heading", { name: "Your daily perspective." }),
+  ).toBeVisible();
+  await expect(page.locator(".story").first()).toBeVisible();
 });
 test("one logo/name target returns from every sidebar section without reload or library changes", async ({
   page,
@@ -106,9 +110,19 @@ test("keyboard activation, homepage top and mobile-header logo use the same Home
   page,
 }) => {
   await page.setViewportSize({ width: 1180, height: 600 });
-  await page.evaluate(() =>
-    window.scrollTo(0, document.documentElement.scrollHeight),
-  );
+  await page.evaluate(() => document.fonts.ready);
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.documentElement.scrollHeight > innerHeight),
+    )
+    .toBe(true);
+  await page.evaluate(async () => {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: "instant",
+    });
+    await new Promise(requestAnimationFrame);
+  });
   await expect
     .poll(() => page.evaluate(() => window.scrollY))
     .toBeGreaterThan(0);
