@@ -48,3 +48,24 @@ test("a stalled iPad connection falls back to its installed library promptly", a
   );
   assert.equal(await response.text(), "offline library");
 });
+
+test("canonicalised privacy HTML remains usable for manual-redirect PWA navigation", async () => {
+  for (const online of [true, false]) {
+    const redirected = new Response("privacy notice", {
+      headers: { "Content-Type": "text/html", "X-Test": "retained" },
+    });
+    Object.defineProperty(redirected, "redirected", { value: true });
+    const response = await freshNavigation(
+      new Request("https://fylogia.com/privacy.html", { redirect: "manual" }),
+      async () => {
+        if (!online) throw new TypeError("offline");
+        return redirected;
+      },
+      async () => redirected,
+    );
+    assert.equal(response.redirected, false);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("X-Test"), "retained");
+    assert.equal(await response.text(), "privacy notice");
+  }
+});
