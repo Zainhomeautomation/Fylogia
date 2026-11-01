@@ -151,10 +151,20 @@ test("full article pagination, resize, summaries and scrolling", async ({
   const article = data.articles
     .filter((a: any) => a.full)
     .sort((a: any, b: any) => b.content.length - a.content.length)[0];
-  await page
-    .getByRole("textbox", { name: "Search stories", exact: true })
-    .fill(article.title);
-  await page.locator(".story-open").first().click();
+  const search = page.getByRole("textbox", {
+    name: "Search stories",
+    exact: true,
+  });
+  await search.pressSequentially(article.title);
+  await expect(search).toHaveValue(article.title);
+  const fullStory = page
+    .locator(".story")
+    .filter({
+      has: page.getByRole("heading", { name: article.title, exact: true }),
+    })
+    .filter({ has: page.locator(".content-label.complete") });
+  await expect(fullStory).toHaveCount(1);
+  await fullStory.locator(".story-open").click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.locator(".reader-footer")).toContainText(
     /(?:Page|Spread) 1 of/,

@@ -658,7 +658,7 @@ export function Reader({
           </div>
           {(article.contentDetails?.retrievedAt || article.retrievedAt) && (
             <div className="article-retrieved">
-              Added to Fylogia{" "}
+              Received by Fylogia{" "}
               {new Date(
                 article.contentDetails?.retrievedAt || article.retrievedAt!,
               ).toLocaleString("en", { timeZoneName: "short" })}

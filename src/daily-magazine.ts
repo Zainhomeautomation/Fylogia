@@ -1,3 +1,4 @@
+import { countryName, countryRegion } from "./countries.ts";
 import { publicationTime } from "./news-chronology.ts";
 import { applePreferenceScore } from "./apple-taxonomy.ts";
 import type { Article, Preferences } from "./catalog";
@@ -101,7 +102,9 @@ export function createDailyMagazine(
     id: `${day}-${dailyPreferenceKey(prefs)}`,
     day,
     createdAt: now.toISOString(),
-    region: prefs.region,
+    region: prefs.country
+      ? `${countryName(prefs.country)} · ${countryRegion(prefs.country)}`
+      : prefs.region,
     stories: ordered.map((a) => ({
       id: a.id,
       title: a.title,
