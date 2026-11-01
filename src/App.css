@@ -3286,6 +3286,8 @@ html[data-theme="light"] .brand-mark-light {
   height: clamp(100px, 17dvh, 180px);
 }
 .news-book .feed-sheet .story .type-art {
+  width: 100%;
+  aspect-ratio: auto;
   height: auto;
   min-height: clamp(120px, 24dvh, 280px);
   padding: 16px;

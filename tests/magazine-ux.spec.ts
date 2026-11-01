@@ -330,3 +330,26 @@ test("content reflow keeps a committed turn and cancels an unfinished drag witho
   );
   await expect(page.locator(".reader")).toHaveCount(0);
 });
+
+test("mobile magazine image fallbacks fill the editorial column instead of inheriting list thumbnail sizing", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seed(page);
+  for (const width of [320, 390, 440]) {
+    await page.setViewportSize({ width, height: 844 });
+    const dimensions = await active(page)
+      .locator(".story-open")
+      .first()
+      .evaluate((open) => {
+        const art = open.querySelector(".type-art")!;
+        return {
+          column: open.getBoundingClientRect().width,
+          art: art.getBoundingClientRect().width,
+          ratio: getComputedStyle(art).aspectRatio,
+        };
+      });
+    expect(Math.abs(dimensions.column - dimensions.art)).toBeLessThan(1);
+    expect(dimensions.ratio).toBe("auto");
+  }
+});
