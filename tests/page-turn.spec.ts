@@ -89,6 +89,8 @@ test("paper turns, facing pages, intact text and reduced motion", async ({
       );
     });
   await page.setViewportSize({ width: 820, height: 1100 });
+  await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");
+  await page.setViewportSize({ width: 1100, height: 820 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "2");
   expect(await body.innerText()).toBe(text);
   await expect.poll(anchorIsVisible).toBe(true);

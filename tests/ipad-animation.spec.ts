@@ -374,7 +374,8 @@ test("reduced motion explains intentional animation suppression while navigation
   await page
     .getByRole("button", { name: "Next magazine page", exact: true })
     .click();
-  await expect(page.locator(".reader-footer")).toContainText("Page 3");
+  await expect(page.locator(".pdf-spread")).toHaveAttribute("data-spread", "1");
+  await expect(page.locator(".reader-footer")).toContainText("Page 2");
   await expect(page.locator(".paper-fold")).toHaveCount(0);
 });
 

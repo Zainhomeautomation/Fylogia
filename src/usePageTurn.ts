@@ -19,6 +19,7 @@ type Session = {
   distance: number;
   vertical: number;
   ending: boolean;
+  committing: boolean;
   apply?: () => void;
   applied: boolean;
   applying: boolean;
@@ -92,10 +93,20 @@ function createEngine(
     edge: boolean;
     queued: boolean;
     link: boolean;
+    control: boolean;
     axis: TurnAxis;
   } | null>(null);
   const nativePointers = cell(new Set<number>());
   const lastSwipe = cell(-Infinity);
+  let suppressClickUntil = -Infinity;
+  function drawFrame(s: Session) {
+    if (s.frame) return;
+    s.frame = requestAnimationFrame(() => {
+      s.frame = 0;
+      if (current.current === s && !s.ending)
+        s.view?.draw(s.distance, s.vertical);
+    });
+  }
   function dispose(s: Session, runQueue = false) {
     s.controller.abort();
     cancelAnimationFrame(s.frame);
@@ -115,6 +126,7 @@ function createEngine(
     }
   }
   function clear() {
+    if (gesture.current?.dragging) suppressClickUntil = performance.now() + 500;
     const s = current.current;
     queued.current = null;
     if (s) dispose(s);
@@ -142,6 +154,7 @@ function createEngine(
       distance: 0,
       vertical: 0,
       ending: false,
+      committing: false,
       applied: false,
       applying: false,
       finishing: false,
@@ -278,7 +291,10 @@ function createEngine(
     const s = current.current;
     if (!s) return;
     if (s.ending) return;
+    s.committing = commit;
     s.ending = true;
+    cancelAnimationFrame(s.frame);
+    s.frame = 0;
     s.apply = turn;
     if (s.motionless) {
       if (commit) applyOnce(s);
@@ -376,6 +392,12 @@ function createEngine(
       height = surface.clientHeight;
     const observer = new ResizeObserver(() => {
       if (width !== surface.clientWidth || height !== surface.clientHeight) {
+        const s = current.current;
+        // Font/image reflow must not discard a turn the user already released.
+        // A width change invalidates sheet geometry and retains the old anchor;
+        // an unfinished/canceled drag never becomes navigation on either path.
+        if (width === surface.clientWidth && s?.committing && !s.applied)
+          applyOnce(s);
         width = surface.clientWidth;
         height = surface.clientHeight;
         clear();
@@ -386,7 +408,7 @@ function createEngine(
     const motion = () => {
       if (media.matches) {
         const s = current.current;
-        if (s?.ending && !s.applied) {
+        if (s?.committing && !s.applied) {
           applyOnce(s);
         }
         clear();
@@ -401,7 +423,7 @@ function createEngine(
         touchId = undefined;
         nativePointers.current.clear();
         const s = current.current;
-        if (s?.ending && !s.applied) {
+        if (s?.committing && !s.applied) {
           applyOnce(s);
         }
         clear();
@@ -435,6 +457,9 @@ function createEngine(
       }
       if (!surface.contains(e.target as Node)) return;
       const cfg = getOptions().interaction;
+      const edgeControl = (e.target as Element).closest(
+        "[data-page-turn-edge]",
+      );
       if (
         !getOptions().enabled ||
         browserZoomed() ||
@@ -442,9 +467,10 @@ function createEngine(
         cfg.blocked?.() ||
         e.button !== 0 ||
         !e.isPrimary ||
-        ((e.target as HTMLElement).closest(
-          "button,input,textarea,select,[contenteditable=true]",
-        ) &&
+        (!edgeControl &&
+          (e.target as HTMLElement).closest(
+            "button,input,textarea,select,[contenteditable=true]",
+          ) &&
           !(
             cfg.contentOpenSelector &&
             (e.target as HTMLElement).closest(cfg.contentOpenSelector)
@@ -476,6 +502,7 @@ function createEngine(
           : !(f ? cfg.next : cfg.previous)
       )
         return;
+      suppressClickUntil = -Infinity;
       gesture.current = {
         id: e.pointerId,
         x: e.clientX,
@@ -485,7 +512,8 @@ function createEngine(
         forward: f,
         dragging: false,
         touch: e.pointerType === "touch",
-        edge: Math.abs(x - edge) <= 28,
+        edge: Boolean(edgeControl) || Math.abs(x - edge) <= 28,
+        control: Boolean(edgeControl),
         queued: false,
         link: Boolean(
           (e.target as HTMLElement).closest("a") ||
@@ -588,7 +616,7 @@ function createEngine(
           ),
         );
         s.vertical = g.axis === "vertical" ? dx / g.width : dy / g.height;
-        s.view?.draw(s.distance, s.vertical);
+        drawFrame(s);
       }
     };
     const up = (e: PointerEvent, fromTouch?: boolean) => {
@@ -619,6 +647,7 @@ function createEngine(
         return;
       }
       if (g.dragging) {
+        suppressClickUntil = performance.now() + 500;
         if (g.touch) e.preventDefault();
         if (reduced() && !current.current?.motionless) {
           clear();
@@ -649,6 +678,7 @@ function createEngine(
           void end(commit, () => getOptions().interaction?.step(g.forward));
       } else if (
         !g.link &&
+        !g.control &&
         g.edge &&
         Math.hypot(e.clientX - g.x, e.clientY - g.y) <= 12
       ) {
@@ -663,7 +693,10 @@ function createEngine(
       const g = gesture.current;
       if (g?.id === e.pointerId) {
         gesture.current = null;
-        if (g.dragging) void end(false, () => {});
+        if (g.dragging) {
+          suppressClickUntil = performance.now() + 500;
+          void end(false, () => {});
+        }
       }
     };
     // Safari dispatches both event families. A native touch sequence takes sole
@@ -683,6 +716,8 @@ function createEngine(
         },
       }) as PointerEvent;
     const abortTouch = () => {
+      if (gesture.current?.dragging)
+        suppressClickUntil = performance.now() + 500;
       gesture.current = null;
       nativePointers.current.clear();
       if (current.current && !current.current.ending) void end(false, () => {});
@@ -746,6 +781,42 @@ function createEngine(
       touchSequence = touchBlocked;
       touchId = undefined;
     };
+    const click = (event: MouseEvent) => {
+      if (performance.now() < suppressClickUntil) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+    let wheelTotal = 0,
+      wheelCommitted = false;
+    let wheelTimer: ReturnType<typeof setTimeout>;
+    const wheel = (event: WheelEvent) => {
+      const cfg = getOptions().interaction;
+      if (
+        !cfg?.horizontalOnly ||
+        !getOptions().enabled ||
+        cfg.blocked?.() ||
+        browserZoomed() ||
+        event.ctrlKey ||
+        Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.5
+      )
+        return;
+      event.preventDefault();
+      clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => {
+        wheelTotal = 0;
+        wheelCommitted = false;
+      }, 180);
+      if (wheelCommitted) return;
+      wheelTotal += event.deltaX * (event.deltaMode === 1 ? 16 : 1);
+      if (Math.abs(wheelTotal) >= 60) {
+        wheelCommitted = true;
+        const forward = wheelTotal > 0;
+        navigate(forward, () => getOptions().interaction?.step(forward));
+      }
+    };
+    surface.addEventListener("click", click, true);
+    surface.addEventListener("wheel", wheel, { passive: false });
     surface.addEventListener("touchstart", touchStart, { passive: true });
     surface.addEventListener("touchmove", touchMove, { passive: false });
     window.addEventListener("touchend", touchEnd, { passive: false });
@@ -757,6 +828,9 @@ function createEngine(
     surface.addEventListener("lostpointercapture", cancel);
     return () => {
       alive.current = false;
+      clearTimeout(wheelTimer);
+      surface.removeEventListener("click", click, true);
+      surface.removeEventListener("wheel", wheel);
       releaseTouchTarget();
       observer.disconnect();
       media.removeEventListener("change", motion);
@@ -782,7 +856,7 @@ function createEngine(
       if (s && !s.ending) {
         s.distance = distance;
         s.vertical = vertical;
-        s.view?.draw(distance, vertical);
+        drawFrame(s);
       }
     },
     end,

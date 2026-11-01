@@ -33,10 +33,18 @@ export function capture(surface: HTMLElement, offset = 0): Capture {
     pdf =
       surface.classList.contains("pdf-spread") ||
       surface.dataset.paperPdf === "true";
-  const node =
-    !pdf && surface.dataset.paperArticle !== "true"
+  const feed = surface.classList.contains("news-feed-surface");
+  const node = feed
+    ? (surface.cloneNode(false) as HTMLElement)
+    : !pdf && surface.dataset.paperArticle !== "true"
       ? articleSurface(surface, offset)
       : (surface.cloneNode(true) as HTMLElement);
+  // Print only the visible spread, never the hidden React preloads. Each
+  // cylindrical band shares this bounded snapshot instead of cloning neighbors.
+  if (feed) {
+    const spread = surface.querySelector(":scope > .feed-spread");
+    if (spread) node.append(spread.cloneNode(true));
+  }
   node
     .querySelectorAll(
       ".turn-leaf,.curl-underlay,.page-turn-controls,.feed-edge",
