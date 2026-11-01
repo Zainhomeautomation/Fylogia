@@ -13,14 +13,9 @@ import { createDailyMagazine } from "../src/daily-magazine.ts";
 import {
   localArticle,
   regionalArticle,
-  preferredCoverage,
   worldArticle,
 } from "../src/news-geography.ts";
-import {
-  countryCodes,
-  countryRegion,
-  suggestedCountry,
-} from "../src/countries.ts";
+import { countryCodes, countryRegion } from "../src/countries.ts";
 import { deduplicateArticles } from "../src/source-utils.ts";
 import {
   normalizeLibraryValue as normalizeValue,
@@ -124,6 +119,7 @@ test("country coverage is explicit and regional news does not relabel global pub
     }),
     cyprus = article("cy", oman.published, {
       sourceId: "cyprus-mail",
+      publisherTags: ["Cyprus News"],
       region: "Europe",
     }),
     uk = article("gb", oman.published, {
@@ -133,15 +129,13 @@ test("country coverage is explicit and regional news does not relabel global pub
   assert.ok(localArticle(oman, "OM"));
   assert.ok(!localArticle(oman, "CY"));
   assert.ok(localArticle(cyprus, "CY"));
-  assert.ok(regionalArticle(uk, "CY"));
-  assert.ok(!regionalArticle(oman, "CY"));
-  assert.ok(!preferredCoverage(uk, "OM"));
+  assert.ok(!regionalArticle(uk, "EU"));
+  assert.ok(regionalArticle(cyprus, "EU"));
+  assert.ok(!regionalArticle(oman, "EU"));
   assert.ok(
     worldArticle(article("world", oman.published, { sourceId: "bbc-world" })),
   );
   assert.ok(!worldArticle(oman));
-  assert.equal(suggestedCountry(["ar-OM", "en-GB"]), "OM");
-  assert.equal(suggestedCountry(["en"]), undefined);
 });
 test("all newly listed local feeds have current validation and no duplicate URLs", () => {
   const national = sources.filter((s) => s.countries?.length);

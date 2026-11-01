@@ -2,6 +2,17 @@ import type { Source } from "./catalog";
 // Official publisher RSS checked 1 November 2026; preview rights only.
 export const localSources: Source[] = [
   {
+    id: "bmas-germany",
+    name: "BMAS Germany — Government labour & social news",
+    url: "https://bmas.bund.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/RSSNewsfeed.xml",
+    site: "https://bmas.bund.de/",
+    categories: ["World News", "Politics", "Economy"],
+    countries: ["DE"],
+    region: "Europe",
+    validatedAt: "2026-11-01T08:31:38.728Z",
+  },
+
+  {
     id: "rnz-national",
     name: "RNZ National",
     url: "https://www.rnz.co.nz/rss/national.xml",
@@ -34,12 +45,12 @@ export const localSources: Source[] = [
   {
     id: "cyprus-mail",
     name: "Cyprus Mail",
-    url: "https://cyprus-mail.com/feed/",
+    url: "https://cyprus-mail.com/category/cyprus/feed/",
     site: "https://cyprus-mail.com/",
     categories: ["World News", "Politics"],
     countries: ["CY"],
     region: "Europe",
-    validatedAt: "2026-11-01T06:37:45.172Z",
+    validatedAt: "2026-11-01T08:28:51.369Z",
   },
   {
     id: "dawn-pakistan",

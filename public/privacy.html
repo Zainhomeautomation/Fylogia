@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Privacy — Fylogia</title>
+    <meta
+      name="description"
+      content="How Fylogia handles your reading library, optional device sync and approximate country for Local News."
+    />
+    <link rel="icon" href="./favicon.svg" />
+    <link rel="stylesheet" href="./privacy.css" />
+  </head>
+  <body>
+    <main>
+      <a href="./" class="brand"
+        ><img src="./icon.svg" width="36" height="36" alt="" />Fylogia</a
+      >
+      <h1>Your reading, your choices.</h1>
+      <p>Privacy notice · Updated 1 November 2026</p>
+      <h2>Who operates Fylogia</h2>
+      <p>
+        Fylogia is a personal, open-source news and magazine reader operated
+        from Oman. No registration, email or password is required for local
+        reading.
+      </p>
+      <h2>Your local library</h2>
+      <p>
+        Preferences, sources, saved stories, reading history, bookmarks and
+        progress are saved in your browser. Permitted offline downloads and
+        imported PDFs remain on that device. They remain until you delete them
+        or the browser clears or evicts its storage. Export and deletion
+        controls are available in Settings. Exported backup files are your
+        responsibility; password-protected backups are encrypted.
+      </p>
+      <h2>Approximate country for Local News</h2>
+      <p>
+        When you open Local News, the hosting network supplies an approximate
+        country inferred from your internet connection. Fylogia requests only
+        its two-letter country code, not your IP address, coordinates, city or
+        device language. It does not request GPS permission, store a location
+        history, or send detected country to your cloud library. The country is
+        held in memory for this browser tab, refreshed when needed, and may be
+        inaccurate with mobile networks or relays. Unknown locations receive a
+        link to worldwide coverage.
+      </p>
+      <p>
+        The country lookup does not send your device-sync cookies and is not
+        cached by Fylogia's service worker. Your manually selected news region
+        remains independent and does not change when you travel. A country match
+        is an editorial aid, not authorization to distribute publisher content.
+        Older local/cloud libraries and backups may retain a manually chosen
+        country for compatibility; that value no longer controls Local News.
+      </p>
+      <h2>Optional private device synchronization</h2>
+      <p>
+        Only if you enable sync, Cloudflare stores a private, pseudonymous
+        profile with device records, interests, followed sources, saved-story
+        links, bookmarks, reading history/progress, appearance and Daily Edition
+        metadata. Publisher article bodies, photographs, downloaded publications
+        and private PDF uploads are not uploaded to this cloud library. Private
+        access is controlled with secure device cookies and one-time
+        pairing/recovery mechanisms. Device identifiers and reading records can
+        still be personal information even without an email address.
+      </p>
+      <p>
+        Cloud sync uses encrypted connections and access controls; it is not
+        end-to-end encrypted. You can revoke devices or delete the cloud library
+        from its controls. Local copies on other devices are independent. Device
+        credentials expire after one year; this does not automatically delete
+        the cloud profile. Pairing codes and pending recovery-confirmation
+        proofs expire after five minutes. A saved recovery key remains valid
+        until rotated or the cloud profile is deleted. Short-lived, salted
+        network-derived rate-limit records help prevent abuse; the application
+        does not store raw IP addresses in these records. Expired records are
+        cleaned in bounded maintenance batches.
+      </p>
+      <h2>Hosting and publishers</h2>
+      <p>
+        Cloudflare processes ordinary connection and security information to
+        deliver this website and its optional sync service, and may process
+        website performance telemetry. Hosting and storage can involve
+        processing outside Oman. Loading publisher photographs, RSS feeds or
+        original publications connects to those providers, who receive ordinary
+        connection information under their own policies. Opening an original
+        article takes you to its publisher. Fylogia does not bypass paywalls or
+        infer republication permission from public accessibility.
+      </p>
+      <h2>Summaries</h2>
+      <p>
+        Summaries are requested only when you press Summarize. The current
+        reader uses an on-device browser capability if available, otherwise
+        extracts passages locally. Fylogia does not send article bodies to a
+        paid external AI service for this feature.
+      </p>
+      <h2>Support and legal review</h2>
+      <p>
+        <a href="https://github.com/Zainhomeautomation/Fylogia"
+          >Project repository and public support</a
+        >. Do not post private library exports, reading history, pairing codes
+        or recovery keys in public issues. You can export or delete your data
+        using the application controls. A dedicated confidential privacy-contact
+        channel and formal operator disclosures still require completion and
+        professional review. This notice describes the current MVP and does not
+        assert that technical controls establish compliance with every
+        applicable law.
+      </p>
+      <p><a href="./">Back to Fylogia</a></p>
+    </main>
+  </body>
+</html>

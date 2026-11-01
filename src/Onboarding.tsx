@@ -1,3 +1,4 @@
+import { newsRegions, newsRegion } from "./news-regions";
 import { appleSection } from "./apple-taxonomy";
 import { sportLabel, sportForTopic } from "./sports-taxonomy";
 import { normalizeInterestSearch } from "./interest-taxonomy";
@@ -8,7 +9,6 @@ import { BrandMark } from "./BrandMark";
 import { Sources } from "./Sources";
 import {
   interestGroups,
-  regions,
   sources,
   subcategories,
   type Preferences,
@@ -158,12 +158,12 @@ export function Onboarding({
                 Regional news & politics
                 <select
                   aria-label="Regional news & politics"
-                  value={draft.region}
+                  value={newsRegion(draft.region)}
                   onChange={(e) =>
                     setDraft({ ...draft, region: e.target.value })
                   }
                 >
-                  {regions.map((r) => (
+                  {newsRegions.map((r) => (
                     <option key={r}>{r}</option>
                   ))}
                 </select>

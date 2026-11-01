@@ -1,6 +1,7 @@
 import { countryName } from "./countries.ts";
 import { feedDates, publicationTime } from "./news-chronology.ts";
-import { preferredCoverage } from "./news-geography.ts";
+import { regionalArticle, sourceInRegion } from "./news-geography.ts";
+import { newsRegion } from "./news-regions.ts";
 import {
   classifyApple,
   sourceHasAppleCoverage,
@@ -216,7 +217,7 @@ export function deduplicateArticles(
 export function recommendSources(
   all: Source[],
   prefs: Pick<Preferences, "interests" | "region"> &
-    Partial<Pick<Preferences, "topics" | "country">>,
+    Partial<Pick<Preferences, "topics">>,
   statuses: FeedStatus[],
   limit = 12,
 ) {
@@ -224,8 +225,7 @@ export function recommendSources(
   const ranked = all
     .filter(
       (s) =>
-        (s.countries?.includes(prefs.country || "") ||
-          s.categories.some((c) => prefs.interests.includes(c)) ||
+        (s.categories.some((c) => prefs.interests.includes(c)) ||
           (prefs.interests.includes("Apple") &&
             sourceHasAppleCoverage(s.id))) &&
         (!selected.length ||
@@ -236,10 +236,7 @@ export function recommendSources(
           ) ||
           !sourceSports(s).length ||
           sourceSports(s).some((id) => selected.includes(id))) &&
-        (prefs.country ||
-          prefs.region === "Worldwide" ||
-          s.region === "Worldwide" ||
-          s.region === prefs.region) &&
+        (sourceInRegion(s, prefs.region) || s.region === "Worldwide") &&
         !statuses.some(
           (x) => x.id === s.id && (!x.ok || x.freshness === "stale"),
         ),
@@ -248,7 +245,6 @@ export function recommendSources(
       const score = (s: Source) =>
         s.categories.filter((c) => prefs.interests.includes(c)).length * 3 +
         (s.full ? 4 : 0) +
-        (s.countries?.includes(prefs.country || "") ? 6 : 0) +
         appleRecommendationBoost(s, prefs.topics) +
         (prefs.interests.includes("Apple") && s.id === "apple" ? 3 : 0) +
         (selected.length ? sportsRecommendationBoost(s.id) : 0) +
@@ -335,14 +331,12 @@ export function articleMatchesLibrary(
     })),
   ];
   return (
-    preferredCoverage(article, prefs.country) &&
     sportsPreferenceMatches(article, prefs) &&
     contexts.some(
       (c) =>
         prefs.sourceIds.includes(c.sourceId) &&
-        (prefs.country ||
-          prefs.region === "Worldwide" ||
-          c.region === prefs.region ||
+        (newsRegion(prefs.region) === "Worldwide" ||
+          regionalArticle(article, prefs.region) ||
           (c.region === "Worldwide" && !c.categories.includes("World News"))),
     )
   );

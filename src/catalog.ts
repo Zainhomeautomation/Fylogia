@@ -513,6 +513,8 @@ export interface Edition {
   statuses: FeedStatus[];
 }
 export interface Preferences {
+  // Legacy manually chosen country retained for backup/old-client compatibility.
+  // Automatic Local News uses ephemeral request country, never this field.
   country?: string;
   newsSort?: "latest" | "oldest" | "relevant";
   complete: boolean;
