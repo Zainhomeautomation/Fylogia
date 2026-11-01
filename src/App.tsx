@@ -183,8 +183,20 @@ export default function App() {
   ]);
   const newsRequest = useRef<AbortController | undefined>(undefined);
   const [edition, setEdition] = useState<Edition>(EMPTY),
-    [filter, setFilter] = useState("All stories"),
-    [magazineCategory, setMagazineCategory] = useState("All categories"),
+    [filter, setFilter] = useState(() => {
+      const category = new URLSearchParams(location.search).get("category");
+      return category &&
+        categories.includes(category as (typeof categories)[number])
+        ? category
+        : "All stories";
+    }),
+    [magazineCategory, setMagazineCategory] = useState(() => {
+      const category = new URLSearchParams(location.search).get("category");
+      return category &&
+        categories.includes(category as (typeof categories)[number])
+        ? category
+        : "All categories";
+    }),
     [publicationId, setPublicationId] = useState(""),
     [query, setQuery] = useState(""),
     [readableOnly, setReadableOnly] = useState(false),

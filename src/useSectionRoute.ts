@@ -1,3 +1,4 @@
+import { updateAppSeo } from "./app-seo";
 import { useCallback, useEffect, useState } from "react";
 
 const sections = new Set([
@@ -24,6 +25,9 @@ function currentSection() {
 /** Section URLs work on reload and browser back, including offline shell fallback. */
 export function useSectionRoute() {
   const [section, setSection] = useState(currentSection);
+  useEffect(() => {
+    updateAppSeo(section);
+  }, [section]);
   useEffect(() => {
     const restore = () => setSection(currentSection());
     window.addEventListener("popstate", restore);

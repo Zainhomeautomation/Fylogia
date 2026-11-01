@@ -22,6 +22,7 @@ export function locationResponse(request) {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
+        "X-Robots-Tag": "noindex, noarchive",
       },
     },
   );

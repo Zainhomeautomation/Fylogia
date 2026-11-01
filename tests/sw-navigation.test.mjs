@@ -69,3 +69,15 @@ test("canonicalised privacy HTML remains usable for manual-redirect PWA navigati
     assert.equal(await response.text(), "privacy notice");
   }
 });
+
+test("real missing/removed pages retain their HTTP error instead of becoming soft-404 app shells", async () => {
+  for (const status of [404, 410]) {
+    const response = await freshNavigation(
+      new Request("https://fylogia.com/missing"),
+      async () => new Response("Not found", { status }),
+      () => new Response("App shell"),
+    );
+    assert.equal(response.status, status);
+    assert.equal(await response.text(), "Not found");
+  }
+});

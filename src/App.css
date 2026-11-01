@@ -3547,3 +3547,123 @@ html[data-theme="light"] .brand-mark-light {
     height: 32px;
   }
 }
+
+/* Public discovery shares the existing editorial palette and type scale. */
+.discovery-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 22px;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.discovery-links a:hover,
+.discovery-page a:hover {
+  color: var(--green);
+}
+.discovery-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: max(24px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right)) 36px
+    max(24px, env(safe-area-inset-left));
+}
+.discovery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 0 30px;
+  border-bottom: 1px solid var(--line);
+}
+.discovery-header > a {
+  text-decoration: none;
+}
+.discovery-breadcrumbs {
+  margin: 24px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.discovery-page h1 {
+  font: 500 clamp(32px, 5vw, 58px)/1.12 var(--serif);
+  margin: 20px 0;
+  overflow-wrap: anywhere;
+}
+.discovery-page h2 {
+  font: 500 30px/1.2 var(--serif);
+  margin: 32px 0 16px;
+}
+.discovery-page h3 {
+  font: 500 23px/1.25 var(--serif);
+  margin: 0 0 10px;
+}
+.discovery-page p {
+  max-width: 78ch;
+}
+.discovery-intro {
+  font: 400 23px/1.5 var(--serif);
+}
+.discovery-action {
+  display: inline-block;
+  margin: 16px 0;
+  text-decoration: none;
+}
+.discovery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.discovery-card {
+  border-top: 1px solid var(--line);
+  padding: 20px 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+.discovery-card p {
+  font-size: 14px;
+  color: var(--muted);
+}
+.discovery-publishers {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 28px;
+}
+.discovery-publishers li {
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+  overflow-wrap: anywhere;
+}
+.discovery-publishers small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+}
+.discovery-editions {
+  padding-left: 20px;
+}
+.discovery-editions li {
+  margin: 24px 0;
+}
+.discovery-note {
+  margin-top: 36px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 700px) {
+  .discovery-grid,
+  .discovery-publishers {
+    grid-template-columns: 1fr;
+  }
+  .discovery-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .discovery-page .wordmark {
+    font-size: 36px;
+  }
+}

@@ -27,7 +27,8 @@ export async function freshNavigation(
     const response = await fetcher(
       new Request(request, { cache: "no-store", signal: controller.signal }),
     );
-    if (response.ok) return navigationResponse(response);
+    if (response.ok || response.status === 404 || response.status === 410)
+      return navigationResponse(response);
   } catch {
     // Airplane Mode or a stalled connection must not trap the library opening.
   } finally {

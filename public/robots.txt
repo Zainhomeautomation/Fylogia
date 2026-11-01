@@ -1,3 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /data/
+Disallow: /editions/
+
+Sitemap: https://fylogia.com/sitemap.xml
