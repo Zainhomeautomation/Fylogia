@@ -25,13 +25,22 @@ export function NewsFeed({
   useLayoutEffect(() => {
     const node = surface.current;
     if (!node) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      // Both sheets need a comfortable measure; no device-name detection.
-      setSpread(width >= 760 && width / height >= 1.2 ? 2 : 1);
-    });
+    const measure = () => {
+      const width = node.clientWidth;
+      // Use available page space, not content height: long headlines must not
+      // oscillate between one and two columns as the sheet grows.
+      const minimum = parseFloat(getComputedStyle(node).minHeight);
+      setSpread(width >= 760 && width / minimum >= 1.2 ? 2 : 1);
+    };
+    const observer = new ResizeObserver(measure);
     observer.observe(node);
-    return () => observer.disconnect();
+    window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+    };
   }, []);
   const step = (forward: boolean) => {
     // A queued turn must advance from the committed anchor, not the render
@@ -129,6 +138,12 @@ export function NewsFeed({
         aria-label="News pages. Swipe horizontally or use the page buttons."
       >
         {pages(start)}
+        {/* Hidden neighbors share the grid row's intrinsic height. The current
+            and destination sheets therefore fit before a curl is captured. */}
+        <div ref={neighbors} className="feed-preload" aria-hidden="true" inert>
+          {previous && pages(Math.max(0, start - spread), "previous")}
+          {next && pages(start + spread, "next")}
+        </div>
         {previous && (
           <button
             className="feed-edge feed-edge-previous"
@@ -149,10 +164,6 @@ export function NewsFeed({
             <ArrowRight size={18} />
           </button>
         )}
-      </div>
-      <div ref={neighbors} className="feed-preload" aria-hidden="true" inert>
-        {previous && pages(Math.max(0, start - spread), "previous")}
-        {next && pages(start + spread, "next")}
       </div>
       <div className="feed-pagination">
         <button

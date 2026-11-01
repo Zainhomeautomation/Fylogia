@@ -11,6 +11,18 @@ import {
 import type { Article } from "./catalog";
 import { PublicationDate } from "./PublicationDate";
 import { newsDay } from "./news-chronology";
+/** End a preview at a sentence or word boundary; the original stays intact. */
+export function storyPreview(text: string, limit: number) {
+  const plain = text.trim().replace(/\s+/g, " ");
+  if (plain.length <= limit) return plain;
+  const prefix = plain.slice(0, limit);
+  const sentences = [...prefix.matchAll(/[.!?](?=\s)/g)];
+  const end = sentences.at(-1)?.index;
+  if (end !== undefined && end >= limit / 2) return prefix.slice(0, end + 1);
+  const word = prefix.lastIndexOf(" ");
+  // An exceptionally long single token is omitted, never cut in half.
+  return word > 0 ? prefix.slice(0, word).trimEnd() + "…" : "";
+}
 export function StoryCard({
   article,
   saved,
@@ -42,12 +54,19 @@ export function StoryCard({
 }) {
   const image = mediaImage(article);
   const appleKind = classifyApple(article).kind;
+  const longHeadline = magazinePage && article.title.length > 150;
+  const preview = magazinePage
+    ? storyPreview(article.excerpt, longHeadline ? 120 : 220)
+    : article.excerpt;
   const [failedImage, setFailedImage] = useState<{
     url: string;
     token: number;
   }>();
   return (
-    <article className={"story " + (lead ? "lead" : "")}>
+    <article
+      className={"story " + (lead ? "lead" : "")}
+      data-long-headline={longHeadline ? "true" : undefined}
+    >
       <span className="news-period">{newsDay(article)}</span>
       <div className="story-offline-tools">
         {onSelect && (
@@ -114,7 +133,7 @@ export function StoryCard({
         </span>
         {appleKind && <span className="editorial-label">{appleKind}</span>}
         <h2>{article.title}</h2>
-        {(lead || magazinePage) && <p>{article.excerpt}</p>}
+        {(lead || magazinePage) && preview && <p>{preview}</p>}
         {magazinePage && (
           <span className="feed-read">
             Tap to read <ArrowUpRight size={14} />
