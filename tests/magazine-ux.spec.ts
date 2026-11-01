@@ -59,6 +59,15 @@ test("visible next control supports a partial mouse drag and cancellation withou
     steps: 5,
   });
   await page.mouse.up();
+  // A fresh contact on a story action must not be mistaken for the drag's
+  // compatibility click, even while the returning paper is still animating.
+  await active(page)
+    .getByRole("button", { name: /^Save / })
+    .first()
+    .click();
+  await expect(
+    active(page).getByRole("button", { name: /^Unsave / }),
+  ).toHaveCount(1);
   await settled(page);
   await expect(active(page).locator("h2").first()).toContainText(
     "Magazine story 1:",
@@ -329,4 +338,27 @@ test("content reflow keeps a committed turn and cancels an unfinished drag witho
     `ux-${count}`,
   );
   await expect(page.locator(".reader")).toHaveCount(0);
+});
+
+test("mobile magazine image fallbacks fill the editorial column instead of inheriting list thumbnail sizing", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seed(page);
+  for (const width of [320, 390, 440]) {
+    await page.setViewportSize({ width, height: 844 });
+    const dimensions = await active(page)
+      .locator(".story-open")
+      .first()
+      .evaluate((open) => {
+        const art = open.querySelector(".type-art")!;
+        return {
+          column: open.getBoundingClientRect().width,
+          art: art.getBoundingClientRect().width,
+          ratio: getComputedStyle(art).aspectRatio,
+        };
+      });
+    expect(Math.abs(dimensions.column - dimensions.art)).toBeLessThan(1);
+    expect(dimensions.ratio).toBe("auto");
+  }
 });

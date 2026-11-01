@@ -456,6 +456,10 @@ function createEngine(
         return;
       }
       if (!surface.contains(e.target as Node)) return;
+      // Any fresh primary contact ends the previous gesture's click guard,
+      // including contacts on Save, Download and publisher links that are not
+      // themselves eligible to begin a page drag.
+      if (e.button === 0 && e.isPrimary) suppressClickUntil = -Infinity;
       const cfg = getOptions().interaction;
       const edgeControl = (e.target as Element).closest(
         "[data-page-turn-edge]",
@@ -502,7 +506,6 @@ function createEngine(
           : !(f ? cfg.next : cfg.previous)
       )
         return;
-      suppressClickUntil = -Infinity;
       gesture.current = {
         id: e.pointerId,
         x: e.clientX,
