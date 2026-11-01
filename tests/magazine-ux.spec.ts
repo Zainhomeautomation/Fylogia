@@ -109,6 +109,9 @@ test("one primary control pair has unobstructed 44 pixel touch targets", async (
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await seed(page);
+  await expect(page.locator(".feed-pagination button")).toHaveCount(0);
+  for (const brand of await page.locator(".brand-home:visible").all())
+    await expect(brand).toHaveText("Fylogia");
   for (const name of ["Next stories", "Previous stories"]) {
     const button = page.getByRole("button", { name, exact: true });
     await expect(button).toHaveCount(1);

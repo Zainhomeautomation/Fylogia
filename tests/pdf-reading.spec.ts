@@ -61,6 +61,8 @@ test("original PDF covers, fitting, zoom, automatic progress and offline reading
       .toBeTruthy();
   }
   await page.setViewportSize({ width: 820, height: 1100 });
+  await expect(surface).toHaveAttribute("data-spread", "1");
+  await page.setViewportSize({ width: 1100, height: 820 });
   await expect(surface).toHaveAttribute("data-spread", "2");
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await expect(surface).toHaveAttribute("data-zoom", "1.5");

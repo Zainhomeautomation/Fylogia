@@ -3508,6 +3508,12 @@ html[data-theme="light"] .brand-mark-light {
   border-radius: 3px;
   touch-action: manipulation;
 }
+.brand-home.brand-name {
+  margin-block: -2px;
+}
+.sidebar-brand .brand-lockup {
+  gap: 2px;
+}
 .brand-home:focus-visible {
   outline: 2px solid var(--green);
   outline-offset: 4px;

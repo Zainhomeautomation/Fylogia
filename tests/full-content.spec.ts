@@ -53,6 +53,8 @@ test("licensed feed articles, read-here filter, immersive pagination and preview
   await expect(page.locator(".turn-leaf")).toHaveCount(0);
   expect(await page.locator(".article-body").innerText()).toBe(before);
   await page.setViewportSize({ width: 820, height: 1100 });
+  await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");
+  await page.setViewportSize({ width: 1100, height: 820 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "2");
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".reader-content")).toHaveCSS("column-count", "1");

@@ -715,17 +715,17 @@ export default function App() {
         >
           <Menu />
         </button>
-        <BrandHome className="brand-lockup" onHome={goHome}>
-          <span className="brand-name">
+        <div className="brand-lockup">
+          <BrandHome className="brand-name" onHome={goHome}>
             <BrandMark />
             <span className="wordmark">Fylogia</span>
-          </span>
+          </BrandHome>
           {view === "home" && (
             <span className="brand-tagline">
               Your World, One Page at a Time.
             </span>
           )}
-        </BrandHome>
+        </div>
         <button
           className="icon-button"
           aria-label="Search stories"
@@ -738,17 +738,17 @@ export default function App() {
         className={`sidebar ${menu ? "open" : ""} ${newsPages ? "magazine-sidebar" : ""}`}
       >
         <div className="sidebar-brand">
-          <BrandHome className="brand-lockup" onHome={goHome}>
-            <span className="brand-name">
+          <div className="brand-lockup">
+            <BrandHome className="brand-name" onHome={goHome}>
               <BrandMark />
               <span className="wordmark">Fylogia</span>
-            </span>
+            </BrandHome>
             {view === "home" && (
               <span className="brand-tagline">
                 Your World, One Page at a Time.
               </span>
             )}
-          </BrandHome>
+          </div>
           <button
             className="icon-button mobile-close"
             aria-label="Close navigation"

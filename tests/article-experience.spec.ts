@@ -87,6 +87,12 @@ test("long article repaginates without losing or clipping text and scroll progre
   await page.setViewportSize({ width: 820, height: 1100 });
   await expect(page.locator(".reader-viewport")).toHaveAttribute(
     "data-spread",
+    "1",
+  );
+  await intact(page);
+  await page.setViewportSize({ width: 1100, height: 820 });
+  await expect(page.locator(".reader-viewport")).toHaveAttribute(
+    "data-spread",
     "2",
   );
   await intact(page);
