@@ -59,6 +59,15 @@ test("visible next control supports a partial mouse drag and cancellation withou
     steps: 5,
   });
   await page.mouse.up();
+  // A fresh contact on a story action must not be mistaken for the drag's
+  // compatibility click, even while the returning paper is still animating.
+  await active(page)
+    .getByRole("button", { name: /^Save / })
+    .first()
+    .click();
+  await expect(
+    active(page).getByRole("button", { name: /^Unsave / }),
+  ).toHaveCount(1);
   await settled(page);
   await expect(active(page).locator("h2").first()).toContainText(
     "Magazine story 1:",
