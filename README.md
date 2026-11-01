@@ -262,3 +262,7 @@ Headline photo availability and recovery behavior: [photo findings](docs/headlin
 ## Regulatory compliance foundation
 
 See the [architecture and compliance risk report](docs/compliance/risk-report.md) for Oman media licensing, copyright, privacy and international-distribution questions requiring professional review. No country or topic bans are activated. `config/content-distribution.json` records documented territorial policies; ingestion and production builds refuse approved territorial restrictions in public-snapshot mode because public Git history cannot enforce geographic access. The tested geographic evaluator is reserved for future private delivery, not a claim of live territorial enforcement. Do not add restricted content or activate rules before reviewing existing public/offline copies and obtaining owner approval.
+
+## Search discovery
+
+The build prerenders the homepage and public `/discover` news/magazine collections, generates the canonical sitemap and keeps private app views and cached publisher material out of search-facing pages. Public collections work without application JavaScript and link into the existing reader without changing preferences. See [search architecture, copyright boundaries and the Google Search Console owner checklist](docs/search-discovery.md). Google indexing, rankings and Discover inclusion remain Google's decisions; domain-property verification needs the owner's Google-issued TXT record. No DNS records or Google-account permissions are changed by the build.

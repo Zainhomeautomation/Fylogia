@@ -8,12 +8,13 @@ import App from "./App.tsx";
 import { initializeLocalLibrary } from "./local-library";
 
 const root = createRoot(document.getElementById("root")!);
-root.render(
-  <p className="startup-message" role="status">
-    <BrandMark />
-    Opening your library…
-  </p>,
-);
+if (!document.getElementById("root")!.hasChildNodes())
+  root.render(
+    <p className="startup-message" role="status">
+      <BrandMark />
+      Opening your library…
+    </p>,
+  );
 void initializeLocalLibrary().then(async () => {
   await initializeCloudSync();
   root.render(

@@ -62,6 +62,7 @@ export async function streamPublication(request, publication, fetcher = fetch) {
       }
       const out = new Headers({
         "Content-Type": "application/pdf",
+        "X-Robots-Tag": "noindex, noarchive, nosnippet",
         "Content-Disposition": `inline; filename="${publication.filename}"`,
         "X-Content-Type-Options": "nosniff",
         "Cache-Control": "public, max-age=3600",

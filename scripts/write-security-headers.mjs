@@ -4,7 +4,12 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 export function securityHeaders(template, html) {
   const hashes = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
-    .filter((m) => !/\bsrc\s*=/i.test(m[1]) && m[2].trim())
+    .filter(
+      (m) =>
+        !/\bsrc\s*=/i.test(m[1]) &&
+        !/type=["']application\/ld\+json["']/i.test(m[1]) &&
+        m[2].trim(),
+    )
     .map(
       (m) =>
         "'sha256-" + createHash("sha256").update(m[2]).digest("base64") + "'",

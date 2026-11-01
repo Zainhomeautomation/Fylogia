@@ -100,6 +100,7 @@ test("publication stream follows only trusted HTTPS redirects and strips private
     },
   );
   assert.equal(response.status, 206);
+  assert.match(response.headers.get("X-Robots-Tag"), /noindex/);
   assert.equal(await response.text(), "%PDF-");
   assert.equal(response.headers.get("Set-Cookie"), null);
 });
