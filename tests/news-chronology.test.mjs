@@ -219,3 +219,29 @@ test("country and ordering survive export normalization, sync and deletion witho
   );
   assert.deepEqual(normalizeValue("preferences", defaults), defaults);
 });
+
+test("date-only Daily Editions preserve publisher calendar days on both sides of UTC", () => {
+  const daily = new URL("../src/daily-magazine.ts", import.meta.url).href;
+  const catalog = new URL("../src/catalog.ts", import.meta.url).href;
+  const code = `import {createDailyMagazine} from ${JSON.stringify(daily)};import {defaults} from ${JSON.stringify(catalog)};const a=${JSON.stringify(article("calendar", "2026-11-01"))};console.log(JSON.stringify([createDailyMagazine([a],{...defaults,interests:['World News'],sourceIds:['nasa']},new Date('2026-11-01T00:15:00')).stories.length,createDailyMagazine([a],{...defaults,interests:['World News'],sourceIds:['nasa']},new Date('2026-10-31T23:45:00')).stories.length]))`;
+  for (const TZ of ["America/New_York", "Asia/Muscat", "Pacific/Auckland"])
+    assert.deepEqual(
+      JSON.parse(
+        execFileSync(process.execPath, ["--input-type=module", "-e", code], {
+          env: { ...process.env, TZ },
+          encoding: "utf8",
+        }),
+      ),
+      [1, 0],
+    );
+});
+test("legacy tabs cannot advance the capable-settings cursor past unseen records", async () => {
+  const { exchangeCursor } = await import("../src/sync-store.ts");
+  assert.equal(exchangeCursor({ cursor: 10 }), 0);
+  const modern = { cursor: 10, preferenceCursor: 10 };
+  const legacy = { ...modern, cursor: 15 };
+  assert.equal(exchangeCursor(legacy), 10);
+  const caughtUp = { ...legacy, cursor: 18, preferenceCursor: 18 };
+  assert.equal(exchangeCursor(caughtUp), 18);
+  assert.equal(exchangeCursor({ ...caughtUp, cursor: 20 }), 18);
+});

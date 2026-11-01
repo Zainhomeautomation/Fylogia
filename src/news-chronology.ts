@@ -51,11 +51,13 @@ export function publicationTime(
 ) {
   const iso = normalizedDate(article.published);
   const time = Date.parse(iso);
-  return Number.isFinite(time) &&
-    time >= Date.UTC(1900, 0, 1) &&
-    time <= now + 300000
-    ? time
-    : undefined;
+  if (!Number.isFinite(time) || time < Date.UTC(1900, 0, 1)) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(article.published)) {
+    const local = new Date(now);
+    const today = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}`;
+    return article.published <= today ? time : undefined;
+  }
+  return time <= now + 300000 ? time : undefined;
 }
 export function chronological(
   articles: Article[],

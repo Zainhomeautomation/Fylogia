@@ -20,6 +20,7 @@ import {
 } from "./sync-protocol";
 import {
   freshSync,
+  exchangeCursor,
   readSync,
   writeSync,
   syncLock,
@@ -279,13 +280,6 @@ export async function synchronize() {
         throw new Error(
           "The connected library changed in another tab. Reopen sync settings.",
         );
-      // Old tabs skipped extension settings. Fetch them after upgrading,
-      // retaining queued changes and the existing device identity.
-      if (state.preferenceVersion !== 2) {
-        state.cursor = 0;
-        state.preferenceVersion = 2;
-        await writeSync(state);
-      }
       if (!state.flight && state.pending.length) {
         let size = 0;
         const mutations = state.pending
@@ -311,7 +305,7 @@ export async function synchronize() {
         result = await cloudRequest<Exchange>("exchange", {
           preferenceVersion: 2,
           expectedProfileId: state.profileId,
-          cursor: state.cursor,
+          cursor: exchangeCursor(state),
           ...(state.flight || {}),
         });
       } catch (e) {
@@ -347,6 +341,7 @@ export async function synchronize() {
       state.records = [...records.values()];
       state.flight = undefined;
       state.cursor = result.revision;
+      state.preferenceCursor = result.revision;
       state.sequence = result.sequence;
       state.offset = result.now - Date.now();
       state.lastSync = Date.now();
@@ -414,6 +409,7 @@ export async function connectCloud(identity: {
       records,
       pending,
       cursor: remote.revision,
+      preferenceCursor: remote.revision,
       sequence: remote.sequence,
       offset: remote.now - Date.now(),
       enabled: true,

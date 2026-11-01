@@ -1,5 +1,5 @@
 import { countryName, countryRegion } from "./countries.ts";
-import { publicationTime } from "./news-chronology.ts";
+import { newsDay } from "./news-chronology.ts";
 import { applePreferenceScore } from "./apple-taxonomy.ts";
 import type { Article, Preferences } from "./catalog";
 import { articleMatchesLibrary } from "./source-utils.ts";
@@ -62,12 +62,7 @@ export function createDailyMagazine(
     ...new Map(
       articles
         .filter((a) => {
-          const time = publicationTime(a, now.getTime());
-          return (
-            time !== undefined &&
-            localDay(new Date(time)) === day &&
-            articleMatchesLibrary(a, prefs)
-          );
+          return newsDay(a, now) === "Today" && articleMatchesLibrary(a, prefs);
         })
         .map((a) => [a.id, a]),
     ).values(),
