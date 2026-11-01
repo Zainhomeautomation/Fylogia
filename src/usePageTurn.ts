@@ -19,6 +19,7 @@ type Session = {
   distance: number;
   vertical: number;
   ending: boolean;
+  committing: boolean;
   apply?: () => void;
   applied: boolean;
   applying: boolean;
@@ -125,6 +126,7 @@ function createEngine(
     }
   }
   function clear() {
+    if (gesture.current?.dragging) suppressClickUntil = performance.now() + 500;
     const s = current.current;
     queued.current = null;
     if (s) dispose(s);
@@ -152,6 +154,7 @@ function createEngine(
       distance: 0,
       vertical: 0,
       ending: false,
+      committing: false,
       applied: false,
       applying: false,
       finishing: false,
@@ -288,6 +291,7 @@ function createEngine(
     const s = current.current;
     if (!s) return;
     if (s.ending) return;
+    s.committing = commit;
     s.ending = true;
     cancelAnimationFrame(s.frame);
     s.frame = 0;
@@ -388,6 +392,12 @@ function createEngine(
       height = surface.clientHeight;
     const observer = new ResizeObserver(() => {
       if (width !== surface.clientWidth || height !== surface.clientHeight) {
+        const s = current.current;
+        // Font/image reflow must not discard a turn the user already released.
+        // A width change invalidates sheet geometry and retains the old anchor;
+        // an unfinished/canceled drag never becomes navigation on either path.
+        if (width === surface.clientWidth && s?.committing && !s.applied)
+          applyOnce(s);
         width = surface.clientWidth;
         height = surface.clientHeight;
         clear();
@@ -398,7 +408,7 @@ function createEngine(
     const motion = () => {
       if (media.matches) {
         const s = current.current;
-        if (s?.ending && !s.applied) {
+        if (s?.committing && !s.applied) {
           applyOnce(s);
         }
         clear();
@@ -413,7 +423,7 @@ function createEngine(
         touchId = undefined;
         nativePointers.current.clear();
         const s = current.current;
-        if (s?.ending && !s.applied) {
+        if (s?.committing && !s.applied) {
           applyOnce(s);
         }
         clear();

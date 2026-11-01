@@ -293,3 +293,40 @@ test("finger dragging the visible edge curls, cancels and commits only once desp
     await expect(page.locator(".reader")).toHaveCount(0);
   }
 });
+
+test("content reflow keeps a committed turn and cancels an unfinished drag without clicking through", async ({
+  page,
+}) => {
+  await seed(page);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const count = Number(await surface(page).getAttribute("data-paper-spread"));
+  await page.getByRole("button", { name: "Next stories", exact: true }).click();
+  await expect(surface(page).locator(".paper-fold")).toBeVisible();
+  await surface(page).evaluate(
+    (n) => (n.style.minHeight = n.clientHeight + 100 + "px"),
+  );
+  await settled(page);
+  await expect(active(page).locator("[data-story-id]").first()).toHaveAttribute(
+    "data-story-id",
+    `ux-${count}`,
+  );
+  const next = page.getByRole("button", { name: "Next stories", exact: true });
+  const b = (await next.boundingBox())!;
+  const x = b.x + b.width / 2,
+    y = b.y + b.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x - 60, y + 4, { steps: 6 });
+  await expect(surface(page).locator(".paper-fold")).toBeVisible();
+  await surface(page).evaluate(
+    (n) => (n.style.minHeight = n.clientHeight + 100 + "px"),
+  );
+  await settled(page);
+  await page.mouse.move(x, y);
+  await page.mouse.up();
+  await expect(active(page).locator("[data-story-id]").first()).toHaveAttribute(
+    "data-story-id",
+    `ux-${count}`,
+  );
+  await expect(page.locator(".reader")).toHaveCount(0);
+});
