@@ -27,17 +27,17 @@ export function DiscoveryPage({ page }: { page: Page }) {
   return (
     <div className="discovery-page">
       <header className="discovery-header">
-        <a
-          className="brand-lockup"
-          href={href("")}
-          aria-label="Fylogia — Go to homepage"
-        >
-          <span className="brand-name">
+        <div className="brand-lockup">
+          <a
+            className="brand-name"
+            href={href("")}
+            aria-label="Fylogia — Go to homepage"
+          >
             <BrandMark />
             <span className="wordmark">Fylogia</span>
-          </span>
+          </a>
           <span className="brand-tagline">Your World, One Page at a Time.</span>
-        </a>
+        </div>
         <a className="secondary" href={href(page.action)}>
           Open reader
         </a>

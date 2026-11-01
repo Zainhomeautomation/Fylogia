@@ -86,6 +86,13 @@ test("public collections are readable without JavaScript at desktop and mobile s
       await expect(
         page.getByRole("heading", { name: title, exact: true }),
       ).toBeVisible();
+      // Decorative slogan stays outside the Home link's visible label so voice
+      // control and its accessible name refer to the same Fylogia target.
+      await expect(
+        page
+          .locator(".discovery-header")
+          .getByRole("link", { name: "Fylogia — Go to homepage", exact: true }),
+      ).toHaveText("Fylogia");
       await expect(
         page.getByRole("link", {
           name: /Read in Fylogia|Open the magazine library/,
