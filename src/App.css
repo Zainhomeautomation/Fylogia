@@ -3577,7 +3577,8 @@ html[data-theme="light"] .brand-mark-light {
   padding: 12px 0 30px;
   border-bottom: 1px solid var(--line);
 }
-.discovery-header > a {
+.discovery-header > a,
+.discovery-header .brand-name {
   color: inherit;
   text-decoration: none;
 }
