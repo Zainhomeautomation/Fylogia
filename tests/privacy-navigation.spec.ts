@@ -31,11 +31,7 @@ test("PWA privacy notice handles host canonical redirects online and offline", a
     const file = resolve(
       root,
       "." +
-        (path === "/"
-          ? "/index.html"
-          : path === "/privacy"
-            ? "/privacy.html"
-            : path),
+        (path === "/" ? "/index.html" : extname(path) ? path : path + ".html"),
     );
     if (!file.startsWith(root + "/")) {
       response.writeHead(403);
@@ -79,7 +75,7 @@ test("PWA privacy notice handles host canonical redirects online and offline", a
       await expect(page.locator(".brand img")).toBeVisible();
     }
   } finally {
-    await context.setOffline(false);
+    await context.setOffline(false).catch(() => {});
     server.closeAllConnections();
     await new Promise<void>((r) => server.close(() => r()));
   }
