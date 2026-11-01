@@ -20,7 +20,7 @@ Non-home app sections (including Settings, Sources, Saved Articles, History, Off
 
 Raw feed JSON caches, PDFs and API routes are excluded from robots crawling; raw static data and original PDF responses additionally receive `X-Robots-Tag: noindex`. Robots directives are not access controls. Blocking a crawl can prevent a crawler from seeing `noindex`, and an already known URL can still appear as a bare URL. If any such resource is already indexed, use Search Console's removal workflow and a reviewed crawl/noindex transition. Do not change data access, delete user libraries or rewrite public Git history automatically. The pre-existing public Git/content snapshot architecture remains subject to the [compliance risk report](compliance/risk-report.md).
 
-Existing offline downloads and shell namespaces are preserved. Only three discovery index documents are precached; individual public collections are cached when visited online, avoiding an all-category download on every installation. Cached visits remain readable offline. API responses remain excluded from service-worker caching.
+Existing offline downloads and shell namespaces are preserved. Only three discovery index documents are precached; once the reader’s service worker is installed, individual public collections are cached when visited online, avoiding an all-category download on every installation. Cached visits remain readable offline. API responses remain excluded from service-worker caching.
 
 ## Branding and Discover readiness
 

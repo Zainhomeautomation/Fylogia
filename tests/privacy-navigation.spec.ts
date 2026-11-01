@@ -28,18 +28,23 @@ test("PWA privacy notice handles host canonical redirects online and offline", a
       response.end();
       return;
     }
-    const file = resolve(
-      root,
-      "." +
-        (path === "/" ? "/index.html" : extname(path) ? path : path + ".html"),
-    );
+    let file = resolve(root, "." + (path === "/" ? "/index.html" : path));
     if (!file.startsWith(root + "/")) {
       response.writeHead(403);
       response.end();
       return;
     }
     try {
-      const body = await readFile(file);
+      let body;
+      try {
+        body = await readFile(file);
+      } catch (error) {
+        // Real extensionless assets (PDF codec licences) take precedence over
+        // clean HTML routes, just as they do on the production static host.
+        if (extname(file)) throw error;
+        file += ".html";
+        body = await readFile(file);
+      }
       response.writeHead(200, {
         "Content-Type": types[extname(file)] || "application/octet-stream",
         "Cache-Control": "no-store",
@@ -56,6 +61,21 @@ test("PWA privacy notice handles host canonical redirects online and offline", a
     throw new Error("Missing test origin");
   const origin = "http://127.0.0.1:" + address.port;
   try {
+    const pdfVersion = JSON.parse(
+      await readFile(resolve("node_modules/pdfjs-dist/package.json"), "utf8"),
+    ).version;
+    for (const route of [
+      "/discover",
+      "/discover/news",
+      "/discover/magazines",
+      "/pdfjs/" + pdfVersion + "/LICENSE_JBIG2",
+    ]) {
+      const response = await page.request.get(origin + route);
+      expect(
+        response.status(),
+        "fixture serves a required precache resource: " + route,
+      ).toBe(200);
+    }
     await page.goto(origin, { waitUntil: "domcontentloaded" });
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.waitForFunction(() => !!navigator.serviceWorker.controller);
