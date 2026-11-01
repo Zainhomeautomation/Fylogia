@@ -219,3 +219,52 @@ test("a simulated worker replacement gives one passive notice, not a first-insta
   expect(await library(page)).toEqual(before);
   await expect(page.locator(".story")).toHaveCount(3);
 });
+
+test("Reduce Motion status resamples a change between render and subscription without editing the library", async ({
+  page,
+}) => {
+  await seed(page);
+  await page.addInitScript(() => {
+    const native = window.matchMedia.bind(window);
+    let reduced = true,
+      subscribed = false;
+    window.matchMedia = (query: string) => {
+      if (query !== "(prefers-reduced-motion: reduce)") return native(query);
+      return {
+        media: query,
+        get matches() {
+          return reduced;
+        },
+        onchange: null,
+        addEventListener(type: string) {
+          if (type === "change" && !subscribed) {
+            // Model an OS change during mounting, before an event subscription
+            // can observe it. The current snapshot must still be reconciled.
+            reduced = false;
+            subscribed = true;
+            (window as any).__motionSubscriptionRace = true;
+          }
+        },
+        removeEventListener() {},
+        addListener() {},
+        removeListener() {},
+        dispatchEvent() {
+          return true;
+        },
+      } as MediaQueryList;
+    };
+  });
+  await page.goto("./settings");
+  await expect(
+    page.getByRole("heading", { name: "Settings", exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__motionSubscriptionRace))
+    .toBe(true);
+  await expect(
+    page.getByText(/Your device’s Reduce Motion setting is on/),
+  ).toHaveCount(0);
+  const before = await library(page);
+  await page.getByText("Advanced settings", { exact: true }).click();
+  expect(await library(page)).toEqual(before);
+});
