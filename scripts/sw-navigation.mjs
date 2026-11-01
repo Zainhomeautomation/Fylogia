@@ -6,6 +6,18 @@ export async function freshNavigation(
   fallback,
   timeout = 2500,
 ) {
+  // Static hosts may canonicalise /privacy.html to /privacy. Cached responses
+  // retain that redirected flag, which browsers reject for manual-redirect
+  // service-worker navigation requests. Rewrap the known cached HTML response
+  // without changing its body/status/headers or touching downloaded content.
+  const navigationResponse = (response) =>
+    response.redirected
+      ? new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        })
+      : response;
   const controller = new AbortController();
   const abort = () => controller.abort();
   if (request.signal.aborted) abort();
@@ -15,12 +27,12 @@ export async function freshNavigation(
     const response = await fetcher(
       new Request(request, { cache: "no-store", signal: controller.signal }),
     );
-    if (response.ok) return response;
+    if (response.ok) return navigationResponse(response);
   } catch {
     // Airplane Mode or a stalled connection must not trap the library opening.
   } finally {
     clearTimeout(timer);
     request.signal.removeEventListener("abort", abort);
   }
-  return fallback();
+  return navigationResponse(await fallback());
 }

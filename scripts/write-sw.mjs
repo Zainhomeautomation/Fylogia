@@ -63,7 +63,7 @@ self.addEventListener('fetch',event=>{
  // Refresh the document on online launches. Never clear article/PDF/download
  // stores, and keep the version's precached shell as the offline fallback.
  if(request.mode==='navigate'){
-  event.respondWith(freshNavigation(request,fetch,async()=>{const shell=await caches.open(CACHE);return (await shell.match(url.pathname===BASE+'privacy.html'?BASE+'privacy.html':BASE,{ignoreVary:true}))||Response.error()}));return;
+  event.respondWith(freshNavigation(request,fetch,async()=>{const shell=await caches.open(CACHE);return (await shell.match([BASE+'privacy.html',BASE+'privacy'].includes(url.pathname)?BASE+'privacy.html':BASE,{ignoreVary:true}))||Response.error()}));return;
  }
 
  if(url.pathname===BASE+'data/edition.json'||url.pathname===BASE+'data/source-index.json'||url.pathname.startsWith(BASE+'data/source-files/')){
