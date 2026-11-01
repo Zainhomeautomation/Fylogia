@@ -85,6 +85,7 @@ export const expandedSources: Source[] = [
   },
   {
     id: "oman-observer",
+    countries: ["OM"],
     name: "Oman Observer",
     url: "https://www.omanobserver.om/rssFeed/1",
     site: "https://www.omanobserver.om/",
@@ -103,6 +104,7 @@ export const expandedSources: Source[] = [
   },
   {
     id: "times-of-oman",
+    countries: ["OM"],
     name: "Times of Oman",
     url: "https://timesofoman.com/feed",
     site: "https://timesofoman.com/",

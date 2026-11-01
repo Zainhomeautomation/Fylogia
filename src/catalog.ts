@@ -1,3 +1,4 @@
+import { localSources } from "./local-sources.ts";
 import { appleSources } from "./apple-sources.ts";
 import { appleSections, appleSourceTopics } from "./apple-taxonomy.ts";
 import { sports, topicsForSportsSource } from "./sports-taxonomy.ts";
@@ -48,6 +49,10 @@ export const regions = [
   "United States",
   "India",
   "Asia",
+  "North America",
+  "Latin America",
+  "Africa",
+  "Oceania",
 ];
 export const subcategories: Record<string, string[]> = {
   "Men’s Fashion": [
@@ -186,6 +191,7 @@ export const subcategories: Record<string, string[]> = {
   ],
 };
 export interface Source {
+  countries?: string[];
   id: string;
   name: string;
   url: string;
@@ -414,6 +420,7 @@ const catalogSources: Source[] = [
     categories: ["Photography"],
     region: "Worldwide",
   },
+  ...localSources,
   ...expandedSources,
   ...interestSources,
   ...lifestyleSources,
@@ -421,6 +428,7 @@ const catalogSources: Source[] = [
   ...appleSources,
 ];
 export const sources: Source[] = catalogSources.map((source) => {
+  if (source.id === "hindu") source = { ...source, countries: ["IN"] };
   const detail = sourceTopics[source.id];
   const sportTopics = topicsForSportsSource(source.id);
   const appleTopics = appleSourceTopics(source);
@@ -450,6 +458,10 @@ export interface ContentDetails {
   completeness: "publisher-body" | "excerpt" | "unknown";
 }
 export interface Article {
+  updatedAt?: string;
+  retrievedAt?: string;
+  publicationDateStatus?: "missing" | "invalid";
+  publicationPrecision?: "date";
   publisherTags?: string[];
   apple?: { topics: string[]; kind?: string };
   contentDetails?: ContentDetails;
@@ -501,6 +513,8 @@ export interface Edition {
   statuses: FeedStatus[];
 }
 export interface Preferences {
+  country?: string;
+  newsSort?: "latest" | "oldest" | "relevant";
   complete: boolean;
   interests: string[];
   topics: string[];

@@ -3,6 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 const sections = new Set([
   "home",
   "explore",
+  "local",
+  "regional",
+  "world",
+  "latest",
   "categories",
   "sources",
   "saved",

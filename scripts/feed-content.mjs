@@ -1,3 +1,4 @@
+import { feedDates } from "../src/news-chronology.ts";
 import { deriveApple, publisherTags } from "../src/apple-taxonomy.ts";
 import { restrictedMediaNotice } from "../src/media-rights.ts";
 import { feedImage } from "../src/feed-images.ts";
@@ -91,9 +92,7 @@ export function feedArticle(
   const excerpt = (
     opening || text(item.description || item.summary || cleaned || raw)
   ).slice(0, 600);
-  const date = new Date(
-    str(item.pubDate || item.published || item.updated || item["dc:date"]),
-  );
+
   const tags = publisherTags(item);
   const apple = deriveApple(
     {
@@ -151,7 +150,7 @@ export function feedArticle(
           : "This item could not be verified for complete in-app republication.",
     title: text(item.title),
     url,
-    published: Number.isNaN(date.getTime()) ? "" : date.toISOString(),
+    ...feedDates(item),
     categories: source.categories,
     region: source.region,
     image: [

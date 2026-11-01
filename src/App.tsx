@@ -1,3 +1,8 @@
+import { CountryPreference } from "./CountryPreference";
+import { broadRegion, countryName, countryRegion } from "./countries";
+import { localArticle, regionalArticle, worldArticle } from "./news-geography";
+import { chronological, type NewsSort } from "./news-chronology";
+import { ChronologicalStories } from "./ChronologicalStories";
 import { AppleNavigation } from "./AppleNavigation";
 import {
   appleSection,
@@ -74,9 +79,21 @@ import { OfflineLibrary } from "./OfflineLibrary";
 import "./App.css";
 import { BrandMark } from "./BrandMark";
 import { useSectionRoute } from "./useSectionRoute";
+const newsSections = [
+  "home",
+  "explore",
+  "local",
+  "regional",
+  "world",
+  "latest",
+];
 const navigation = [
   { id: "home", label: "For You", icon: Home },
   { id: "explore", label: "Explore", icon: Compass },
+  { id: "local", label: "Local News", icon: Home },
+  { id: "regional", label: "Regional News", icon: Compass },
+  { id: "world", label: "World News", icon: Compass },
+  { id: "latest", label: "Latest News", icon: Rss },
   { id: "categories", label: "Categories", icon: LayoutGrid },
   { id: "sources", label: "My Sources", icon: Rss },
   { id: "saved", label: "Saved Articles", icon: Bookmark },
@@ -117,7 +134,27 @@ export default function App() {
   const [magazineSport, setMagazineSport] = useState<SportSelection>("all");
   const newsScope = useMemo(() => {
     if (!prefs.complete || (view === "sources" && !dailyOpen)) return "health";
-    if (view === "explore" || view === "categories") return "*";
+    if (view === "local")
+      return (
+        sources
+          .filter((s) => s.countries?.includes(prefs.country || ""))
+          .map((s) => s.id)
+          .sort()
+          .join("\n") || "health"
+      );
+    if (view === "regional") {
+      const target = prefs.country
+        ? countryRegion(prefs.country)
+        : broadRegion(prefs.region);
+      return target === "Worldwide"
+        ? "health"
+        : sources
+            .filter((s) => broadRegion(s.region) === target)
+            .map((s) => s.id)
+            .sort()
+            .join("\n") || "health";
+    }
+    if (["explore", "categories", "world", "latest"].includes(view)) return "*";
     const ids = [...prefs.sourceIds];
     if (dailyOpen) {
       const names = new Set(dailyOpen.stories.map((story) => story.source));
@@ -132,6 +169,8 @@ export default function App() {
     return [...new Set(ids)].sort().join("\n");
   }, [
     prefs.complete,
+    prefs.country,
+    prefs.region,
     prefs.sourceIds,
     prefs.customSources,
     dailyOpen,
@@ -403,6 +442,8 @@ export default function App() {
     () => new Map([...sources, ...prefs.customSources].map((s) => [s.id, s])),
     [prefs.customSources],
   );
+  const ordering: NewsSort =
+    view === "latest" ? "latest" : prefs.newsSort || "latest";
   const articles = useMemo(() => {
     let result = (
       view === "saved" ? saved : view === "history" ? history : all
@@ -414,6 +455,13 @@ export default function App() {
     );
     if (view === "home")
       result = result.filter((a) => articleMatchesLibrary(a, prefs));
+    if (view === "local")
+      result = result.filter((a) => localArticle(a, prefs.country));
+    if (view === "regional")
+      result = result.filter((a) =>
+        regionalArticle(a, prefs.country, prefs.region),
+      );
+    if (view === "world") result = result.filter(worldArticle);
     if (view === "explore" && publicationId)
       result = result.filter(
         (a) =>
@@ -437,7 +485,7 @@ export default function App() {
         searchScores.set(a.id, score);
         return filter === "Apple" ? appleSearchMatches(a, query) : score > 0;
       });
-    if (filter === "Apple" && appleSection(apple)) {
+    if (ordering === "relevant" && filter === "Apple" && appleSection(apple)) {
       const relevance = new Map(
         result.map((a) => [a.id, appleRelevance(a, apple)]),
       );
@@ -445,20 +493,23 @@ export default function App() {
         (a, b) => relevance.get(b.id)! - relevance.get(a.id)!,
       );
     }
-    if (view === "home")
+    if (ordering === "relevant" && newsSections.includes(view))
       result = rankForYou(
         result,
         prefs,
         recommendationSignals.history,
         recommendationSignals.saved,
       );
-    if (query.trim()) {
+    if (ordering === "relevant" && query.trim()) {
       result = [...result].sort(
         (a, b) => searchScores.get(b.id)! - searchScores.get(a.id)!,
       );
     }
-    return result;
+    return newsSections.includes(view) && ordering !== "relevant"
+      ? chronological(result, ordering)
+      : result;
   }, [
+    ordering,
     view,
     all,
     saved,
@@ -630,10 +681,8 @@ export default function App() {
     );
   const current = navigation.find((n) => n.id === view)!;
   const newsPages =
-    (view === "home" || view === "explore") &&
-    newsView === "pages" &&
-    !selecting;
-  const storyView = ["home", "explore", "saved", "history"].includes(view);
+    newsSections.includes(view) && newsView === "pages" && !selecting;
+  const storyView = [...newsSections, "saved", "history"].includes(view);
   return (
     <>
       {syncPanel}
@@ -851,6 +900,54 @@ export default function App() {
         )}
         {storyView ? (
           <>
+            {newsSections.includes(view) && (
+              <div className="news-organization">
+                <label>
+                  Sort stories
+                  <select
+                    aria-label="Sort stories"
+                    value={ordering}
+                    disabled={view === "latest"}
+                    onChange={(e) =>
+                      patch({ newsSort: e.target.value as NewsSort })
+                    }
+                  >
+                    <option value="latest">Latest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="relevant">Most Relevant</option>
+                  </select>
+                </label>
+                {prefs.country && (
+                  <span>
+                    {countryName(prefs.country)} ·{" "}
+                    {countryRegion(prefs.country)}
+                  </span>
+                )}
+                {view === "local" && !prefs.country && (
+                  <button
+                    className="text-button"
+                    onClick={() => navigate("settings")}
+                  >
+                    Choose your country
+                  </button>
+                )}
+                {view === "regional" &&
+                  !prefs.country &&
+                  prefs.region === "Worldwide" && (
+                    <button
+                      className="text-button"
+                      onClick={() => navigate("settings")}
+                    >
+                      Choose your country or region
+                    </button>
+                  )}
+                {view === "latest" && (
+                  <small>
+                    Newest publication first, across available sources.
+                  </small>
+                )}
+              </div>
+            )}
             <div className="story-tools">
               <div className="filter-tabs" aria-label="Filter stories">
                 {[
@@ -1003,7 +1100,7 @@ export default function App() {
                 </button>
               )}
             </label>
-            {(view === "home" || view === "explore") && (
+            {newsSections.includes(view) && (
               <div className="feed-view-switch" aria-label="News presentation">
                 {["pages", "list"].map((mode) => (
                   <button
@@ -1035,11 +1132,17 @@ export default function App() {
                 <h2>
                   {query
                     ? "No stories found."
-                    : view === "saved"
-                      ? "Keep something worth returning to."
-                      : view === "history"
-                        ? "Your reading journey begins here."
-                        : "A fresh perspective awaits."}
+                    : view === "local"
+                      ? prefs.country
+                        ? "No local stories available right now."
+                        : "Choose a country for local news."
+                      : view === "regional"
+                        ? "Choose a country or region with available news."
+                        : view === "saved"
+                          ? "Keep something worth returning to."
+                          : view === "history"
+                            ? "Your reading journey begins here."
+                            : "A fresh perspective awaits."}
                 </h2>
                 <p>
                   {query
@@ -1064,6 +1167,8 @@ export default function App() {
               <NewsFeed
                 key={[
                   view,
+                  ordering,
+                  prefs.country,
                   filter,
                   query,
                   sport,
@@ -1086,6 +1191,37 @@ export default function App() {
                     }
                     downloaded={offline.items.some((r) => r.id === a.id)}
                     downloading={offline.working.includes(a.id)}
+                  />
+                )}
+              />
+            ) : newsSections.includes(view) && ordering !== "relevant" ? (
+              <ChronologicalStories
+                articles={articles}
+                renderStory={(a, lead) => (
+                  <StoryCard
+                    key={a.id}
+                    article={a}
+                    lead={lead}
+                    imageRetryToken={imageRetryToken}
+                    saved={saved.some((s) => s.id === a.id)}
+                    onSave={() => save(a)}
+                    onOpen={() => open(a)}
+                    onDownload={() =>
+                      void offline.download([a], readingMetadata)
+                    }
+                    downloaded={offline.items.some((r) => r.id === a.id)}
+                    downloading={offline.working.includes(a.id)}
+                    onSelect={
+                      selecting
+                        ? () =>
+                            setSelectedIds((old) =>
+                              old.includes(a.id)
+                                ? old.filter((id) => id !== a.id)
+                                : [...old, a.id],
+                            )
+                        : undefined
+                    }
+                    selected={selectedIds.includes(a.id)}
                   />
                 )}
               />
@@ -1329,6 +1465,15 @@ export default function App() {
               >
                 Edit interests & sources
               </button>
+              <CountryPreference
+                prefs={prefs}
+                onChange={(country) => patch({ country })}
+                onFollow={(ids) =>
+                  patch({
+                    sourceIds: [...new Set([...prefs.sourceIds, ...ids])],
+                  })
+                }
+              />
               <label className="field">
                 Regional news
                 <select
@@ -1342,8 +1487,9 @@ export default function App() {
                 </select>
               </label>
               <p className="quiet">
-                Regional filters apply to For You. Follow matching regional
-                sources in My Sources. Explore includes all regions.
+                This regional filter applies to For You when no country is
+                selected. Follow matching sources in My Sources. Explore
+                includes all regions.
               </p>
             </section>
             <section>

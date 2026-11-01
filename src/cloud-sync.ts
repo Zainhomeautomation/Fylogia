@@ -279,6 +279,13 @@ export async function synchronize() {
         throw new Error(
           "The connected library changed in another tab. Reopen sync settings.",
         );
+      // Old tabs skipped extension settings. Fetch them after upgrading,
+      // retaining queued changes and the existing device identity.
+      if (state.preferenceVersion !== 2) {
+        state.cursor = 0;
+        state.preferenceVersion = 2;
+        await writeSync(state);
+      }
       if (!state.flight && state.pending.length) {
         let size = 0;
         const mutations = state.pending
@@ -302,6 +309,7 @@ export async function synchronize() {
       let result: Exchange;
       try {
         result = await cloudRequest<Exchange>("exchange", {
+          preferenceVersion: 2,
           expectedProfileId: state.profileId,
           cursor: state.cursor,
           ...(state.flight || {}),
@@ -369,6 +377,7 @@ export async function connectCloud(identity: {
     const original = snapshotLibrary();
     await backupBeforeSync(original);
     const remote = await cloudRequest<Exchange>("exchange", {
+      preferenceVersion: 2,
       expectedProfileId: identity.profileId,
       cursor: 0,
     });

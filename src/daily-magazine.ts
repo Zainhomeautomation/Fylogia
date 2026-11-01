@@ -1,3 +1,4 @@
+import { publicationTime } from "./news-chronology.ts";
 import { applePreferenceScore } from "./apple-taxonomy.ts";
 import type { Article, Preferences } from "./catalog";
 import { articleMatchesLibrary } from "./source-utils.ts";
@@ -26,6 +27,7 @@ export function dailyPreferenceKey(prefs: Preferences) {
     ),
     prefs.region,
     prefs.reading,
+    ...(prefs.country ? [prefs.country] : []),
   ]);
   let hash = 2166136261;
   for (const char of text)
@@ -58,7 +60,14 @@ export function createDailyMagazine(
   const ranked = [
     ...new Map(
       articles
-        .filter((a) => articleMatchesLibrary(a, prefs))
+        .filter((a) => {
+          const time = publicationTime(a, now.getTime());
+          return (
+            time !== undefined &&
+            localDay(new Date(time)) === day &&
+            articleMatchesLibrary(a, prefs)
+          );
+        })
         .map((a) => [a.id, a]),
     ).values(),
   ]

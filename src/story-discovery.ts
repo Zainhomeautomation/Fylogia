@@ -1,3 +1,5 @@
+import { publicationTime } from "./news-chronology.ts";
+import { localArticle, regionalArticle } from "./news-geography.ts";
 import type { Article, Preferences } from "./catalog.ts";
 import { applePreferenceScore } from "./apple-taxonomy.ts";
 import { topicMatchesText } from "./interest-taxonomy.ts";
@@ -70,10 +72,9 @@ export function rankForYou(
   );
   const ranked = articles
     .map((article, index) => {
-      const days = Math.max(
-        0,
-        (now - Date.parse(article.published)) / 86400000,
-      );
+      const time = publicationTime(article, now);
+      const days =
+        time === undefined ? NaN : Math.max(0, (now - time) / 86400000);
       const related = [
         ...article.categories,
         ...(article.publisherTags || []),
@@ -91,6 +92,11 @@ export function rankForYou(
         applePreferenceScore(article, prefs) * 10 +
         (mediaImage(article) ? 1 : 0) +
         (article.full ? 2 : 0) +
+        (localArticle(article, prefs.country)
+          ? 4
+          : regionalArticle(article, prefs.country)
+            ? 2
+            : 0) +
         (Number.isFinite(days) ? 6 / (1 + days / 2) : 0) +
         Math.min(3, related) +
         (bookmarked.has(article.id) ? 1 : 0) -

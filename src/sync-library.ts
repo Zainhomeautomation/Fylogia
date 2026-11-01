@@ -9,6 +9,8 @@ import {
 } from "./sync-protocol.ts";
 export type Projection = Map<string, SyncValue>;
 const settings = [
+  "country",
+  "newsSort",
   "theme",
   "reading",
   "region",
@@ -40,7 +42,10 @@ export function projectLibrary(data: LibraryData): Projection {
       .filter((a) => deviceLocalUrl(a.url))
       .map((a) => a.id),
   );
-  for (const key of settings) map.set("setting:" + key, data.preferences[key]);
+  for (const key of settings) {
+    const value = data.preferences[key];
+    if (value !== undefined) map.set("setting:" + key, value);
+  }
   for (const [prefix, values] of [
     ["interest", data.preferences.interests],
     ["topic", data.preferences.topics],
@@ -109,7 +114,9 @@ export function materializeLibrary(
   const prefs = { ...original.preferences };
   for (const key of settings) {
     const value = map.get("setting:" + key);
-    if (value !== undefined && value !== null)
+    if ((key === "country" || key === "newsSort") && value === null)
+      delete prefs[key];
+    else if (value !== undefined && value !== null)
       (prefs as unknown as Record<string, unknown>)[key] = value;
   }
   prefs.interests = prefixEntries(map, "interest").map(([id]) => id);

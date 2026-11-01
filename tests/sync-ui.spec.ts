@@ -60,6 +60,7 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
           ...defaults,
           complete: true,
           theme,
+          ...(saved ? { country: "OM", newsSort: "oldest" } : {}),
           interests: ["Space"],
           sourceIds: ["nasa"],
         },
@@ -205,6 +206,17 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
         () => JSON.parse(localStorage.getItem("folio.v1.preferences")!).theme,
       ),
     ).toBe("navy");
+    expect(
+      await second.evaluate(
+        () => JSON.parse(localStorage.getItem("folio.v1.preferences")!).country,
+      ),
+    ).toBe("OM");
+    expect(
+      await second.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem("folio.v1.preferences")!).newsSort,
+      ),
+    ).toBe("oldest");
     // Independent storage: downloads and publisher bodies were never transferred.
     const cookies = await b.cookies();
     expect(
@@ -217,6 +229,9 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
     await second
       .getByRole("button", { name: "Editorial Green", exact: true })
       .click();
+    await second
+      .getByRole("combobox", { name: "Preferred country", exact: true })
+      .selectOption("CY");
     await second.getByRole("button", { name: "Sync my devices" }).click();
     await expect(second.getByRole("dialog")).toContainText("changes queued", {
       timeout: 10000,
@@ -272,6 +287,14 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
         ),
       )
       .toBe("dark");
+    await expect
+      .poll(() =>
+        first.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem("folio.v1.preferences")!).country,
+        ),
+      )
+      .toBe("CY");
     await sibling.bringToFront();
     await expect
       .poll(() =>
@@ -351,9 +374,9 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
     await second
       .getByRole("button", { name: "Delete cloud library", exact: true })
       .click();
-    await expect(second.getByRole("status")).toContainText(
-      "Cloud library deleted",
-    );
+    await expect(
+      second.getByRole("status").filter({ hasText: "Cloud library deleted" }),
+    ).toContainText("Cloud library deleted");
     expect(
       await second.evaluate(
         () => JSON.parse(localStorage.getItem("folio.v1.saved")!).length,

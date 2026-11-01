@@ -1,3 +1,6 @@
+import { countryName } from "./countries.ts";
+import { feedDates, publicationTime } from "./news-chronology.ts";
+import { preferredCoverage } from "./news-geography.ts";
 import {
   classifyApple,
   sourceHasAppleCoverage,
@@ -38,12 +41,8 @@ export function itemLink(item: any) {
 }
 export function latestPublication(items: any[], now = Date.now()) {
   const dates = items
-    .map((i) =>
-      new Date(
-        feedValue(i.pubDate || i.published || i.updated || i["dc:date"]),
-      ).getTime(),
-    )
-    .filter((n) => Number.isFinite(n) && n <= now + 48 * 3600000);
+    .map((i) => publicationTime(feedDates(i), now))
+    .filter((n): n is number => n !== undefined);
   return dates.length ? new Date(Math.max(...dates)).toISOString() : "";
 }
 export function feedFreshness(
@@ -142,7 +141,24 @@ export function deduplicateArticles(
         for (const tag of article.apple?.topics || []) old.appleTopics.add(tag);
         if (article.apple?.kind) old.appleKinds.add(article.apple.kind);
         duplicatesRemoved++;
+        const previousTime = publicationTime(old.article),
+          incomingTime = publicationTime(article);
+        const original =
+          previousTime !== undefined &&
+          (incomingTime === undefined || previousTime < incomingTime)
+            ? old.article
+            : incomingTime !== undefined
+              ? article
+              : undefined;
         if (score(article) >= score(old.article)) old.article = article;
+        if (original && original.published !== old.article.published)
+          old.article = {
+            ...old.article,
+            published: original.published,
+            ...(original.publicationPrecision
+              ? { publicationPrecision: original.publicationPrecision }
+              : {}),
+          };
       } else
         records.set(key, {
           article,
@@ -200,7 +216,7 @@ export function deduplicateArticles(
 export function recommendSources(
   all: Source[],
   prefs: Pick<Preferences, "interests" | "region"> &
-    Partial<Pick<Preferences, "topics">>,
+    Partial<Pick<Preferences, "topics" | "country">>,
   statuses: FeedStatus[],
   limit = 12,
 ) {
@@ -208,7 +224,8 @@ export function recommendSources(
   const ranked = all
     .filter(
       (s) =>
-        (s.categories.some((c) => prefs.interests.includes(c)) ||
+        (s.countries?.includes(prefs.country || "") ||
+          s.categories.some((c) => prefs.interests.includes(c)) ||
           (prefs.interests.includes("Apple") &&
             sourceHasAppleCoverage(s.id))) &&
         (!selected.length ||
@@ -219,7 +236,8 @@ export function recommendSources(
           ) ||
           !sourceSports(s).length ||
           sourceSports(s).some((id) => selected.includes(id))) &&
-        (prefs.region === "Worldwide" ||
+        (prefs.country ||
+          prefs.region === "Worldwide" ||
           s.region === "Worldwide" ||
           s.region === prefs.region) &&
         !statuses.some(
@@ -230,6 +248,7 @@ export function recommendSources(
       const score = (s: Source) =>
         s.categories.filter((c) => prefs.interests.includes(c)).length * 3 +
         (s.full ? 4 : 0) +
+        (s.countries?.includes(prefs.country || "") ? 6 : 0) +
         appleRecommendationBoost(s, prefs.topics) +
         (prefs.interests.includes("Apple") && s.id === "apple" ? 3 : 0) +
         (selected.length ? sportsRecommendationBoost(s.id) : 0) +
@@ -275,6 +294,8 @@ export function sourceMatches(
       (
         s.name +
         " " +
+        (s.countries || []).map(countryName).join(" ") +
+        " " +
         s.categories.join(" ") +
         " " +
         (s.topics || []).join(" ") +
@@ -297,7 +318,9 @@ export function sourceMatches(
 export function articleMatchesLibrary(
   article: Article,
   prefs: Pick<Preferences, "sourceIds" | "region"> &
-    Partial<Pick<Preferences, "topics" | "customSources" | "interests">>,
+    Partial<
+      Pick<Preferences, "topics" | "customSources" | "interests" | "country">
+    >,
 ) {
   const contexts = article.feedContexts || [
     {
@@ -312,11 +335,13 @@ export function articleMatchesLibrary(
     })),
   ];
   return (
+    preferredCoverage(article, prefs.country) &&
     sportsPreferenceMatches(article, prefs) &&
     contexts.some(
       (c) =>
         prefs.sourceIds.includes(c.sourceId) &&
-        (prefs.region === "Worldwide" ||
+        (prefs.country ||
+          prefs.region === "Worldwide" ||
           c.region === prefs.region ||
           (c.region === "Worldwide" && !c.categories.includes("World News"))),
     )

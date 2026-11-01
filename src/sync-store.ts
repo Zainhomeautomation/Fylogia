@@ -1,6 +1,7 @@
 import type { SyncRecord, SyncMutation } from "./sync-protocol";
 import type { LibraryData } from "./library-data";
 export interface SyncState {
+  preferenceVersion?: number;
   profileId: string;
   deviceId: string;
   cursor: number;

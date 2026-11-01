@@ -83,6 +83,9 @@ test("For You favors new related reading while retaining private bookmarks and h
 }) => {
   await seed(page);
   await page.goto("./");
+  await page
+    .getByRole("combobox", { name: "Sort stories", exact: true })
+    .selectOption("relevant");
   await expect(page.locator(".story h2").first()).toHaveText(
     "Fresh research dispatch",
   );
@@ -113,6 +116,9 @@ test("search finds category and publisher tags, ranks relevant titles and keeps 
 }) => {
   await seed(page);
   await page.goto("./explore");
+  await page
+    .getByRole("combobox", { name: "Sort stories", exact: true })
+    .selectOption("relevant");
   await expect(page.locator(".story")).toHaveCount(3);
   const search = page.getByRole("textbox", { name: "Search stories" });
   const enter = async (text: string) => {
@@ -179,6 +185,9 @@ test("a simulated worker replacement gives one passive notice, not a first-insta
   await page.goto("./");
   await expect(page.locator(".story")).toHaveCount(3);
   await page.waitForLoadState("load");
+  await page
+    .getByRole("combobox", { name: "Sort stories", exact: true })
+    .selectOption("relevant");
   await page.evaluate(() => (window as any).replaceController());
   await expect(page.getByText(/A new version of Fylogia is ready/)).toHaveCount(
     0,
@@ -187,7 +196,9 @@ test("a simulated worker replacement gives one passive notice, not a first-insta
   await expect(page.locator(".reader-content h1")).toHaveText(
     "Fresh research dispatch",
   );
-  const started = await page.evaluate(() => performance.timeOrigin);
+  const started = await page.evaluate(
+    () => ((window as any).__documentIdentity = crypto.randomUUID()),
+  );
   await page.evaluate(
     () =>
       new Promise<void>((resolve) =>
@@ -199,7 +210,9 @@ test("a simulated worker replacement gives one passive notice, not a first-insta
   await expect(page.locator(".reader-content h1")).toHaveText(
     "Fresh research dispatch",
   );
-  expect(await page.evaluate(() => performance.timeOrigin)).toBe(started);
+  expect(await page.evaluate(() => (window as any).__documentIdentity)).toBe(
+    started,
+  );
   await expect(
     page.getByText(/A new version of Fylogia is ready/),
   ).toBeVisible();
