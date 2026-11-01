@@ -1,3 +1,4 @@
+import { countryCodes } from "./countries.ts";
 import { appleSections, appleKinds } from "./apple-taxonomy.ts";
 import {
   normalizeDailyMagazines,
@@ -127,6 +128,20 @@ function articles(v: unknown): Article[] {
       content: a.content,
       excerpt: a.excerpt,
       published: a.published,
+      ...(["missing", "invalid"].includes(a.publicationDateStatus)
+        ? { publicationDateStatus: a.publicationDateStatus }
+        : {}),
+      ...(a.publicationPrecision === "date"
+        ? { publicationPrecision: "date" as const }
+        : {}),
+      ...(typeof a.updatedAt === "string" &&
+      Number.isFinite(Date.parse(a.updatedAt))
+        ? { updatedAt: a.updatedAt }
+        : {}),
+      ...(typeof a.retrievedAt === "string" &&
+      Number.isFinite(Date.parse(a.retrievedAt))
+        ? { retrievedAt: a.retrievedAt }
+        : {}),
       region: a.region,
       categories: a.categories,
       url: a.url,
@@ -240,6 +255,13 @@ export function normalizeLibraryValue(
       (p.topics !== undefined && !strings(p.topics))
     )
       throw new Error("Invalid preferences");
+    if (p.country !== undefined && !countryCodes.has(p.country))
+      throw new Error("Invalid country");
+    if (
+      p.newsSort !== undefined &&
+      !["latest", "oldest", "relevant"].includes(p.newsSort)
+    )
+      throw new Error("Invalid news ordering");
     return {
       ...defaults,
       complete: p.complete === true,
@@ -252,6 +274,12 @@ export function normalizeLibraryValue(
       fontSize: Math.min(26, Math.max(16, Number(p.fontSize) || 19)),
       reading: p.reading === "scroll" ? "scroll" : "pages",
       converter: p.converter === true,
+      ...(p.country && countryCodes.has(p.country)
+        ? { country: p.country }
+        : {}),
+      ...(["latest", "oldest", "relevant"].includes(p.newsSort || "")
+        ? { newsSort: p.newsSort }
+        : {}),
     };
   }
   if (key === "progress") {

@@ -41,6 +41,11 @@ const actions = new Set([
 ]);
 const uuid = (v) => typeof v === "string" && /^[0-9a-f-]{36}$/.test(v);
 async function exchange(db, auth, body, day, now) {
+  if (
+    body.preferenceVersion !== undefined &&
+    ![1, 2].includes(body.preferenceVersion)
+  )
+    throw new ApiError(400, "Unsupported preference version.");
   if (!Number.isSafeInteger(body.cursor) || body.cursor < 0)
     throw new ApiError(400, "Invalid sync cursor.");
   let changes = [];
@@ -144,14 +149,21 @@ async function exchange(db, auth, body, day, now) {
     batchId: device.last_batch,
     reset,
     now,
-    records: rows.results.map((r) => ({
-      key: r.record_key,
-      value: r.value === null ? null : JSON.parse(r.value),
-      changedAt: r.changed_at,
-      writer: r.writer,
-      baseRevision: r.base_revision,
-      revision: r.revision,
-    })),
+    // Older open tabs must not receive preference keys they cannot decode.
+    records: rows.results
+      .filter(
+        (r) =>
+          body.preferenceVersion === 2 ||
+          !["setting:country", "setting:newsSort"].includes(r.record_key),
+      )
+      .map((r) => ({
+        key: r.record_key,
+        value: r.value === null ? null : JSON.parse(r.value),
+        changedAt: r.changed_at,
+        writer: r.writer,
+        baseRevision: r.base_revision,
+        revision: r.revision,
+      })),
   };
 }
 export function createSyncHandler({ now: clock = Date.now } = {}) {
@@ -193,7 +205,13 @@ export function createSyncHandler({ now: clock = Date.now } = {}) {
         recover: ["label", "recoveryKey"],
         approve: ["requestId"],
         reject: ["requestId"],
-        exchange: ["cursor", "sequence", "batchId", "mutations"],
+        exchange: [
+          "cursor",
+          "sequence",
+          "batchId",
+          "mutations",
+          "preferenceVersion",
+        ],
         revoke: ["deviceId"],
         delete: ["confirm"],
       };

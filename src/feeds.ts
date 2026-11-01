@@ -1,3 +1,4 @@
+import { feedDates } from "./news-chronology";
 import { deriveApple, publisherTags } from "./apple-taxonomy";
 import { feedImage } from "./feed-images";
 import { parseFeedDocument } from "./feed-parser";
@@ -68,9 +69,6 @@ function parseItems(items: any[], source: Source): Article[] {
           item.summary,
       );
       const excerpt = plain(content).slice(0, 600);
-      const date = new Date(
-        value(item.pubDate || item.published || item.pubDate || item.updated),
-      );
       return {
         id: url,
         apple: deriveApple(
@@ -90,7 +88,8 @@ function parseItems(items: any[], source: Source): Article[] {
         source: source.name,
         title: plain(value(item.title)),
         url,
-        published: Number.isNaN(date.getTime()) ? "" : date.toISOString(),
+        ...feedDates(item),
+        retrievedAt: new Date().toISOString(),
         categories: source.categories,
         region: source.region,
         image: feedImage(item, content, url),

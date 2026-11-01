@@ -9,7 +9,8 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import type { Article } from "./catalog";
-import { dateLabel } from "./storage";
+import { PublicationDate } from "./PublicationDate";
+import { newsDay } from "./news-chronology";
 export function StoryCard({
   article,
   saved,
@@ -47,6 +48,7 @@ export function StoryCard({
   }>();
   return (
     <article className={"story " + (lead ? "lead" : "")}>
+      <span className="news-period">{newsDay(article)}</span>
       <div className="story-offline-tools">
         {onSelect && (
           <label className="story-select">
@@ -122,7 +124,7 @@ export function StoryCard({
       <div className="story-meta">
         <span>
           {article.source} <span aria-hidden="true">·</span>{" "}
-          {dateLabel(article.published)}
+          <PublicationDate article={article} />
         </span>
         {onDownload && (article.content || article.excerpt) && (
           <button

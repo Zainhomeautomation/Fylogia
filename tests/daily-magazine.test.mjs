@@ -45,7 +45,11 @@ test("daily selection favors fresh, permitted, relevant stories without selectin
   assert.ok(
     !edition.stories.some((s) => s.id === "unfollowed" || s.id === "europe"),
   );
-  assert.equal(edition.stories.length, 3);
+  assert.equal(edition.stories.length, 2);
+  assert.ok(
+    !edition.stories.some((s) => s.id === "old"),
+    "old publication must not be presented as today’s news",
+  );
   assert.equal(edition.stories[0].section, "Space");
 });
 test("daily metadata is deterministic, bounded, unique and contains no publisher body or image", () => {

@@ -36,7 +36,7 @@ import {
   Minimize2,
 } from "lucide-react";
 import type { Article, Preferences } from "./catalog";
-import { dateLabel } from "./storage";
+import { PublicationDate } from "./PublicationDate";
 import { plain } from "./article-html";
 export function Reader({
   article,
@@ -651,11 +651,19 @@ export function Reader({
           onLoad={measure}
         >
           <div className="article-source">
-            {article.source} · {dateLabel(article.published)}
+            {article.source} · Published <PublicationDate article={article} />
             {classifyApple(article).kind && (
               <> · {classifyApple(article).kind}</>
             )}
           </div>
+          {(article.contentDetails?.retrievedAt || article.retrievedAt) && (
+            <div className="article-retrieved">
+              Received by Fylogia{" "}
+              {new Date(
+                article.contentDetails?.retrievedAt || article.retrievedAt!,
+              ).toLocaleString("en", { timeZoneName: "short" })}
+            </div>
+          )}
           <h1>{article.title}</h1>
           {article.author && (
             <p className="article-byline">By {article.author}</p>

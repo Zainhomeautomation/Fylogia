@@ -3414,3 +3414,51 @@ html[data-theme="light"] .brand-mark-light {
 .news-pages-mode .feed-view-switch {
   margin: 0;
 }
+
+.news-organization {
+  display: flex;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 8px 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.news-organization label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.news-organization select {
+  min-height: 44px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 6px 10px;
+}
+.news-period {
+  color: var(--green);
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+.news-book .news-period {
+  flex-shrink: 0;
+}
+.article-retrieved {
+  font-family: inherit;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 4px 0 12px;
+}
+.chronology-section {
+  margin-bottom: 28px;
+}
+.chronology-section .story-grid {
+  margin-top: 24px;
+}
+.sidebar {
+  overflow-y: auto;
+}

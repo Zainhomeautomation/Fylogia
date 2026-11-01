@@ -1,3 +1,4 @@
+import { countryCodes } from "./countries.ts";
 // Shared private API contract. Publisher content is deliberately not representable.
 export type SyncValue = string | number | boolean | Record<string, unknown>;
 export interface SyncRecord {
@@ -137,7 +138,15 @@ export function validateSyncValue(
     throw new Error("Unsupported record");
   if (
     kind === "setting" &&
-    !["theme", "reading", "region", "fontSize", "complete"].includes(id)
+    ![
+      "theme",
+      "reading",
+      "region",
+      "fontSize",
+      "complete",
+      "country",
+      "newsSort",
+    ].includes(id)
   )
     throw new Error("Unsupported preference");
   if (value === null) return null;
@@ -147,7 +156,15 @@ export function validateSyncValue(
     if (value !== true) throw new Error("Invalid selection");
     result = true;
   } else if (kind === "setting") {
-    if (id === "theme") {
+    if (id === "country") {
+      if (typeof value !== "string" || !countryCodes.has(value))
+        throw new Error("Invalid country");
+      result = value;
+    } else if (id === "newsSort") {
+      if (!["latest", "oldest", "relevant"].includes(value as string))
+        throw new Error("Invalid news ordering");
+      result = value as string;
+    } else if (id === "theme") {
       if (!["navy", "dark", "light", "system"].includes(value as string))
         throw new Error("Invalid theme");
       result = value as string;

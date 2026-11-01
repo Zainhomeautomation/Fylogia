@@ -1,3 +1,5 @@
+import { countryName, countryRegion } from "./countries.ts";
+import { newsDay } from "./news-chronology.ts";
 import { applePreferenceScore } from "./apple-taxonomy.ts";
 import type { Article, Preferences } from "./catalog";
 import { articleMatchesLibrary } from "./source-utils.ts";
@@ -26,6 +28,7 @@ export function dailyPreferenceKey(prefs: Preferences) {
     ),
     prefs.region,
     prefs.reading,
+    ...(prefs.country ? [prefs.country] : []),
   ]);
   let hash = 2166136261;
   for (const char of text)
@@ -58,7 +61,9 @@ export function createDailyMagazine(
   const ranked = [
     ...new Map(
       articles
-        .filter((a) => articleMatchesLibrary(a, prefs))
+        .filter((a) => {
+          return newsDay(a, now) === "Today" && articleMatchesLibrary(a, prefs);
+        })
         .map((a) => [a.id, a]),
     ).values(),
   ]
@@ -92,7 +97,9 @@ export function createDailyMagazine(
     id: `${day}-${dailyPreferenceKey(prefs)}`,
     day,
     createdAt: now.toISOString(),
-    region: prefs.region,
+    region: prefs.country
+      ? `${countryName(prefs.country)} · ${countryRegion(prefs.country)}`
+      : prefs.region,
     stories: ordered.map((a) => ({
       id: a.id,
       title: a.title,

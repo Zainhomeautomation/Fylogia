@@ -19,6 +19,7 @@ async function fixture(
     .slice(0, 2)
     .map((a: any) => ({
       ...a,
+      published: new Date().toISOString(),
       image: images ? a.image : undefined,
       offlineImagesAllowed: false,
     }));
@@ -27,7 +28,10 @@ async function fixture(
     (a: any) => !a.full && a.sourceId === "bbc-world",
   );
   expect(preview).toBeTruthy();
-  const articles = [...full, { ...preview, image: undefined }];
+  const articles = [
+    ...full,
+    { ...preview, published: new Date().toISOString(), image: undefined },
+  ];
   await mockEdition(page, { ...data, articles });
   await page.addInitScript(
     (p) =>

@@ -696,3 +696,64 @@ test("lost recovery responses cannot invalidate the only key before replacement 
     f.db.close();
   }
 });
+
+test("country and news ordering sync to capable devices without breaking older clients", async () => {
+  const f = fixture();
+  try {
+    const { a } = await owner(f),
+      b = await pair(f, a);
+    const uploaded = await push(a, [
+      mutation("setting:country", "OM", f.now()),
+      mutation("setting:newsSort", "oldest", f.now()),
+      mutation("setting:theme", "dark", f.now()),
+    ]);
+    assert.equal(uploaded.status, 200);
+    const legacy = await b.call("exchange", { cursor: 0 });
+    assert.equal(legacy.status, 200);
+    assert.ok(legacy.data.records.some((r) => r.key === "setting:theme"));
+    assert.ok(
+      !legacy.data.records.some((r) =>
+        ["setting:country", "setting:newsSort"].includes(r.key),
+      ),
+    );
+    const modern = await b.call("exchange", {
+      cursor: 0,
+      preferenceVersion: 2,
+    });
+    assert.equal(
+      modern.data.records.find((r) => r.key === "setting:country").value,
+      "OM",
+    );
+    assert.equal(
+      modern.data.records.find((r) => r.key === "setting:newsSort").value,
+      "oldest",
+    );
+    f.advance(1000);
+    await push(b, [
+      mutation("setting:theme", "light", f.now(), modern.data.revision),
+    ]);
+    const kept = await a.call("exchange", { cursor: 0, preferenceVersion: 2 });
+    assert.equal(
+      kept.data.records.find((r) => r.key === "setting:country").value,
+      "OM",
+    );
+    assert.equal(
+      (await a.call("exchange", { cursor: 0, preferenceVersion: 999 })).status,
+      400,
+    );
+    f.advance(1000);
+    await push(a, [
+      mutation("setting:country", null, f.now(), kept.data.revision),
+    ]);
+    const cleared = await b.call("exchange", {
+      cursor: 0,
+      preferenceVersion: 2,
+    });
+    assert.equal(
+      cleared.data.records.find((r) => r.key === "setting:country").value,
+      null,
+    );
+  } finally {
+    f.close();
+  }
+});

@@ -20,6 +20,7 @@ import {
 } from "./sync-protocol";
 import {
   freshSync,
+  exchangeCursor,
   readSync,
   writeSync,
   syncLock,
@@ -302,8 +303,9 @@ export async function synchronize() {
       let result: Exchange;
       try {
         result = await cloudRequest<Exchange>("exchange", {
+          preferenceVersion: 2,
           expectedProfileId: state.profileId,
-          cursor: state.cursor,
+          cursor: exchangeCursor(state),
           ...(state.flight || {}),
         });
       } catch (e) {
@@ -339,6 +341,7 @@ export async function synchronize() {
       state.records = [...records.values()];
       state.flight = undefined;
       state.cursor = result.revision;
+      state.preferenceCursor = result.revision;
       state.sequence = result.sequence;
       state.offset = result.now - Date.now();
       state.lastSync = Date.now();
@@ -369,6 +372,7 @@ export async function connectCloud(identity: {
     const original = snapshotLibrary();
     await backupBeforeSync(original);
     const remote = await cloudRequest<Exchange>("exchange", {
+      preferenceVersion: 2,
       expectedProfileId: identity.profileId,
       cursor: 0,
     });
@@ -405,6 +409,7 @@ export async function connectCloud(identity: {
       records,
       pending,
       cursor: remote.revision,
+      preferenceCursor: remote.revision,
       sequence: remote.sequence,
       offset: remote.now - Date.now(),
       enabled: true,

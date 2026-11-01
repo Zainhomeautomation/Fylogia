@@ -1,6 +1,7 @@
 import type { SyncRecord, SyncMutation } from "./sync-protocol";
 import type { LibraryData } from "./library-data";
 export interface SyncState {
+  preferenceCursor?: number;
   profileId: string;
   deviceId: string;
   cursor: number;
@@ -11,6 +12,13 @@ export interface SyncState {
   flight?: { sequence: number; batchId: string; mutations: SyncMutation[] };
   enabled: boolean;
   lastSync: number;
+}
+// Older clients may advance cursor while filtering settings they cannot decode.
+// They preserve this separate watermark but never advance it.
+export function exchangeCursor(
+  state: Pick<SyncState, "cursor" | "preferenceCursor">,
+) {
+  return Math.min(state.cursor, state.preferenceCursor ?? 0);
 }
 export const freshSync = (): SyncState => ({
   profileId: "",

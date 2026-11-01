@@ -30,7 +30,11 @@ async function fixture(page: Page, images = false) {
     .filter((a) => a.full && a.offlineImagesAllowed && a.image)
     .sort((a, b) => b.content.length - a.content.length)
     .slice(0, 6)
-    .map((a) => ({ ...a, offlineImagesAllowed: images }));
+    .map((a) => ({
+      ...a,
+      published: new Date().toISOString(),
+      offlineImagesAllowed: images,
+    }));
   expect(articles.length).toBeGreaterThan(1);
   const state = { edition: { ...edition, articles }, original: edition };
   await mockEdition(page, state.edition);

@@ -1,3 +1,4 @@
+import { chronological } from "../src/news-chronology.ts";
 import { sourceHasAppleCoverage, deriveApple } from "../src/apple-taxonomy.ts";
 import { parseFeedDocument } from "../src/feed-parser.ts";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
@@ -8,7 +9,7 @@ import {
   deduplicateArticles,
 } from "../src/source-utils.ts";
 import { feedArticle } from "./feed-content.mjs";
-const pipelineVersion = 9;
+const pipelineVersion = 10;
 const contentVersion = 3;
 const fullOnly = process.argv.includes("--full-only");
 let previous = { articles: [], statuses: [] };
@@ -183,9 +184,7 @@ const merged = deduplicateArticles(
     source: sources.find((s) => s.id === r.status.id),
   })),
 );
-merged.articles.sort((a, b) =>
-  (b.published || "").localeCompare(a.published || ""),
-);
+merged.articles = chronological(merged.articles, "latest");
 if (!results.some((r) => r.status.ok) || !merged.articles.length)
   throw new Error("No content available; refusing empty edition");
 const output = {
