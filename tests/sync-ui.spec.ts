@@ -230,8 +230,8 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
       .getByRole("button", { name: "Editorial Green", exact: true })
       .click();
     await second
-      .getByRole("combobox", { name: "Preferred country", exact: true })
-      .selectOption("CY");
+      .getByRole("combobox", { name: "Regional news", exact: true })
+      .selectOption("EU");
     await second.getByRole("button", { name: "Sync my devices" }).click();
     await expect(second.getByRole("dialog")).toContainText("changes queued", {
       timeout: 10000,
@@ -291,10 +291,10 @@ test("private sync UI pairs two independent devices, queues offline edits, prese
       .poll(() =>
         first.evaluate(
           () =>
-            JSON.parse(localStorage.getItem("folio.v1.preferences")!).country,
+            JSON.parse(localStorage.getItem("folio.v1.preferences")!).region,
         ),
       )
-      .toBe("CY");
+      .toBe("EU");
     await sibling.bringToFront();
     await expect
       .poll(() =>

@@ -97,9 +97,7 @@ test("anonymous profile and entire library recover offline from IndexedDB after 
     .getByRole("button", { name: /^Follow/ })
     .click();
   await saved(page);
-  await page
-    .getByLabel("Regional news", { exact: true })
-    .selectOption("Europe");
+  await page.getByLabel("Regional news", { exact: true }).selectOption("EU");
   await expect(page.getByTestId("local-save-state")).toHaveText(
     "Saved on this device",
   );

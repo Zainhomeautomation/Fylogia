@@ -215,7 +215,7 @@ Nine additional publisher RSS feeds were fetched, parsed and checked for dated e
 
 | Feed             | Country        | Official RSS                                       |
 | ---------------- | -------------- | -------------------------------------------------- |
-| Cyprus Mail      | Cyprus         | https://cyprus-mail.com/feed/                      |
+| Cyprus Mail      | Cyprus         | https://cyprus-mail.com/category/cyprus/feed/                      |
 | BBC News UK      | United Kingdom | https://feeds.bbci.co.uk/news/uk/rss.xml           |
 | RTÉ Ireland      | Ireland        | https://www.rte.ie/feeds/rss/?index=/news/ireland/ |
 | CBC Canada       | Canada         | https://www.cbc.ca/webfeed/rss/rss-canada          |
@@ -225,7 +225,11 @@ Nine additional publisher RSS feeds were fetched, parsed and checked for dated e
 | Capital FM Kenya | Kenya          | https://www.capitalfm.co.ke/news/feed/             |
 | NPR National     | United States  | https://feeds.npr.org/1003/rss.xml                 |
 
-The existing Oman Observer, Times of Oman and The Hindu India entries are reused, not duplicated. Publisher coverage is explicitly curated in `countries` and `news-geography.ts`; publisher headquarters or headline keywords do not automatically make an article local. A country-focused feed can still contain international stories. Countries without verified feeds show this limitation rather than unrelated news labeled local.
+Automatic Local News now uses only the explicitly curated national sections in `news-geography.ts`. Cyprus Mail uses its Cyprus-only feed and requires the publisher’s Cyprus News tag; Capital FM requires National News or County News tags. General Times of Oman and ABC Australia feeds remain in the directory and broader reading views, but do not qualify as local merely because of publisher location. Oman Observer’s Oman section and The Hindu’s national section are reused. Countries without verified coverage get an honest explanation and World News fallback.
+
+Germany adds [BMAS government labour/social updates](https://bmas.bund.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/RSSNewsfeed.xml), fetched and parsed on 1 November 2026 with its latest entry dated 30 October. Its [official RSS page](https://bmas.bund.de/EN/Services/RSS/rss.html) explicitly permits website integration of supplied titles/introductions. Only feed previews are used, with no full-article authorization or photograph-rights assumption. This is a specialist government source, not comprehensive independent German journalism. The English feed was checked but not chosen because it was older. Tagesschau was not added: its current RSS page limits republication despite an older page describing headline embedding.
+
+See [automatic local news](automatic-local-news.md) for independent regional classification and privacy boundaries.
 
 Chronology uses `news-chronology.ts` for both ingestion and browsing. RSS pubDate, Atom published and Dublin Core date are original-date candidates; Atom updated is stored separately. Missing/invalid/ambiguous-clock dates and implausibly future timestamps do not receive the retrieval time. Date-only publication fields retain date-only precision. Duplicate entries keep the earliest valid publication timestamp while preserving the selected authorized body. Pipeline version 10 forces one fresh publisher response before resuming conditional ETag/Last-Modified refreshes. The six-request concurrency limit and four-hour schedule remain unchanged.
 

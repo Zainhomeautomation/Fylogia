@@ -10,6 +10,7 @@ await writeFile(
         "/editions/nasa-spinoff-2025.pdf",
         "/editions/hackspace-75.pdf",
         "/api/sync",
+        "/api/location",
       ],
       exclude: [],
     },

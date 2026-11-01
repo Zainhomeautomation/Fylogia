@@ -1,4 +1,4 @@
-import { countryName, countryRegion } from "./countries.ts";
+import { newsRegion } from "./news-regions.ts";
 import { newsDay } from "./news-chronology.ts";
 import { applePreferenceScore } from "./apple-taxonomy.ts";
 import type { Article, Preferences } from "./catalog";
@@ -28,7 +28,6 @@ export function dailyPreferenceKey(prefs: Preferences) {
     ),
     prefs.region,
     prefs.reading,
-    ...(prefs.country ? [prefs.country] : []),
   ]);
   let hash = 2166136261;
   for (const char of text)
@@ -97,9 +96,7 @@ export function createDailyMagazine(
     id: `${day}-${dailyPreferenceKey(prefs)}`,
     day,
     createdAt: now.toISOString(),
-    region: prefs.country
-      ? `${countryName(prefs.country)} · ${countryRegion(prefs.country)}`
-      : prefs.region,
+    region: newsRegion(prefs.region),
     stories: ordered.map((a) => ({
       id: a.id,
       title: a.title,

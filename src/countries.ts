@@ -8,9 +8,6 @@ const names = new Intl.DisplayNames(["en"], { type: "region" });
 export function countryName(code: string) {
   return countryCodes.has(code) ? names.of(code) || code : "Worldwide";
 }
-export const countries = codes
-  .map((code) => ({ code, name: countryName(code) }))
-  .sort((a, b) => a.name.localeCompare(b.name));
 const groups: Record<string, string> = {
   "Middle East": "AE BH EG IL IQ IR JO KW LB OM PS QA SA SY TR YE",
   Europe:
@@ -38,15 +35,4 @@ export function broadRegion(region: string) {
     : region === "India"
       ? "Asia"
       : region;
-}
-export function suggestedCountry(languages: readonly string[]) {
-  for (const language of languages) {
-    try {
-      const code = new Intl.Locale(language).region;
-      if (code && countryCodes.has(code)) return code;
-    } catch {
-      /* Ignore malformed device locales. */
-    }
-  }
-  return undefined;
 }

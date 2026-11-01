@@ -51,3 +51,8 @@ Recovery is a two-phase operation. Preparation creates one short-lived hashed pe
 ### Optional country and sort preferences
 
 Updated clients announce `preferenceVersion: 2` on exchanges and synchronize ISO `setting:country` and enum `setting:newsSort` records. Unversioned/older clients continue receiving only the setting keys they understand; they do not see or delete the extension settings. A separate capable-settings cursor records the last revision actually read by an updated client. Exchanges use the lower of that watermark and the shared cursor, so an older tab cannot skip country/sort values by advancing the shared cursor. Its identity, pending changes and saved library remain intact. Clearing the country is a normal preference tombstone, not cloud-library deletion. No D1 schema migration or new infrastructure is required.
+
+
+## Automatic location is not a synchronized preference
+
+The current UI no longer offers a manual country setting. Detected country comes from the credential-free, no-store `/api/location` response and exists only in the tab’s React state. It never enters `projectLibrary`, the offline queue, backups or D1. Existing `setting:country` values remain accepted solely for older clients and non-destructive legacy-library compatibility; they are not used as physical location. The manual regional preference continues syncing through the existing `setting:region` contract. Legacy Europe/United States values remain stored, with EU/North America UI aliases; other unsupported historical region labels display the safe Worldwide choice until explicitly changed.

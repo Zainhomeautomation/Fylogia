@@ -2,6 +2,7 @@ import { test, mockEdition } from "./edition-fixture";
 import { expect, type Page } from "@playwright/test";
 import { defaults } from "../src/catalog";
 test.use({
+  serviceWorkers: "block",
   storageState: { cookies: [], origins: [] },
   hasTouch: true,
   timezoneId: "Asia/Muscat",
@@ -63,6 +64,7 @@ const items = [
   content: "<p>Original publisher preview used only by this test.</p>",
   full: false,
   retrievedAt: timestamp(0),
+  ...(sourceId === "cyprus-mail" ? { publisherTags: ["Cyprus News"] } : {}),
 }));
 async function seed(page: Page, view = "explore", country?: string) {
   const edition = await (await page.request.get("data/edition.json")).json();
@@ -80,6 +82,9 @@ async function seed(page: Page, view = "explore", country?: string) {
       interests: ["World News"],
       sourceIds: [...new Set(items.map((a) => a.sourceId))],
     },
+  );
+  await page.route("**/api/location", (r) =>
+    r.fulfill({ json: { country: country || null } }),
   );
   await page.goto("./" + view);
   await expect(page.locator(".news-book")).toBeVisible();
@@ -159,39 +164,54 @@ test("Oldest puts unknown and future dates last; relevance is an explicit persis
     "Newest Oman report",
   );
 });
-test("country changes update Local News and travel never replaces a manual selection", async ({
+test("automatic country changes Local News without changing the manual region or old library", async ({
   page,
 }) => {
   await seed(page, "local", "OM");
   await expect(active(page).locator("h2").first()).toHaveText(
     "Newest Oman report",
   );
-  const before = (await preference(page)).sourceIds;
+  const before = await preference(page);
   await nav(page, "Settings");
-  await page
-    .getByRole("combobox", { name: "Preferred country", exact: true })
-    .selectOption("CY");
-  await nav(page, "Local News");
-  await expect(active(page).locator("h2")).toHaveText("Cyprus local report");
+  await expect(
+    page.getByRole("combobox", { name: "Preferred country", exact: true }),
+  ).toHaveCount(0);
+  const region = page.getByRole("combobox", {
+    name: "Regional news",
+    exact: true,
+  });
+  await expect(region.locator("option")).toHaveText([
+    "Worldwide",
+    "Middle East",
+    "EU",
+    "North America",
+    "Asia",
+    "India",
+  ]);
+  await region.selectOption("EU");
+  await page.unroute("**/api/location");
+  await page.route("**/api/location", (r) =>
+    r.fulfill({ json: { country: "CY" } }),
+  );
   await page.addInitScript(() =>
     Object.defineProperty(navigator, "languages", { value: ["en-US"] }),
   );
-  await page.reload();
+  await page.goto("./local");
   await expect(active(page).locator("h2")).toHaveText("Cyprus local report");
-  expect((await preference(page)).country).toBe("CY");
-  await nav(page, "Settings");
-  await page
-    .getByRole("combobox", { name: "Preferred country", exact: true })
-    .selectOption("GB");
-  await nav(page, "Local News");
-  await expect(active(page).locator("h2")).toHaveText("UK national report");
-  expect((await preference(page)).sourceIds).toEqual(before);
+  expect((await preference(page)).region).toBe("EU");
+  expect((await preference(page)).sourceIds).toEqual(before.sourceIds);
+  expect((await preference(page)).country).toBe("OM"); // legacy backup data, no longer used as location
 });
 test("Regional and World News use explicit coverage while keeping other categories available", async ({
   page,
 }) => {
   await seed(page, "regional", "CY");
-  await expect(active(page).locator("h2")).toHaveText("UK national report");
+  await nav(page, "Settings");
+  await page
+    .getByRole("combobox", { name: "Regional news", exact: true })
+    .selectOption("EU");
+  await nav(page, "Regional News");
+  await expect(active(page).locator("h2")).toHaveText("Cyprus local report");
   await nav(page, "World News");
   await expect(active(page)).toContainText("International report");
   await expect(active(page)).not.toContainText("Cyprus local report");
@@ -276,18 +296,20 @@ test("Daily Edition uses the publication day, and countries without verified fee
     "Oman future report",
   ]);
   await page.keyboard.press("Escape");
-  await nav(page, "Settings");
-  await page
-    .getByRole("combobox", { name: "Preferred country", exact: true })
-    .selectOption("AQ");
-  await expect(
-    page.getByText(/No verified country-focused feed/),
-  ).toBeVisible();
+  await page.unroute("**/api/location");
+  await page.route("**/api/location", (r) =>
+    r.fulfill({ json: { country: "AQ" } }),
+  );
   await nav(page, "Local News");
   await expect(
     page.getByRole("heading", {
-      name: "No local stories available right now.",
+      name: "No verified local stories available right now.",
       exact: true,
     }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".empty")
+      .getByRole("button", { name: "World News", exact: true }),
   ).toBeVisible();
 });

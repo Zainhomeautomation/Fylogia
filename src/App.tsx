@@ -1,6 +1,13 @@
-import { CountryPreference } from "./CountryPreference";
-import { broadRegion, countryName, countryRegion } from "./countries";
-import { localArticle, regionalArticle, worldArticle } from "./news-geography";
+import { useLocalCountry } from "./useLocalCountry";
+import { newsRegions, newsRegion } from "./news-regions";
+import { countryName, countryRegion } from "./countries";
+import {
+  localArticle,
+  localSourceIds,
+  regionalArticle,
+  sourceInRegion,
+  worldArticle,
+} from "./news-geography";
 import { chronological, type NewsSort } from "./news-chronology";
 import { ChronologicalStories } from "./ChronologicalStories";
 import { AppleNavigation } from "./AppleNavigation";
@@ -59,7 +66,6 @@ import {
   defaults,
   sources,
   categories,
-  regions,
   type Article,
   type Edition,
   type Preferences,
@@ -128,6 +134,12 @@ export default function App() {
   const [dailyOpen, setDailyOpen] = useState<DailyMetadata>();
   const [custom, setCustom, customError] = useStored<Article[]>("custom", []);
   const [view, setView] = useSectionRoute();
+  const [reader, setReader] = useState<Article>();
+  const localLocation = useLocalCountry(
+    prefs.complete && view === "local",
+    !!reader || !!dailyOpen,
+  );
+  const detectedCountry = localLocation.country;
   const [apple, setApple] = useState<AppleSelection>("all");
   const [magazineApple, setMagazineApple] = useState<AppleSelection>("all");
   const [sport, setSport] = useState<SportSelection>("all");
@@ -135,25 +147,15 @@ export default function App() {
   const newsScope = useMemo(() => {
     if (!prefs.complete || (view === "sources" && !dailyOpen)) return "health";
     if (view === "local")
-      return (
-        sources
-          .filter((s) => s.countries?.includes(prefs.country || ""))
-          .map((s) => s.id)
-          .sort()
-          .join("\n") || "health"
-      );
-    if (view === "regional") {
-      const target = prefs.country
-        ? countryRegion(prefs.country)
-        : broadRegion(prefs.region);
-      return target === "Worldwide"
-        ? "health"
+      return localSourceIds(detectedCountry).sort().join("\n") || "health";
+    if (view === "regional")
+      return newsRegion(prefs.region) === "Worldwide"
+        ? "*"
         : sources
-            .filter((s) => broadRegion(s.region) === target)
+            .filter((source) => sourceInRegion(source, prefs.region))
             .map((s) => s.id)
             .sort()
             .join("\n") || "health";
-    }
     if (["explore", "categories", "world", "latest"].includes(view)) return "*";
     const ids = [...prefs.sourceIds];
     if (dailyOpen) {
@@ -169,7 +171,7 @@ export default function App() {
     return [...new Set(ids)].sort().join("\n");
   }, [
     prefs.complete,
-    prefs.country,
+    detectedCountry,
     prefs.region,
     prefs.sourceIds,
     prefs.customSources,
@@ -185,7 +187,6 @@ export default function App() {
     [publicationId, setPublicationId] = useState(""),
     [query, setQuery] = useState(""),
     [readableOnly, setReadableOnly] = useState(false),
-    [reader, setReader] = useState<Article>(),
     [busy, setBusy] = useState(true),
     [notice, setNotice] = useState(""),
     [menu, setMenu] = useState(false),
@@ -456,11 +457,9 @@ export default function App() {
     if (view === "home")
       result = result.filter((a) => articleMatchesLibrary(a, prefs));
     if (view === "local")
-      result = result.filter((a) => localArticle(a, prefs.country));
+      result = result.filter((a) => localArticle(a, detectedCountry));
     if (view === "regional")
-      result = result.filter((a) =>
-        regionalArticle(a, prefs.country, prefs.region),
-      );
+      result = result.filter((a) => regionalArticle(a, prefs.region));
     if (view === "world") result = result.filter(worldArticle);
     if (view === "explore" && publicationId)
       result = result.filter(
@@ -510,6 +509,7 @@ export default function App() {
       : result;
   }, [
     ordering,
+    detectedCountry,
     view,
     all,
     saved,
@@ -917,30 +917,16 @@ export default function App() {
                     <option value="relevant">Most Relevant</option>
                   </select>
                 </label>
-                {prefs.country && (
-                  <span>
-                    {countryName(prefs.country)} ·{" "}
-                    {countryRegion(prefs.country)}
-                  </span>
+                {view === "local" && (
+                  <small role="status">
+                    {localLocation.loading
+                      ? "Checking approximate country…"
+                      : detectedCountry
+                        ? `${countryName(detectedCountry)} · ${countryRegion(detectedCountry)} · approximate country`
+                        : "Country unavailable · Worldwide coverage is available in World News."}
+                  </small>
                 )}
-                {view === "local" && !prefs.country && (
-                  <button
-                    className="text-button"
-                    onClick={() => navigate("settings")}
-                  >
-                    Choose your country
-                  </button>
-                )}
-                {view === "regional" &&
-                  !prefs.country &&
-                  prefs.region === "Worldwide" && (
-                    <button
-                      className="text-button"
-                      onClick={() => navigate("settings")}
-                    >
-                      Choose your country or region
-                    </button>
-                  )}
+                {view === "regional" && <span>{newsRegion(prefs.region)}</span>}
                 {view === "latest" && (
                   <small>
                     Newest publication first, across available sources.
@@ -1133,11 +1119,11 @@ export default function App() {
                   {query
                     ? "No stories found."
                     : view === "local"
-                      ? prefs.country
-                        ? "No local stories available right now."
-                        : "Choose a country for local news."
+                      ? localLocation.loading
+                        ? "Finding local news…"
+                        : "No verified local stories available right now."
                       : view === "regional"
-                        ? "Choose a country or region with available news."
+                        ? "No stories available for this region right now."
                         : view === "saved"
                           ? "Keep something worth returning to."
                           : view === "history"
@@ -1147,19 +1133,31 @@ export default function App() {
                 <p>
                   {query
                     ? "Try another search or category."
-                    : view === "saved"
-                      ? "Tap the bookmark on a story to save it for later, including offline."
-                      : view === "history"
-                        ? "Open a story and it will appear here."
-                        : "Follow sources that match your interests, or explore all available stories."}
+                    : view === "local"
+                      ? "Local News uses approximate country only. When location or verified local coverage is unavailable, World News offers worldwide coverage. Your Offline Library remains available."
+                      : view === "saved"
+                        ? "Tap the bookmark on a story to save it for later, including offline."
+                        : view === "history"
+                          ? "Open a story and it will appear here."
+                          : "Follow sources that match your interests, or explore all available stories."}
                 </p>
                 <button
                   className="primary"
                   onClick={() =>
-                    navigate(view === "home" ? "sources" : "explore")
+                    navigate(
+                      view === "local"
+                        ? "world"
+                        : view === "home"
+                          ? "sources"
+                          : "explore",
+                    )
                   }
                 >
-                  {view === "home" ? "Choose sources" : "Explore stories"}
+                  {view === "local"
+                    ? "World News"
+                    : view === "home"
+                      ? "Choose sources"
+                      : "Explore stories"}
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -1168,7 +1166,7 @@ export default function App() {
                 key={[
                   view,
                   ordering,
-                  prefs.country,
+                  view === "local" ? detectedCountry : "",
                   filter,
                   query,
                   sport,
@@ -1465,31 +1463,25 @@ export default function App() {
               >
                 Edit interests & sources
               </button>
-              <CountryPreference
-                prefs={prefs}
-                onChange={(country) => patch({ country })}
-                onFollow={(ids) =>
-                  patch({
-                    sourceIds: [...new Set([...prefs.sourceIds, ...ids])],
-                  })
-                }
-              />
               <label className="field">
                 Regional news
                 <select
                   aria-label="Regional news"
-                  value={prefs.region}
+                  value={newsRegion(prefs.region)}
                   onChange={(e) => patch({ region: e.target.value })}
                 >
-                  {regions.map((r) => (
+                  {newsRegions.map((r) => (
                     <option key={r}>{r}</option>
                   ))}
                 </select>
               </label>
               <p className="quiet">
-                This regional filter applies to For You when no country is
-                selected. Follow matching sources in My Sources. Explore
-                includes all regions.
+                Your regional selection stays the same when you travel. Local
+                News uses approximate country automatically and works
+                independently.
+                <a href={import.meta.env.BASE_URL + "privacy.html"}>
+                  Privacy policy
+                </a>
               </p>
             </section>
             <section>
