@@ -1,14 +1,21 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+const motionQuery = "(prefers-reduced-motion: reduce)";
+const getSnapshot = () => matchMedia(motionQuery).matches;
+const getServerSnapshot = () => false;
+
+function subscribe(update: () => void) {
+  const media = matchMedia(motionQuery);
+  media.addEventListener("change", update);
+  return () => media.removeEventListener("change", update);
+}
+
 export function ReadingMotionNote() {
-  const [reduced, setReduced] = useState(
-    () => matchMedia("(prefers-reduced-motion: reduce)").matches,
+  const reduced = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
   );
-  useEffect(() => {
-    const media = matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduced(media.matches);
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
   return reduced ? (
     <p className="quiet" role="status">
       Your device’s Reduce Motion setting is on. Pages still turn, with the
