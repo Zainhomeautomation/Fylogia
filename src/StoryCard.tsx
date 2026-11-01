@@ -12,7 +12,7 @@ import type { Article } from "./catalog";
 import { PublicationDate } from "./PublicationDate";
 import { newsDay } from "./news-chronology";
 /** End a preview at a sentence or word boundary; the original stays intact. */
-export function storyPreview(text: string, limit: number) {
+function storyPreview(text: string, limit: number) {
   const plain = text.trim().replace(/\s+/g, " ");
   if (plain.length <= limit) return plain;
   const prefix = plain.slice(0, limit);
@@ -55,9 +55,10 @@ export function StoryCard({
   const image = mediaImage(article);
   const appleKind = classifyApple(article).kind;
   const longHeadline = magazinePage && article.title.length > 150;
-  const preview = magazinePage
-    ? storyPreview(article.excerpt, longHeadline ? 120 : 220)
-    : article.excerpt;
+  const preview = storyPreview(
+    article.excerpt,
+    magazinePage ? (longHeadline ? 120 : 220) : 320,
+  );
   const [failedImage, setFailedImage] = useState<{
     url: string;
     token: number;

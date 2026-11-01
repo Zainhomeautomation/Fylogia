@@ -392,10 +392,8 @@ html[data-theme="light"] .brand-mark-light {
   font-size: 17px;
   line-height: 1.48;
   color: var(--muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: block;
+  overflow-wrap: anywhere;
 }
 .story-category {
   font-size: 10px;
@@ -1843,7 +1841,6 @@ html[data-theme="light"] .brand-mark-light {
   margin-top: 30px;
 }
 .lead .story-open p {
-  -webkit-line-clamp: 3;
   margin-bottom: 26px;
 }
 .lead .story-meta {
@@ -1975,7 +1972,6 @@ html[data-theme="light"] .brand-mark-light {
 }
 .lead .story-open p {
   align-self: start;
-  max-height: 4.5em;
 }
 .daily-edition {
   padding: 16px 22px;
@@ -3281,7 +3277,6 @@ html[data-theme="light"] .brand-mark-light {
   margin: 12px 0;
   display: block;
   overflow-wrap: anywhere;
-  hyphens: auto;
 }
 .news-book .feed-sheet .story[data-long-headline] .story-open h2 {
   font-size: clamp(24px, 5.7cqw, 32px);

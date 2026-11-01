@@ -244,3 +244,23 @@ test("long-title paper snapshots fit before a real curl and after forward/backwa
   await settled(page);
   await measure(page);
 });
+
+test("the optional story list also keeps complete headlines and natural preview endings", async ({
+  page,
+}) => {
+  await seed(page);
+  await page.getByRole("button", { name: "Story list", exact: true }).click();
+  const heading = page.locator(".story h2").filter({ hasText: titles[3] });
+  await expect(heading).toHaveText(titles[3]);
+  const clipped = await page
+    .locator(".story-open p")
+    .evaluateAll((nodes) =>
+      nodes.some((n) => n.scrollHeight > n.clientHeight + 1),
+    );
+  expect(clipped).toBe(false);
+  const previews = await page.locator(".story-open p").allTextContents();
+  for (const text of previews) {
+    expect(text.length).toBeLessThanOrEqual(321);
+    expect(text).toMatch(/[.!?…]$/);
+  }
+});
