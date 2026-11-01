@@ -1,3 +1,4 @@
+import "./check-distribution.mjs";
 import { chronological } from "../src/news-chronology.ts";
 import { sourceHasAppleCoverage, deriveApple } from "../src/apple-taxonomy.ts";
 import { parseFeedDocument } from "../src/feed-parser.ts";
