@@ -33,3 +33,11 @@ The pre-existing scheduled feed refresh remains enabled. At 2026-11-02 06:23 UTC
 | Instruments / native accessibility / widgets / intents / notifications / iCloud | NOT RUN                    | Later phases; no functional claim.                                                                                                                                           |
 
 No permanent PWA correction, frame-rate guarantee or App Store release readiness is claimed.
+
+## Phase 2 live follow-up
+
+PASS: all 18 live SEO/PDF cases, zero retries, in the fresh checkout. Log: /tmp/fylogia-phase2-production-tests.log. This resolves the fresh-run PDF check after the original checkout's host filesystem errors; original failed attempts remain recorded above. All 57 canonical sitemap URLs are checked by each SEO API test.
+
+Search Console: personal session available, domain property unverified; manual TXT prepared but unsaved pending owner confirmation. Sitemap submission and Google coverage: NOT RUN. See docs/search-discovery.md for the client-specific Cloudflare 1010 finding and actual 301/200/404 curl results.
+
+Refreshed Apple inventory: 21 available simulators across iOS 27.2 and 17.0; Xcode 27.2 includes iOS/iOS Simulator 27.2 SDKs. `devicectl list devices` reports no connected devices. No native app/simulator-host performance claim.

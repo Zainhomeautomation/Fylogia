@@ -29,3 +29,5 @@ The benchmark must use the same realistic stories/images and record startup, dra
 ## Toolchain status
 
 Initial discovery found only Command Line Tools. The owner subsequently completed Xcode setup: Xcode 27.2 now responds, and XcodeBuildMCP lists iOS 17 iPhone/iPad simulators. No simulator has been booted and no native project exists yet. Architecture selection and prototypes remain gated on completion of Phases 1–3; tool availability alone is not a build, performance or physical-device result. Signing/team identifiers and iCloud/APNs entitlements must not be invented or committed as usable credentials.
+
+Latest inventory: Xcode 27.2 SDKs and 21 iOS 27.2/17.0 simulators are available; no connected physical devices were discovered. Boot/performance testing and architecture selection remain pending earlier sequential phases.

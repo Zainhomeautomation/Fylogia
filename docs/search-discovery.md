@@ -1,6 +1,6 @@
 # Search discovery and owner setup
 
-Fylogia is technically prepared for search discovery, not guaranteed indexing, ranking, rich results or Google Discover inclusion. No advertising, paid SEO service, Search Console account connection or DNS change is introduced.
+Fylogia is technically prepared for search discovery, not guaranteed indexing, ranking, rich results or Google Discover inclusion. No advertising or paid SEO service is introduced. See the dated account-status update below for current verification work.
 
 ## Public pages and content boundaries
 
@@ -67,3 +67,15 @@ Lab performance measurements can assess load, LCP, CLS and main-thread blocking.
 - [Google Discover guidance](https://developers.google.com/search/docs/appearance/google-discover)
 - [Search Console ownership verification](https://support.google.com/webmasters/answer/9008080)
 - [Cloudflare DNS record management](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/)
+
+## Account and production audit — 2026-11-02
+
+Existing technical SEO passes 18 live browser checks with zero retries across Chromium, iPhone WebKit and iPad WebKit. The checks exercise all 57 sitemap URLs, unique canonical/title/description/schema, no-JavaScript collections, private route exclusions, real 404s, offline collection preservation and original PDF rendering/turning/bookmark persistence. These are browser-engine simulations, not physical iOS tests.
+
+Production reports commit `295ed69c36b8a4fc30adb996a88832f5c4241a5e`, matching remote main. Only the scheduled publisher edition differs from the golden source; application code is unchanged. Cloudflare lists production deployment `7c6cb507-17ac-401e-9abb-45ecd32ffe7a`. Maintenance documentation deployments are skipped.
+
+The personal Google session was inspected. Its property list had no matching property; adding fylogia.com reached an unverified DNS ownership screen. Manual TXT verification is prepared in the existing personal Cloudflare account, but the record is UNSAVED pending owner confirmation for the Search Console ownership access grant. Existing apex/www CNAME records remain unchanged. No Google-to-Cloudflare authorization was granted. This observation does not rule out verification by another Google account.
+
+Sitemap submission, URL Inspection, indexing coverage, field Core Web Vitals and Google-selected canonical status remain NOT VERIFIED until ownership is confirmed. No indexing success is claimed. The earlier owner checklist remains applicable; Google sign-in and obtaining the actual TXT value are now complete, while saving/verifying it and submitting the sitemap are pending.
+
+HTTP and www redirects resolve to https://fylogia.com/ with 301 responses using curl; normal homepage returns 200 and a genuinely unknown route 404. A default Python-urllib client receives Cloudflare 403/error 1010, also reproduced by sending that user agent with curl. This matches [Cloudflare's documented Pages browser-signature filtering](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/). It does not establish that Googlebot is blocked. Security settings were not weakened; actual Google fetching still needs URL Inspection.
