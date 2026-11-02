@@ -75,3 +75,13 @@ Overview reports that performance, indexing and experience data are still proces
 Owner supplied the continuation instruction: bound the standalone investigation and proceed to native development if the issue cannot be reliably reproduced. Reviewed shared capture/turn engine and lifecycle listeners; no confirmed standalone-specific root cause yet, no speculative website patch. XcodeBuildMCP started the iOS 27.2 iPad Pro 11-inch simulator; bootstatus remains in initial LaunchServices migration at this checkpoint. A reported boot action is not a completed Safari/PWA test. Native architecture benchmarks and implementation remain outstanding.
 
 Host storage measured approximately 4.3–5.0 GiB free during simulator setup. Requested owner to free 15–20 GB or authorize a scoped disposable-cache inspection/proposal. No unrelated files, caches or simulator data deleted. This capacity concern is not claimed to be the cause of the PWA slowdown or simulator migration delay. No website deployment made.
+
+## Native foundation implementation — 2 November 2026
+
+- Golden tag freshly verified at `26fd37f27bd70cd7495f33209b823796770d9c22`; ruleset 26345306 still active with update/deletion restrictions. Live build-info remains `295ed69c36b8a4fc30adb996a88832f5c4241a5e` at start of native work.
+- Dedicated checkout `/Users/abdulahad/Projects/Fylogia-native-20261102`, branch `native-ios-foundation`, personal repository only. Production branch is not modified.
+- Phase 4: native critical-reader architecture chosen for implementation; comparative physical performance evaluation remains open.
+- First functional universal project implemented under `native/ios`: native page curling, responsive facing pages, exact-range pagination, local reading anchors/bookmarks, permitted content handling, cached edition text, original links, optional haptics/sound and original branding.
+- First successful iPad build and launch completed. Unit and UI tests exercise real simulator UIKit, not browser viewports. Detailed outcomes in `native/ios/TEST_RESULTS.md`.
+- Later master-plan phases remain outstanding; this milestone does not claim widgets, notification delivery, iCloud, native PDF reading, complete offline parity, TestFlight or App Store readiness.
+- No additional runtime installed; no unrelated cleanup; 10 GB minimum storage guard checked throughout.

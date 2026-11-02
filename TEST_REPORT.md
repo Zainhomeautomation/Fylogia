@@ -51,3 +51,7 @@ Overview reports that performance, indexing and experience data are still proces
 ## Native continuation environment check
 
 Simulator start command: PASS. Usable simulator UI/Safari/standalone PWA comparison: NOT YET VERIFIED (first boot migrating LaunchServices). Physical device tests: NOT RUN. Native application build: NOT RUN. No confirmed PWA root cause, performance benchmark, correction or native release claim. Host free disk approximately 5 GiB; storage preparation requested before sustained native builds/tests.
+
+## Native first functional milestone — 2026-11-02
+
+First universal iOS project built and launched on the installed iPad simulator. Final iPad XCTest/XCUITest suite: 10 passed, no failures or warnings, including finger curling and rotation/relaunch persistence. Swift formatting and build checks pass. Existing iPhone simulator test build succeeded but first boot stalled; runtime tests timed out, not counted as passing. See [native evidence and limitations](native/ios/TEST_RESULTS.md). Website runtime and deployment remain untouched; no physical-device or App Store release claim.
