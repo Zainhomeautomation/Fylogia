@@ -47,3 +47,7 @@ Refreshed Apple inventory: 21 available simulators across iOS 27.2 and 17.0; Xco
 Owner approved the prepared verification. On resuming, Cloudflare already displayed exactly one matching Google verification TXT record alongside the two unchanged Pages CNAME records; no duplicate was added. Google then confirmed **Ownership verified**, method Domain name provider. Submitted https://fylogia.com/sitemap.xml; Search Console reports **Success**, last read 2 November 2026, **57 discovered pages**, zero videos.
 
 Overview reports that performance, indexing and experience data are still processing. Discovered URLs are not proof of indexing. Retain the verification record. No website code, routing records, security configuration or user data was modified for this verification. Earlier pending-verification entries are historical and superseded by this checkpoint. Phase 2 ownership/submission gate is complete; Phase 3 standalone PWA reproduction remains next.
+
+## Native continuation environment check
+
+Simulator start command: PASS. Usable simulator UI/Safari/standalone PWA comparison: NOT YET VERIFIED (first boot migrating LaunchServices). Physical device tests: NOT RUN. Native application build: NOT RUN. No confirmed PWA root cause, performance benchmark, correction or native release claim. Host free disk approximately 5 GiB; storage preparation requested before sustained native builds/tests.

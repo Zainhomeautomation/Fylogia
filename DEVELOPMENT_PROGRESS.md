@@ -69,3 +69,9 @@ Apple tooling inventory refreshed: iOS 27.2 and 17.0 simulator devices now avail
 Owner approved the prepared verification. On resuming, Cloudflare already displayed exactly one matching Google verification TXT record alongside the two unchanged Pages CNAME records; no duplicate was added. Google then confirmed **Ownership verified**, method Domain name provider. Submitted https://fylogia.com/sitemap.xml; Search Console reports **Success**, last read 2 November 2026, **57 discovered pages**, zero videos.
 
 Overview reports that performance, indexing and experience data are still processing. Discovered URLs are not proof of indexing. Retain the verification record. No website code, routing records, security configuration or user data was modified for this verification. Earlier pending-verification entries are historical and superseded by this checkpoint. Phase 2 ownership/submission gate is complete; Phase 3 standalone PWA reproduction remains next.
+
+## Native continuation checkpoint — 2026-11-02
+
+Owner supplied the continuation instruction: bound the standalone investigation and proceed to native development if the issue cannot be reliably reproduced. Reviewed shared capture/turn engine and lifecycle listeners; no confirmed standalone-specific root cause yet, no speculative website patch. XcodeBuildMCP started the iOS 27.2 iPad Pro 11-inch simulator; bootstatus remains in initial LaunchServices migration at this checkpoint. A reported boot action is not a completed Safari/PWA test. Native architecture benchmarks and implementation remain outstanding.
+
+Host storage measured approximately 4.3–5.0 GiB free during simulator setup. Requested owner to free 15–20 GB or authorize a scoped disposable-cache inspection/proposal. No unrelated files, caches or simulator data deleted. This capacity concern is not claimed to be the cause of the PWA slowdown or simulator migration delay. No website deployment made.
