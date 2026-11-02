@@ -14,7 +14,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 const ios = resolve(dirname(fileURLToPath(import.meta.url)), ".."),
   repo = resolve(ios, "../..");
-execFileSync("sh", [resolve(ios, "scripts/check-storage.sh")], {
+execFileSync("sh", [resolve(ios, "scripts/check-development-volume.sh")], {
   stdio: "inherit",
 });
 const stage = resolve(ios, ".build/golden-source");
