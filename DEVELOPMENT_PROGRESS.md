@@ -63,3 +63,9 @@ The remote main/live update was verified in a fresh checkout: only public/data/e
 Phase 1 completion saved/pushed as `8866f7d`. Phase 2 technical audit: 18 live tests PASS without retries; no website code change needed. Personal Search Console domain verification is prepared, awaiting required owner confirmation before saving one TXT record and granting ownership access. No DNS mutation or sitemap submission yet. Subsequent phases remain pending under the sequential execution requirement. Current production/main `295ed69` differs from the golden tag only in scheduled feed data.
 
 Apple tooling inventory refreshed: iOS 27.2 and 17.0 simulator devices now available, no connected physical devices. Native implementation has not begun. Existing website/user libraries remain intact.
+
+## Google ownership approval completed — 2026-11-02
+
+Owner approved the prepared verification. On resuming, Cloudflare already displayed exactly one matching Google verification TXT record alongside the two unchanged Pages CNAME records; no duplicate was added. Google then confirmed **Ownership verified**, method Domain name provider. Submitted https://fylogia.com/sitemap.xml; Search Console reports **Success**, last read 2 November 2026, **57 discovered pages**, zero videos.
+
+Overview reports that performance, indexing and experience data are still processing. Discovered URLs are not proof of indexing. Retain the verification record. No website code, routing records, security configuration or user data was modified for this verification. Earlier pending-verification entries are historical and superseded by this checkpoint. Phase 2 ownership/submission gate is complete; Phase 3 standalone PWA reproduction remains next.

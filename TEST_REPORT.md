@@ -41,3 +41,9 @@ PASS: all 18 live SEO/PDF cases, zero retries, in the fresh checkout. Log: /tmp/
 Search Console: personal session available, domain property unverified; manual TXT prepared but unsaved pending owner confirmation. Sitemap submission and Google coverage: NOT RUN. See docs/search-discovery.md for the client-specific Cloudflare 1010 finding and actual 301/200/404 curl results.
 
 Refreshed Apple inventory: 21 available simulators across iOS 27.2 and 17.0; Xcode 27.2 includes iOS/iOS Simulator 27.2 SDKs. `devicectl list devices` reports no connected devices. No native app/simulator-host performance claim.
+
+## Google ownership approval completed — 2026-11-02
+
+Owner approved the prepared verification. On resuming, Cloudflare already displayed exactly one matching Google verification TXT record alongside the two unchanged Pages CNAME records; no duplicate was added. Google then confirmed **Ownership verified**, method Domain name provider. Submitted https://fylogia.com/sitemap.xml; Search Console reports **Success**, last read 2 November 2026, **57 discovered pages**, zero videos.
+
+Overview reports that performance, indexing and experience data are still processing. Discovered URLs are not proof of indexing. Retain the verification record. No website code, routing records, security configuration or user data was modified for this verification. Earlier pending-verification entries are historical and superseded by this checkpoint. Phase 2 ownership/submission gate is complete; Phase 3 standalone PWA reproduction remains next.
