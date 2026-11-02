@@ -15,7 +15,9 @@ The owner-local `artifacts/apple-release-2026-11-02/golden/` directory outside t
 
 ## Recovery rehearsal
 
-Verify the source bundle and its SHA-256 checksum. Clone it into a fresh local directory and check out the tag, then verify `git rev-parse HEAD` equals the recorded source. Install the locked dependencies with a compatible Node 24/npm environment, run server tests and build with `npm run build:pages`. Run the existing browser regression suite against the Pages runtime. The current rehearsal uses the already installed locked dependency cache, without modifying production.
+Verify the source bundle and its SHA-256 checksum. Clone it into a fresh local directory and check out the tag, then verify `git rev-parse HEAD` equals the recorded source. Install the locked dependencies with a compatible Node 24/npm environment, run server tests and build with `npm run build:pages`. Run the existing browser regression suite against the Pages runtime. The current rehearsal uses the already installed locked dependency cache, without modifying production. The pristine recovery build and all 151 server tests pass; its compiled client assets match the live frozen deployment.
+
+The original tag navigation suite has a calendar-dependent Daily Magazine fixture: after the frozen feed day expires, its Today button is correctly disabled. Keep the tag unchanged. The maintenance harness fixes only the test Date clock to the latest followed fixture date (timers and publication data remain natural/unchanged). Use that documented test-harness correction when rehearsing this frozen runtime; record the harness revision separately rather than falsely claiming the original test file passed unchanged.
 
 Compare compiled client asset hashes with the frozen production asset evidence. Build stamps/service-worker build metadata may differ between rebuilds. Git integrity and successful tests are separate from proof that a live rollback occurred; no live rollback is performed just to demonstrate recoverability.
 

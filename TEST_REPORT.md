@@ -23,7 +23,7 @@ Date: 2026-11-02, Asia/Muscat. Use PASS / FAIL / NOT RUN explicitly; prior relea
 | ---------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------ |
 | Xcode installation discovery                               | UNAVAILABLE  | No full Xcode application found; selected developer directory is CommandLineTools.                     |
 | Simulator inventory                                        | FAIL tooling | XcodeBuildMCP reports simctl unavailable.                                                              |
-| Native app build/launch                                    | NOT RUN      | No native app or usable SDK/simulator yet.                                                             |
+| Native app build/launch                                    | NOT RUN      | No native app exists yet; sequential phase gate not reached.                                           |
 | Actual standalone iOS/iPadOS PWA performance               | NOT RUN      | Host-specific reproduction/profiling required in Phase 3; desktop display-mode emulation is not proof. |
 | Physical iPhone/iPad/iPhone Duo/Apple Pencil               | NOT RUN      | No physical hardware test performed.                                                                   |
 | Native haptics/audio/widgets/intents/notifications/iCloud  | NOT RUN      | Later sequential phases, not implemented or claimed.                                                   |

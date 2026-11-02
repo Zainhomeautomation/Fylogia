@@ -26,6 +26,6 @@ The benchmark must use the same realistic stories/images and record startup, dra
 - WidgetKit and App Intents use narrow native integration surfaces.
 - No paid AI inference, ads, subscriptions or unnecessary monetization infrastructure at launch.
 
-## Current blocker
+## Toolchain status
 
-Full Xcode and a simulator runtime are unavailable. The selected Command Line Tools cannot run `simctl`. Native prototypes cannot be compiled, run or benchmarked honestly until the owner completes the toolchain action in DEVELOPMENT_PROGRESS.md. Signing/team identifiers and iCloud/APNs entitlements must not be invented or committed as usable credentials.
+Initial discovery found only Command Line Tools. The owner subsequently completed Xcode setup: Xcode 27.2 now responds, and XcodeBuildMCP lists iOS 17 iPhone/iPad simulators. No simulator has been booted and no native project exists yet. Architecture selection and prototypes remain gated on completion of Phases 1–3; tool availability alone is not a build, performance or physical-device result. Signing/team identifiers and iCloud/APNs entitlements must not be invented or committed as usable credentials.

@@ -15,18 +15,18 @@ Proceed through the owner's phases in order. Preserve the approved website. Nati
 - Existing Cloudflare production deployment: `2e0d5c7e-e8ad-4793-8a61-7f83f9628cf2`, source `26fd37f`, project `fylogia`, branch `main`.
 - Website maintenance branch: `web-maintenance-after-golden-v1`.
 - Source bundle and build-rehearsal archive are stored outside the checkout under the owner's `artifacts/apple-release-2026-11-02/golden/` folder, with SHA256SUMS. They are not published as extra publisher-content downloads.
-- Local production build passes. Source bundle verification passes and records complete history. Clean-checkout recovery rehearsal and tag regression suite are in progress.
+- Local production build, source bundle verification, independent recovery build, 151 recovery server tests and compiled-asset comparison pass. The original tag browser run exposed a date-sensitive navigation fixture; the immutable tag is unchanged. The corrected maintenance harness passes 9 focused navigation cases and will run the full suite against unchanged website runtime code.
 - No website source, production deployment, DNS, stored user data or existing scheduled feed-refresh configuration has been changed during Phase 1. Normal pre-existing news refreshes remain enabled; the tag remains the immutable reference to this snapshot.
 
 ## Phase ledger
 
 | Phase                         | Status      | Evidence / next gate                                                                                                                                  |
 | ----------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Freeze website             | IN PROGRESS | Protected tag, verified source backup, local build; recovery and regression checks pending.                                                           |
+| 1. Freeze website             | IN PROGRESS | Protected tag and recovery build/assets verified; full corrected-harness browser checks pending.                                                      |
 | 2. SEO / Search Console       | NOT STARTED | Existing implementation and owner guide will be audited, not rebuilt. Account verification cannot be inferred from a sitemap or DNS alone.            |
 | 3. Standalone PWA performance | NOT STARTED | Owner reports slow Home Screen page curling on iPhone/iPad. Actual host reproduction and profiling required; no root cause or correction claimed yet. |
 | 4. Native architecture        | NOT STARTED | Decision deferred until the phase gate and representative build/benchmark evidence.                                                                   |
-| 5. Universal app              | NOT STARTED | Requires full Xcode / usable simulator.                                                                                                               |
+| 5. Universal app              | NOT STARTED | Xcode 27.2 and iOS 17 simulator inventory are now available; app implementation starts after earlier phases.                                          |
 | 6. Curl, haptics, paper audio | NOT STARTED | Native interaction and independent optional controls must be validated.                                                                               |
 | 7. Magazine layouts/readers   | NOT STARTED | Preserve permission-aware content and position.                                                                                                       |
 | 8. Local recommendations      | NOT STARTED | No paid AI or mandatory cloud inference.                                                                                                              |
@@ -41,9 +41,12 @@ Proceed through the owner's phases in order. Preserve the approved website. Nati
 
 ## Required owner/toolchain action
 
-Xcode discovery found no application, the selected developer directory is `/Library/Developer/CommandLineTools`, and XcodeBuildMCP simulator inventory failed because `simctl` is unavailable. The owner has been asked to install/open full Xcode, personally accept Apple's license and install a suitable iPhone/iPad simulator runtime. No Apple password, signing key or certificate is requested in chat. About 23 GiB was available at inspection; no storage was deleted automatically.
+Initial discovery selected Command Line Tools and could not find `simctl`. During this run the owner installed/opened Xcode; a temporary license gate blocked tool use, and the owner subsequently completed that setup. Read-only checks now report Xcode 27.2 (27B52), and XcodeBuildMCP lists iOS 17 iPhone/iPad simulators, all shut down. No simulator/native application has been launched yet. Apple agreements were not accepted by the agent. The prior Xcode setup request no longer blocks simulator preparation; no Apple password or signing material was supplied in chat.
+
+The original tagged test run failed the Daily Magazine part of a navigation test after the frozen feed crossed a calendar boundary. The app correctly excludes old stories from Today. `tests/brand-home.spec.ts` now fixes only that test's Date clock to the newest followed fixture publication, leaving timers/animation and publisher dates unchanged. All 9 focused navigation cases pass. Website/runtime paths remain byte-for-byte unchanged from the tag.
 
 ## Commit log
 
 - Frozen production milestone: `26fd37f27bd70cd7495f33209b823796770d9c22` (tag above).
+- Initial documentation checkpoint: `5e157cc` (pushed to the maintenance branch; no production merge).
 - Documentation/maintenance commits will be recorded after saving their validated checkpoint; `git log web-maintenance-after-golden-v1` is the authoritative sequence.
