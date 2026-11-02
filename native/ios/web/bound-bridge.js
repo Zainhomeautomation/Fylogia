@@ -18,7 +18,7 @@
   const update = () => {
     if (
       document.querySelector(
-        ".sidebar.open, .news-pages-mode.native-tools-open",
+        ".sidebar.open, .news-pages-mode.native-tools-open, .reader-options-panel:not([hidden]), .summary-backdrop",
       )
     ) {
       finish();
@@ -27,11 +27,14 @@
       return;
     }
     if (preparing) return;
+    const reader = [...document.querySelectorAll(".reader")].at(-1);
     const entry = [...entries.values()]
       .reverse()
       .find(
         (e) =>
           e.surface.isConnected &&
+          !e.surface.closest('[inert], [aria-hidden="true"]') &&
+          (!reader || reader.contains(e.surface)) &&
           e.options().enabled &&
           e.surface.getBoundingClientRect().width > 100,
       );
@@ -162,7 +165,13 @@
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["data-theme", "data-native-paper", "class"],
+    attributeFilter: [
+      "data-theme",
+      "data-native-paper",
+      "class",
+      "hidden",
+      "data-native-text-scale",
+    ],
   });
   addEventListener(
     "scroll",
@@ -175,6 +184,17 @@
     },
     { passive: true, capture: true },
   );
+  window.__fylogiaSuspendBound = () => {
+    pending = undefined;
+    ready = false;
+    lastSignature = "";
+    finish();
+    post({ action: "boundHide" });
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) window.__fylogiaSuspendBound();
+    else schedule();
+  });
   addEventListener("resize", schedule);
   addEventListener(
     "load",

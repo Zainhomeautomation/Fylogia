@@ -3,6 +3,17 @@ import SafariServices
 import UIKit
 import WebKit
 
+/// WebKit retains registered handlers. Keep the controller's lifetime scene-owned.
+@MainActor final class WeakScriptHandler: NSObject, WKScriptMessageHandler {
+  weak var target: (any WKScriptMessageHandler)?
+  init(_ target: any WKScriptMessageHandler) { self.target = target }
+  func userContentController(
+    _ controller: WKUserContentController, didReceive message: WKScriptMessage
+  ) {
+    target?.userContentController(controller, didReceive: message)
+  }
+}
+
 @MainActor
 final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelegate,
   WKScriptMessageHandler
@@ -22,7 +33,7 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     super.viewDidLoad()
     view.backgroundColor = UIColor(red: 10 / 255, green: 16 / 255, blue: 24 / 255, alpha: 1)
     let config = WKWebViewConfiguration()
-    config.userContentController.add(self, name: "fylogia")
+    config.userContentController.add(WeakScriptHandler(self), name: "fylogia")
     let testing = ProcessInfo.processInfo.arguments.contains("--parity-testing")
     if testing {
       // Isolated test store; never resets or replaces the reviewer's real library.
@@ -165,6 +176,12 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     animate(
       rect: rect, forward: body["forward"] as? Bool ?? true,
       spread: body["spread"] as? Int == 2 ? 2 : 1)
+  }
+  override func didReceiveMemoryWarning() {
+    super.didReceiveMemoryWarning()
+    // Discard only regenerable snapshots, never the web library or offline store.
+    removeBound()
+    web?.evaluateJavaScript("window.__fylogiaSuspendBound?.()")
   }
   private func removeBound() {
     boundGeneration += 1

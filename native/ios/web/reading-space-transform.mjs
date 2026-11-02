@@ -7,6 +7,30 @@ export function readingSpace(code, id) {
     code = code.replace(from, to);
   };
   replace(
+    'newsSections.includes(view) && newsView === "pages" && !selecting;',
+    "newsSections.includes(view) && !selecting;",
+  );
+  const stateStart = code.indexOf(
+    "  const [newsView, setNewsView] = useState(() => {",
+  );
+  const stateEnd = code.indexOf(
+    "  if (!prefs.complete || personalizing)",
+    stateStart,
+  );
+  if (stateStart < 0 || stateEnd < 0 || stateEnd - stateStart > 700)
+    throw Error("Native automatic feed preference anchor missing");
+  code = code.slice(0, stateStart) + code.slice(stateEnd);
+  const switchStart = code.indexOf(
+    '<div className="feed-view-switch" aria-label="News presentation">',
+  );
+  const switchEnd = code.indexOf("</div>", switchStart);
+  if (switchStart < 0 || switchEnd < 0 || switchEnd - switchStart > 1200)
+    throw Error("Native automatic presentation control anchor missing");
+  code =
+    code.slice(0, switchStart) +
+    '<p className="quiet">Adaptive reading: scroll in narrow windows, turn facing pages in wide windows.</p>' +
+    code.slice(switchEnd + 6);
+  replace(
     "export default function App() {",
     "export default function App() { const [nativeTools, setNativeTools] = useState(false);",
   );
@@ -55,13 +79,17 @@ export function adaptiveFeed(code, id) {
         if (target && anchor !== articles[0]?.id) target.scrollIntoView({block:'start', behavior:'instant'});
       } else window.scrollTo({top:0, behavior:'instant'});
     });
+    let scrollFrame = 0;
     const remember = () => {
-      if (!flow) return;
+      if (!flow || scrollFrame) return;
+      scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
       const visible = [...node.querySelectorAll<HTMLElement>('[data-story-id]')].find(e => e.getBoundingClientRect().bottom > 100);
       if (visible?.dataset.storyId) setAnchor(visible.dataset.storyId);
+      });
     };
     window.addEventListener('scroll', remember, {passive:true});
-    return () => { cancelAnimationFrame(frame); window.removeEventListener('scroll', remember); };
+    return () => { cancelAnimationFrame(frame); cancelAnimationFrame(scrollFrame); window.removeEventListener('scroll', remember); };
   }, [flow]);`,
   );
   replace("    start,\n    true,", "    start,\n    !flow,");

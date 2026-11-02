@@ -1,8 +1,22 @@
+import WebKit
 import XCTest
 
 @testable import Fylogia
 
 @MainActor final class ReaderTests: XCTestCase {
+  func testWebKitBridgeDoesNotRetainController() {
+    weak var observed: HybridController?
+    var web: WKWebView!
+    autoreleasepool {
+      let controller = HybridController()
+      observed = controller
+      let config = WKWebViewConfiguration()
+      config.userContentController.add(WeakScriptHandler(controller), name: "fylogia")
+      web = WKWebView(frame: .zero, configuration: config)
+    }
+    XCTAssertNil(observed, "A retained web configuration must not retain its scene controller")
+    XCTAssertNotNil(web.configuration.userContentController)
+  }
   func testBookGestureBoundsRejectExtremeAndInvalidCoordinates() {
     let bounds = CGRect(x: 0, y: 0, width: 794, height: 730)
     for point in [CGPoint(x: 0, y: 0), CGPoint(x: 397, y: 365), CGPoint(x: 794, y: 730)] {

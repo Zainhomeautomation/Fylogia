@@ -1,3 +1,5 @@
+> Latest implementation and pending Apple-platform acceptance: [CONSISTENT-READING-REVIEW.md](CONSISTENT-READING-REVIEW.md).
+
 > Current adaptive feed policy and review limitations: [ADAPTIVE-READING-REVIEW.md](ADAPTIVE-READING-REVIEW.md). Earlier prototype notes below remain historical.
 
 # Current native development build

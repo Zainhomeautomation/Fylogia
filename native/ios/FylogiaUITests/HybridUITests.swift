@@ -90,6 +90,42 @@ final class HybridUITests: XCTestCase {
     capture("bound-landscape", app: app)
     XCUIDevice.shared.orientation = .portrait
   }
+  @MainActor func testArticleModesAndNavigationSurviveRotation() {
+    XCUIDevice.shared.orientation = .portrait
+    let app = launch()
+    for pass in 0..<2 {
+      let story = app.buttons.matching(
+        NSPredicate(format: "label CONTAINS %@", "A new perspective on our changing world")
+      ).firstMatch
+      XCTAssertTrue(story.waitForExistence(timeout: 8))
+      story.tap()
+      let scrolling = app.staticTexts.matching(
+        NSPredicate(format: "label BEGINSWITH %@", "Scroll reading")
+      ).firstMatch
+      XCTAssertTrue(scrolling.waitForExistence(timeout: 8))
+      if pass == 0 { capture("consistent-portrait-article", app: app) }
+      app.webViews.firstMatch.swipeUp()
+      XCUIDevice.shared.orientation = .landscapeLeft
+      let spread = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Spread "))
+        .firstMatch
+      XCTAssertTrue(spread.waitForExistence(timeout: 10))
+      let bound = app.otherElements["Native bound magazine"]
+      XCTAssertTrue(bound.waitForExistence(timeout: 8))
+      XCTAssertEqual(bound.value as? String, "spread=2;spine=mid")
+      if pass == 0 { capture("consistent-landscape-article", app: app) }
+      XCUIDevice.shared.orientation = .portrait
+      XCTAssertTrue(scrolling.waitForExistence(timeout: 10))
+      XCTAssertFalse(bound.exists)
+      if pass == 0 {
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(scrolling.waitForExistence(timeout: 8))
+      }
+      app.buttons["Back to previous section"].tap()
+      XCTAssertTrue(
+        app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 8))
+    }
+  }
   @MainActor func testGoldenNavigationSettingsAndScreenshots() {
     XCUIDevice.shared.orientation = .portrait
     let app = launch()

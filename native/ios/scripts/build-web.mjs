@@ -1,3 +1,4 @@
+import { adaptiveReaders } from "../web/reader-transform.mjs";
 import { readingSpace, adaptiveFeed } from "../web/reading-space-transform.mjs";
 import { execFileSync } from "node:child_process";
 import {
@@ -33,6 +34,14 @@ const modules = realpathSync(
 if (!existsSync(resolve(stage, "node_modules")))
   symlinkSync(modules, resolve(stage, "node_modules"));
 const golden = process.argv.includes("--golden");
+cpSync(
+  resolve(ios, "web/native-reading.tsx"),
+  resolve(stage, "src/native-reading.tsx"),
+);
+cpSync(
+  resolve(ios, "web/native-pdf-stream.tsx"),
+  resolve(stage, "src/native-pdf-stream.tsx"),
+);
 const nativeCSS = readFileSync(resolve(ios, "web/native.css"), "utf8"),
   bridge =
     readFileSync(resolve(ios, "web/bridge.js"), "utf8") +
@@ -44,6 +53,7 @@ name:'fylogia-native-only',enforce:'pre',
 transform(code,id){
  code=(${readingSpace.toString()})(code,id);
  code=(${adaptiveFeed.toString()})(code,id);
+ code=(${adaptiveReaders.toString()})(code,id);
  if(id.endsWith('/src/usePageTurn.ts')){code=code.replace('if (!allowed(forward)) return;', 'if (!allowed(forward)) return; if ((window as any).__fylogiaNativeTurn?.(forward, turn, getSurface(), axis)) return;');code=code.replace('if (!surface) return;\\n    let touchSequence', 'if (!surface) return; (window as any).__fylogiaRegisterBound?.(surface, getOptions, async (forward: boolean, signal: AbortSignal) => getOptions().prepare ? getOptions().prepare!(forward, signal) : capture(surface, (forward ? -1 : 1) * (surface.clientWidth + 40)).node);\\n    let touchSequence');code=code.replace('surface.removeEventListener("click", click, true);','(window as any).__fylogiaUnregisterBound?.(surface); surface.removeEventListener("click", click, true);');}
  if(id.endsWith('/src/magazine-layout.ts'))code=code.replace('width >= minimumPageWidth * 2 && viewportWidth >= viewportHeight * 0.9', 'width >= minimumPageWidth * 2 * Math.max(1, Number(document.documentElement.dataset.nativeTextScale || 1))');
  if(id.endsWith('/src/App.css'))code=code.replace('(max-width: 1100px) and (min-aspect-ratio: 9/10)', '(max-width: 1100px)');

@@ -160,3 +160,45 @@ html[data-native-paper="cream"] .native-scroll-feed {
   -webkit-line-clamp: unset;
   overflow-wrap: anywhere;
 }
+
+/* The same adaptive policy applies to articles, saved/offline entries and PDFs. */
+html .reader-viewport.scrolling {
+  width: 100%;
+  max-width: 900px;
+  margin-inline: auto;
+  overflow-x: hidden;
+  touch-action: pan-y pinch-zoom;
+}
+html .reader-viewport.scrolling .reader-content {
+  columns: auto 1 !important;
+  column-width: auto !important;
+  height: auto;
+  max-width: 72ch;
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+}
+html .pdf-spread.native-pdf-flow {
+  display: block;
+  overflow: auto;
+  touch-action: pan-x pan-y pinch-zoom;
+  padding: 16px;
+}
+.native-pdf-stream {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: max-content;
+  min-width: 100%;
+}
+.native-pdf-stream > div {
+  flex: none;
+  background: var(--paper);
+}
+
+@media (max-aspect-ratio: 9/10), (max-width: 727px) {
+  html :is(.story-grid, .editorial-grid) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
