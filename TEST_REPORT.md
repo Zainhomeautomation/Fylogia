@@ -1,32 +1,35 @@
 # Fylogia Apple programme test report
 
-Date: 2026-11-02, Asia/Muscat. Use PASS / FAIL / NOT RUN explicitly; prior release results are not new native validation.
+Updated 2026-11-02, Asia/Muscat. Prior website results do not establish native or physical-device quality.
 
-## Phase 1 frozen website
+## Phase 1 — frozen website
 
-| Check                              | Status                          | Evidence                                                                                                     |
-| ---------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Personal GitHub ownership          | PASS                            | Zainhomeautomation/Fylogia, owner type User.                                                                 |
-| Live/GitHub source consistency     | PASS at freeze                  | Both `26fd37f27bd70cd7495f33209b823796770d9c22`; live build dirty=false.                                     |
-| Golden tag                         | PASS                            | Annotated tag object `ca205e79dcecbd891522984a83289eb3f34a835d` points to frozen source.                     |
-| Tag update/delete protection       | PASS configuration verification | Active exact-tag ruleset 26345306, no bypass actors; no destructive deletion test attempted.                 |
-| Local production build             | PASS                            | 57 canonical sitemap URLs, 295 source editions, distribution checks pass.                                    |
-| Live asset/security comparison     | PASS                            | Compiled JS/CSS match live assets; manifest icons load; private sync status remains 401 without credentials. |
-| Independent source bundle          | PASS                            | Complete-history bundle verification and SHA256SUMS outside checkout.                                        |
-| Recovery checkout build/unit tests | RUNNING                         | Detached checkout restored from the bundle; cached locked dependencies reused.                               |
-| Full tag regression suite          | RUNNING                         | GitHub Actions workflow_dispatch run 41394627737; no production deployment job.                              |
-| Live rollback                      | NOT RUN intentionally           | Current site remains unchanged. Recovery is rehearsed in isolation.                                          |
+| Check                                     | Status                    | Evidence                                                                                                                                                                                                                                     |
+| ----------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Personal ownership and freeze consistency | PASS                      | Zainhomeautomation/Fylogia; main and live matched `26fd37f27bd70cd7495f33209b823796770d9c22` at freeze.                                                                                                                                      |
+| Golden tag and protection                 | PASS                      | `fylogia-web-golden-v1`, annotated object `ca205e79dcecbd891522984a83289eb3f34a835d`; active exact-tag update/deletion ruleset 26345306, no bypass actors. Administrators can change policy.                                                 |
+| Backup integrity and recovery             | PASS                      | Complete-history bundle verified; independent detached recovery checkout passes fsck, production build and all 151 server tests using cached locked dependencies. Source/build archives and checksums are owner-local outside checkout.      |
+| Compiled recovery assets                  | PASS                      | Three JS/CSS assets hash-equal the live golden build; generated build timestamps are not claimed identical.                                                                                                                                  |
+| Original immutable-tag CI                 | FAIL                      | Run 41394627737: quality job passes, three browser jobs expose a calendar-sensitive Daily Magazine navigation fixture. Tag remains unchanged.                                                                                                |
+| Corrected maintenance CI                  | PASS with retry           | Run 41396670781 at `3356d62`: lint, formatting, build and 151 server tests pass; 510 browser cases complete across Chromium, iPhone WebKit and iPad WebKit. One iPhone category-expansion test passed on automatic retry, not first attempt. |
+| Focused navigation regression             | PASS                      | Nine local cases. Only test Date fixed to latest followed fixture publication; real timers and publisher dates remain unchanged.                                                                                                             |
+| Local recovered-browser subset            | FAIL / partial            | 50 pass, one Chromium original-PDF canvas timeout; both WebKit original-PDF cases pass. Subsequent local server startup timed out before assertions. Full Linux CI above passes these PDF cases. No local failure is concealed.              |
+| Extra live browser check                  | BLOCKED by host file read | Runner failed before tests with ETIMEDOUT reading installed `@acemir/cssom` dependency. No live browser assertions ran in this attempt.                                                                                                      |
+| Live asset/security checks                | PASS at freeze            | Golden JS/CSS match; manifest icons load; anonymous private sync endpoint returns 401.                                                                                                                                                       |
+| Runtime preservation                      | PASS                      | Maintenance diff changes documentation and one test only; src/public/functions/server/scripts/config/package metadata and build configuration unchanged. No production merge or website deployment performed.                                |
+| Live rollback                             | NOT RUN intentionally     | Recovery rehearsed in isolation; no user data or production state reset.                                                                                                                                                                     |
+
+The pre-existing scheduled feed refresh remains enabled. At 2026-11-02 06:23 UTC, live build-info reports `295ed69c36b8a4fc30adb996a88832f5c4241a5e`, dirty=false, built 06:18 UTC. This later live observation does not move the golden tag. Fresh remote checkout confirms main at that SHA and only public/data/edition.json differs from the golden tag. Application code is unchanged.
 
 ## Apple environment
 
-| Check                                                      | Status       | Evidence                                                                                               |
-| ---------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------ |
-| Xcode installation discovery                               | UNAVAILABLE  | No full Xcode application found; selected developer directory is CommandLineTools.                     |
-| Simulator inventory                                        | FAIL tooling | XcodeBuildMCP reports simctl unavailable.                                                              |
-| Native app build/launch                                    | NOT RUN      | No native app exists yet; sequential phase gate not reached.                                           |
-| Actual standalone iOS/iPadOS PWA performance               | NOT RUN      | Host-specific reproduction/profiling required in Phase 3; desktop display-mode emulation is not proof. |
-| Physical iPhone/iPad/iPhone Duo/Apple Pencil               | NOT RUN      | No physical hardware test performed.                                                                   |
-| Native haptics/audio/widgets/intents/notifications/iCloud  | NOT RUN      | Later sequential phases, not implemented or claimed.                                                   |
-| Instruments/VoiceOver/Dynamic Type/native memory profiling | NOT RUN      | Requires usable Apple toolchain and implemented native app.                                            |
+| Check                                                                           | Status                     | Evidence                                                                                                                                                                     |
+| ------------------------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Xcode                                                                           | AVAILABLE                  | Read-only check: Xcode 27.2 (27B52), selected /Applications/Xcode.app/Contents/Developer. Initial absence/license gate resolved by owner setup; agent accepted no agreement. |
+| Simulator inventory                                                             | AVAILABLE, not boot-tested | XcodeBuildMCP lists ten iOS 17.0 iPhone/iPad simulators, all shut down at inventory.                                                                                         |
+| Native application                                                              | NOT RUN                    | No native project built or launched; sequential architecture gate not reached.                                                                                               |
+| Actual Safari / Home Screen PWA comparison                                      | NOT RUN                    | Owner-reported standalone slowdown remains open. Desktop display-mode emulation is not actual host proof.                                                                    |
+| Physical devices / Apple Pencil                                                 | NOT RUN                    | No physical hardware test performed.                                                                                                                                         |
+| Instruments / native accessibility / widgets / intents / notifications / iCloud | NOT RUN                    | Later phases; no functional claim.                                                                                                                                           |
 
-The owner-reported Home Screen PWA slowdown remains open. No root cause, permanent correction, App Store readiness or native frame-rate guarantee is claimed from the website baseline tests.
+No permanent PWA correction, frame-rate guarantee or App Store release readiness is claimed.

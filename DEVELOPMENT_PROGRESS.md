@@ -15,15 +15,15 @@ Proceed through the owner's phases in order. Preserve the approved website. Nati
 - Existing Cloudflare production deployment: `2e0d5c7e-e8ad-4793-8a61-7f83f9628cf2`, source `26fd37f`, project `fylogia`, branch `main`.
 - Website maintenance branch: `web-maintenance-after-golden-v1`.
 - Source bundle and build-rehearsal archive are stored outside the checkout under the owner's `artifacts/apple-release-2026-11-02/golden/` folder, with SHA256SUMS. They are not published as extra publisher-content downloads.
-- Local production build, source bundle verification, independent recovery build, 151 recovery server tests and compiled-asset comparison pass. The original tag browser run exposed a date-sensitive navigation fixture; the immutable tag is unchanged. The corrected maintenance harness passes 9 focused navigation cases and will run the full suite against unchanged website runtime code.
+- Local production build, source bundle verification, independent recovery build, 151 recovery server tests and compiled-asset comparison pass. The original tag browser run exposed a date-sensitive navigation fixture; the immutable tag is unchanged. The corrected maintenance harness passes 9 focused navigation cases and full CI: 510 browser cases (one iPhone case required retry), 151 server tests, lint, formatting and build. Local recovery subset: 50/51 pass with a Chromium PDF timeout; later local attempts hit startup/dependency-read errors, documented in TEST_REPORT.md. Runtime remains unchanged.
 - No website source, production deployment, DNS, stored user data or existing scheduled feed-refresh configuration has been changed during Phase 1. Normal pre-existing news refreshes remain enabled; the tag remains the immutable reference to this snapshot.
 
 ## Phase ledger
 
 | Phase                         | Status      | Evidence / next gate                                                                                                                                  |
 | ----------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Freeze website             | IN PROGRESS | Protected tag and recovery build/assets verified; full corrected-harness browser checks pending.                                                      |
-| 2. SEO / Search Console       | NOT STARTED | Existing implementation and owner guide will be audited, not rebuilt. Account verification cannot be inferred from a sitemap or DNS alone.            |
+| 1. Freeze website             | COMPLETE    | Protected tag, independent recovery build/assets and full corrected-harness CI verified; local test limitations recorded.                             |
+| 2. SEO / Search Console       | IN PROGRESS | Existing implementation and owner guide will be audited, not rebuilt. Account verification cannot be inferred from a sitemap or DNS alone.            |
 | 3. Standalone PWA performance | NOT STARTED | Owner reports slow Home Screen page curling on iPhone/iPad. Actual host reproduction and profiling required; no root cause or correction claimed yet. |
 | 4. Native architecture        | NOT STARTED | Decision deferred until the phase gate and representative build/benchmark evidence.                                                                   |
 | 5. Universal app              | NOT STARTED | Xcode 27.2 and iOS 17 simulator inventory are now available; app implementation starts after earlier phases.                                          |
@@ -49,4 +49,11 @@ The original tagged test run failed the Daily Magazine part of a navigation test
 
 - Frozen production milestone: `26fd37f27bd70cd7495f33209b823796770d9c22` (tag above).
 - Initial documentation checkpoint: `5e157cc` (pushed to the maintenance branch; no production merge).
+- Calendar-stable navigation harness and status: `3356d62` (pushed; CI run 41396670781 successful).
 - Documentation/maintenance commits will be recorded after saving their validated checkpoint; `git log web-maintenance-after-golden-v1` is the authoritative sequence.
+
+## Phase 1 completion qualification
+
+Recovery is proven at source/build level with compiled assets identical to the golden live build; the original tagged calendar-sensitive fixture remains unchanged. No live rollback or physical testing was performed. The existing scheduled refresh has advanced production build-info to `295ed69c36b8a4fc30adb996a88832f5c4241a5e`; the protected golden tag remains fixed. Phase 2 will verify that remote main/live update and inspect existing SEO and Search Console access.
+
+The remote main/live update was verified in a fresh checkout: only public/data/edition.json differs from the golden tag. The original Documents checkout encountered macOS ETIMEDOUT on .git/FETCH_HEAD and installed dependencies. It remains preserved. A separate personal-repository checkout at /Users/abdulahad/Projects/Fylogia-apple-20261102 now continues the same maintenance branch/history; locked dependency installation succeeds with zero reported vulnerabilities. No project restart or implementation replacement occurred.
