@@ -1,3 +1,17 @@
+# Current native development build
+
+The default app now runs an isolated hybrid prototype using the protected golden React interface and a native UIKit bound-page experiment. The previous UIKit-only prototype and its data remain intact (`--native-reader`). See [BOUND-READER-REVIEW.md](BOUND-READER-REVIEW.md) for implementation limits and acceptance status. This is not a production or App Store release.
+
+Before building, generate the bundled interface using already-installed web dependencies:
+
+```sh
+FYLOGIA_NODE_MODULES=/path/to/existing/node_modules node scripts/build-web.mjs
+```
+
+The script archives `fylogia-web-golden-v1` into ignored build storage and applies native-only transforms there. It never edits tracked website files. `--golden` builds an unmodified comparison bundle. No simulator runtimes are installed. Retain at least 10 GB free.
+
+---
+
 # Fylogia native reader — first functional milestone
 
 This universal iPhone/iPad project is isolated from the production website. Open `Fylogia.xcodeproj`, select **Fylogia**, and run on an **already installed** simulator. It uses Apple frameworks only; no package manager, extra runtime, account, or paid service is required for simulator builds. Minimum target: iOS 17. Signing for physical devices remains an owner-account step, not configured here.

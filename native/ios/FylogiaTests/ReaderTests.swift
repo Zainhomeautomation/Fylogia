@@ -3,6 +3,18 @@ import XCTest
 @testable import Fylogia
 
 @MainActor final class ReaderTests: XCTestCase {
+  func testBookGestureBoundsRejectExtremeAndInvalidCoordinates() {
+    let bounds = CGRect(x: 0, y: 0, width: 794, height: 730)
+    for point in [CGPoint(x: 0, y: 0), CGPoint(x: 397, y: 365), CGPoint(x: 794, y: 730)] {
+      XCTAssertTrue(BoundBookController.validDrag(point, in: bounds))
+    }
+    for point in [
+      CGPoint(x: -1, y: 200), CGPoint(x: 795, y: 200), CGPoint(x: 300, y: -1),
+      CGPoint(x: 300, y: 731), CGPoint(x: CGFloat.infinity, y: 0), CGPoint(x: CGFloat.nan, y: 1),
+    ] {
+      XCTAssertFalse(BoundBookController.validDrag(point, in: bounds))
+    }
+  }
   func testPaginationHasNoMissingOrDuplicateCharacters() {
     for size in [
       CGSize(width: 350, height: 570), CGSize(width: 480, height: 790),

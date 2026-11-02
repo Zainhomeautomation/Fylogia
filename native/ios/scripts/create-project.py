@@ -7,7 +7,7 @@ def obj(name,text):objects[uid(name)]=text;return uid(name)
 def arr(ids):return '('+','.join(ids)+',)'
 project=uid('project');groups=[];targets=[];products=[]
 for name,kind in [('Fylogia','application'),('FylogiaTests','bundle.unit-test'),('FylogiaUITests','bundle.ui-testing')]:
- group=obj(name+'group',f'isa = PBXFileSystemSynchronizedRootGroup; path = {name}; sourceTree = "<group>";');groups.append(group)
+ group=obj(name+'group',f'isa = PBXFileSystemSynchronizedRootGroup; path = {name}; explicitFolders = (WebAssets); sourceTree = "<group>";');groups.append(group)
  product=obj(name+'product',f'isa = PBXFileReference; explicitFileType = {"wrapper.application" if kind=="application" else "wrapper.cfbundle"}; path = {name}{".app" if kind=="application" else ".xctest"}; sourceTree = BUILT_PRODUCTS_DIR;');products.append(product)
  phases=[obj(name+p,f'isa = PBX{p}BuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;') for p in ['Sources','Frameworks','Resources']]
  configs=[]
