@@ -262,7 +262,15 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     let config = WKSnapshotConfiguration()
     config.rect = rect
     config.snapshotWidth = NSNumber(value: Double(rect.width))
-    web.takeSnapshot(with: config) { image, _ in completion(image) }
+    config.afterScreenUpdates = true
+    // JS completion precedes WebKit painting. Wait for the cleared/next sheet
+    // to actually render, otherwise the previous preview can become page one.
+    web.callAsyncJavaScript(
+      "await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));",
+      arguments: [:], in: nil, in: .page
+    ) { [weak self] _ in
+      self?.web.takeSnapshot(with: config) { image, _ in completion(image) }
+    }
   }
   private func animate(rect: CGRect, forward: Bool, spread: Int) {
     turnStart = Date()

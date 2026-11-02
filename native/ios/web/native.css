@@ -34,3 +34,97 @@ html .feed-sheet .story-meta {
   gap: 10px;
   margin: 10px 0;
 }
+
+/* Reading-first native shell: all golden controls remain mounted and usable. */
+.native-reading-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  gap: 12px;
+}
+.native-reading-toolbar > span {
+  font-family: var(--serif);
+  font-size: 18px;
+}
+.native-reading-toolbar button {
+  min-height: 44px;
+  padding: 6px 12px;
+}
+.news-pages-mode.native-tools-closed
+  > :not(.native-reading-toolbar):not(.news-book):not(.notice):not(
+    .download-notice
+  ):not(.empty) {
+  display: none;
+}
+html .magazine-sidebar {
+  visibility: hidden;
+  transform: translateX(-100%);
+  width: 245px;
+  z-index: 60;
+  padding-top: max(25px, env(safe-area-inset-top));
+}
+html .magazine-sidebar.open {
+  visibility: visible;
+  transform: translateX(0);
+}
+html .magazine-sidebar .mobile-close {
+  display: flex;
+}
+html .magazine-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 4px max(16px, env(safe-area-inset-right)) 4px
+    max(16px, env(safe-area-inset-left));
+}
+html .magazine-header .brand-tagline {
+  display: none;
+}
+html .magazine-header .brand-mark {
+  width: 25px;
+  height: 30px;
+}
+html .magazine-header .wordmark {
+  font-size: 30px;
+}
+html .main.news-pages-mode {
+  margin-left: 0;
+  padding: 0 max(12px, env(safe-area-inset-right)) 12px
+    max(12px, env(safe-area-inset-left));
+}
+body:has(.news-pages-mode) .menu-shade {
+  position: fixed;
+  inset: 0;
+  background: #0006;
+  z-index: 55;
+}
+body:has(.news-pages-mode) .bottom-nav {
+  display: none;
+}
+.news-pages-mode .news-book {
+  margin-top: 0;
+}
+.news-pages-mode.native-tools-closed .feed-guidance {
+  margin: 4px 0;
+}
+.news-pages-mode.native-tools-closed .feed-pagination {
+  padding: 4px;
+}
+/* Spend tall-screen space on editorial photography, never invented text. */
+.news-pages-mode.native-tools-closed
+  .news-feed-surface[data-paper-spread="2"]
+  .story:not([data-long-headline])
+  .story-open
+  img {
+  height: clamp(120px, calc(100dvh - 550px), 540px);
+}
+
+.news-pages-mode.native-tools-closed
+  .news-feed-surface[data-paper-spread="1"]
+  .story:not([data-long-headline])
+  .story-open
+  img {
+  height: clamp(110px, calc(100dvh - 570px), 440px);
+}

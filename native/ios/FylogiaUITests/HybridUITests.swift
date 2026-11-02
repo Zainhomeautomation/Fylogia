@@ -29,20 +29,31 @@ final class HybridUITests: XCTestCase {
     let app = launch()
     let progress = app.staticTexts["Story 1–2 of 8"]
     XCTAssertTrue(progress.waitForExistence(timeout: 10))
-    app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.28)).press(
-      forDuration: 0.05,
-      thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)))
     sleep(3)
+    let controls = app.buttons["Edition controls"]
+    XCTAssertTrue(controls.exists)
+    controls.tap()
+    XCTAssertTrue(app.buttons["Resume reading"].exists)
+    app.buttons["Resume reading"].tap()
+    sleep(2)
     capture("bound-portrait-before", app: app)
     let group = app.descendants(matching: .any)[
       "News pages. Swipe horizontally or use the page buttons."
     ].firstMatch
     XCTAssertTrue(group.exists)
     print("BOUND group frame \(group.frame)")
+    XCTAssertLessThan(group.frame.minY, 150)
+    XCTAssertLessThanOrEqual(group.frame.maxY, app.frame.maxY - 10)
     let nativeBook = app.otherElements["Native bound magazine"]
     XCTAssertTrue(
       nativeBook.waitForExistence(timeout: 8), "Must exercise native UIKit, not web fallback")
     XCTAssertEqual(nativeBook.value as? String, "spread=2;spine=mid")
+    app.buttons["Open navigation"].tap()
+    sleep(1)
+    XCTAssertFalse(nativeBook.exists, "Native pages must not cover the overlay navigation")
+    app.buttons["Close navigation"].tap()
+    XCTAssertTrue(nativeBook.waitForExistence(timeout: 8))
+
     let right = group.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.65))
     let left = group.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.65))
     let partial = group.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.65))
@@ -56,9 +67,20 @@ final class HybridUITests: XCTestCase {
     capture("bound-portrait-after", app: app)
     left.press(forDuration: 0.1, thenDragTo: right, withVelocity: .fast, thenHoldForDuration: 0)
     XCTAssertTrue(progress.waitForExistence(timeout: 8))
+    sleep(2)
+    let outside = app.coordinate(withNormalizedOffset: .zero).withOffset(
+      CGVector(dx: 2, dy: group.frame.minY + group.frame.height * 0.65))
+    right.press(
+      forDuration: 0.1, thenDragTo: outside, withVelocity: .slow, thenHoldForDuration: 0.3)
+    sleep(2)
+    // This drag crosses the entire book before leaving it. UIKit may settle at
+    // its completion threshold: exactly one spread must advance, never two.
+    let settled = app.staticTexts["Story 3–4 of 8"]
+    XCTAssertTrue(settled.exists, "Full-width over-drag must settle exactly one spread")
+    capture("bound-extreme-drag-settled", app: app)
     XCUIDevice.shared.orientation = .landscapeLeft
     sleep(3)
-    XCTAssertTrue(progress.exists)
+    XCTAssertTrue(settled.exists)
     capture("bound-landscape", app: app)
     XCUIDevice.shared.orientation = .portrait
   }

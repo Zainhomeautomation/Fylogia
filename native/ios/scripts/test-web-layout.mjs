@@ -5,11 +5,13 @@ const modules =
   process.env.FYLOGIA_NODE_MODULES ||
   resolve(ios, ".build/golden-source/node_modules");
 const { webkit } = await import(resolve(modules, "playwright/index.mjs"));
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 const b = await webkit.launch();
 const results = [];
 for (const [width, height, scale, expected] of [
   [393, 759, 1, 1],
+  [440, 900, 1, 1],
+  [720, 900, 1, 2],
   [834, 1158, 1, 2],
   [1210, 782, 1, 2],
   [834, 1158, 1.6, 1],
@@ -42,10 +44,33 @@ for (const [width, height, scale, expected] of [
     )
   )
     throw Error(JSON.stringify({ width, scale, result }));
+  const book = await p.locator(".news-feed-surface").boundingBox();
+  if (book.y > 140) throw Error("Magazine is pushed below stacked controls");
+  await p
+    .getByRole("button", { name: "Edition controls", exact: true })
+    .click();
+  for (const label of ["Sort stories", "Search stories"]) {
+    if (!(await p.getByLabel(label, { exact: true }).last().isVisible()))
+      throw Error("Control missing: " + label);
+  }
+  await p.getByRole("button", { name: "Resume reading", exact: true }).click();
+  await p.getByRole("button", { name: "Open navigation", exact: true }).click();
+  if (
+    !(await p
+      .getByRole("button", { name: "Settings", exact: true })
+      .first()
+      .isVisible())
+  )
+    throw Error("Sidebar unavailable");
+  await p
+    .getByRole("button", { name: "Close navigation", exact: true })
+    .click();
   results.push({
     viewportWidth: width,
     viewportHeight: height,
     scale,
+    bookTop: book.y,
+    readingAreaFraction: book.height / (height - book.y),
     ...result,
   });
   await p.close();

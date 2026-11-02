@@ -1,3 +1,4 @@
+import { readingSpace } from "../web/reading-space-transform.mjs";
 import { execFileSync } from "node:child_process";
 import {
   readFileSync,
@@ -41,6 +42,7 @@ import react from '@vitejs/plugin-react';
 export default {plugins:[react(),{
 name:'fylogia-native-only',enforce:'pre',
 transform(code,id){
+ code=(${readingSpace.toString()})(code,id);
  if(id.endsWith('/src/usePageTurn.ts')){code=code.replace('if (!allowed(forward)) return;', 'if (!allowed(forward)) return; if ((window as any).__fylogiaNativeTurn?.(forward, turn, getSurface(), axis)) return;');code=code.replace('if (!surface) return;\\n    let touchSequence', 'if (!surface) return; (window as any).__fylogiaRegisterBound?.(surface, getOptions, async (forward: boolean, signal: AbortSignal) => getOptions().prepare ? getOptions().prepare!(forward, signal) : capture(surface, (forward ? -1 : 1) * (surface.clientWidth + 40)).node);\\n    let touchSequence');code=code.replace('surface.removeEventListener("click", click, true);','(window as any).__fylogiaUnregisterBound?.(surface); surface.removeEventListener("click", click, true);');}
  if(id.endsWith('/src/magazine-layout.ts'))code=code.replace('width >= minimumPageWidth * 2 && viewportWidth >= viewportHeight * 0.9', 'width >= minimumPageWidth * 2 * Math.max(1, Number(document.documentElement.dataset.nativeTextScale || 1))');
  if(id.endsWith('/src/App.css'))code=code.replace('(max-width: 1100px) and (min-aspect-ratio: 9/10)', '(max-width: 1100px)');

@@ -16,6 +16,16 @@
     preparing = false;
   };
   const update = () => {
+    if (
+      document.querySelector(
+        ".sidebar.open, .news-pages-mode.native-tools-open",
+      )
+    ) {
+      finish();
+      ready = false;
+      post({ action: "boundHide" });
+      return;
+    }
     if (preparing) return;
     const entry = [...entries.values()]
       .reverse()
@@ -152,7 +162,7 @@
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["data-theme", "data-native-paper"],
+    attributeFilter: ["data-theme", "data-native-paper", "class"],
   });
   addEventListener(
     "scroll",

@@ -108,7 +108,7 @@ final class BoundBookController: UIViewController, UIPageViewControllerDataSourc
     book.view.backgroundColor = view.backgroundColor
     book.view.clipsToBounds = true
     book.setViewControllers((0..<spread).compactMap(leaf), direction: .forward, animated: false)
-    for gesture in book.gestureRecognizers where gesture is UIPanGestureRecognizer {
+    for gesture in book.gestureRecognizers {
       gesture.addTarget(self, action: #selector(constrainDrag(_:)))
     }
   }
