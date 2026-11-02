@@ -20,3 +20,64 @@ export function readingSpace(code, id) {
   );
   return code;
 }
+
+/** Keep the same feed, story identities and library; adapt presentation only. */
+export function adaptiveFeed(code, id) {
+  if (!id.endsWith("/src/NewsFeed.tsx")) return code;
+  const replace = (from, to) => {
+    if (!code.includes(from))
+      throw Error("Adaptive feed anchor missing: " + from);
+    code = code.replace(from, to);
+  };
+  replace('import { magazineSpread } from "./magazine-layout";', "");
+  replace(
+    "const [spread, setSpread] = useState(1);",
+    `const [spread, setSpread] = useState(1);
+  const [flow, setFlow] = useState(() => window.innerWidth < 680 || window.innerWidth < window.innerHeight * 0.9);`,
+  );
+  replace(
+    "setSpread(magazineSpread(width, window.innerWidth, window.innerHeight));",
+    `const scale = Math.max(1, Number(document.documentElement.dataset.nativeTextScale || 1));
+      const wide = width >= 680 * scale && window.innerWidth >= window.innerHeight * 0.9;
+      setSpread(wide ? 2 : 1);
+      setFlow(!wide);`,
+  );
+  replace(
+    "}, []);",
+    `}, [flow]);
+  useLayoutEffect(() => {
+    const node = surface.current;
+    if (!node) return;
+    // Story identity stays in React state across presentation changes. No library migration.
+    const frame = requestAnimationFrame(() => {
+      if (flow) {
+        const target = [...node.querySelectorAll<HTMLElement>('[data-story-id]')].find(e => e.dataset.storyId === anchor);
+        if (target && anchor !== articles[0]?.id) target.scrollIntoView({block:'start', behavior:'instant'});
+      } else window.scrollTo({top:0, behavior:'instant'});
+    });
+    const remember = () => {
+      if (!flow) return;
+      const visible = [...node.querySelectorAll<HTMLElement>('[data-story-id]')].find(e => e.getBoundingClientRect().bottom > 100);
+      if (visible?.dataset.storyId) setAnchor(visible.dataset.storyId);
+    };
+    window.addEventListener('scroll', remember, {passive:true});
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('scroll', remember); };
+  }, [flow]);`,
+  );
+  replace("    start,\n    true,", "    start,\n    !flow,");
+  replace(
+    "  return (\n    <section",
+    `  if (flow) return (
+    <section className="news-book native-scroll-feed" aria-label="Scrolling news feed">
+      <p className="feed-guidance">Stories — swipe vertically to browse</p>
+      <div ref={surface} className="native-story-list">
+        {articles.map(a => <div className="feed-sheet" key={a.id} data-story-id={a.id}
+          onClickCapture={() => setAnchor(a.id)}>{renderStory(a, false)}</div>)}
+      </div>
+    </section>
+  );
+  return (
+    <section`,
+  );
+  return code;
+}

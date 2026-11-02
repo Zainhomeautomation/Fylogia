@@ -1,3 +1,5 @@
+> Current adaptive feed policy and review limitations: [ADAPTIVE-READING-REVIEW.md](ADAPTIVE-READING-REVIEW.md). Earlier prototype notes below remain historical.
+
 # Current native development build
 
 The default app now runs an isolated hybrid prototype using the protected golden React interface and a native UIKit bound-page experiment. The previous UIKit-only prototype and its data remain intact (`--native-reader`). See [BOUND-READER-REVIEW.md](BOUND-READER-REVIEW.md) for implementation limits and acceptance status. This is not a production or App Store release.

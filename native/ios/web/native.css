@@ -128,3 +128,35 @@ body:has(.news-pages-mode) .bottom-nav {
   img {
   height: clamp(110px, calc(100dvh - 570px), 440px);
 }
+
+/* Narrow/portrait feed shares the magazine's paper, cards and controls. */
+html[data-native-paper="cream"] .native-scroll-feed {
+  --paper: color(srgb 0.97 0.95 0.89);
+  --ink: #17241f;
+  --muted: #4c5d52;
+  --line: #c9cdbc;
+  --accent: #38664d;
+}
+.native-story-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.native-story-list > .feed-sheet {
+  scroll-margin-top: 72px;
+  min-width: 0;
+  background: var(--paper);
+  color: var(--ink);
+  padding: clamp(16px, 3vw, 28px);
+}
+.native-story-list .story-open img {
+  width: 100%;
+  height: clamp(170px, 28vh, 320px);
+  object-fit: cover;
+}
+.native-story-list h2 {
+  overflow: visible;
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow-wrap: anywhere;
+}

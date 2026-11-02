@@ -24,8 +24,8 @@ final class HybridUITests: XCTestCase {
     add(a)
     print("PARITY viewport \(name) \(web.frame.width)x\(web.frame.height)")
   }
-  @MainActor func testPortraitSpreadAndBoundDrag() {
-    XCUIDevice.shared.orientation = .portrait
+  @MainActor func testAdaptiveFeedAndBoundDrag() {
+    XCUIDevice.shared.orientation = .landscapeLeft
     let app = launch()
     let progress = app.staticTexts["Story 1–2 of 8"]
     XCTAssertTrue(progress.waitForExistence(timeout: 10))
@@ -33,7 +33,7 @@ final class HybridUITests: XCTestCase {
     let controls = app.buttons["Edition controls"]
     XCTAssertTrue(controls.exists)
     controls.tap()
-    XCTAssertTrue(app.buttons["Resume reading"].exists)
+    XCTAssertTrue(app.buttons["Resume reading"].waitForExistence(timeout: 8))
     app.buttons["Resume reading"].tap()
     sleep(2)
     capture("bound-portrait-before", app: app)
@@ -78,6 +78,12 @@ final class HybridUITests: XCTestCase {
     let settled = app.staticTexts["Story 3–4 of 8"]
     XCTAssertTrue(settled.exists, "Full-width over-drag must settle exactly one spread")
     capture("bound-extreme-drag-settled", app: app)
+    XCUIDevice.shared.orientation = .portrait
+    sleep(3)
+    XCTAssertTrue(
+      app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 8))
+    XCTAssertFalse(nativeBook.exists)
+    capture("scrolling-portrait", app: app)
     XCUIDevice.shared.orientation = .landscapeLeft
     sleep(3)
     XCTAssertTrue(settled.exists)
