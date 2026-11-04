@@ -1,5 +1,8 @@
 # Fylogia native development
 
+For cross-project checkpoints and the current Web/Native commit and test matrix,
+read `FYLOGIA-DEVELOPMENT-STATUS.md` before resuming work.
+
 This branch is isolated native/hybrid development. Preserve the golden website,
 production configuration, existing data, and unrelated working changes. Never
 merge this branch into website production merely to publish native progress.
