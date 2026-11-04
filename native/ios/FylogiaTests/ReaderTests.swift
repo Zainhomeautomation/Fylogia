@@ -36,6 +36,15 @@ import XCTest
     XCTAssertNil(FylogiaWidgetDeepLink.route(from: URL(string: "https://fylogia.com/story-123")!))
     XCTAssertNil(FylogiaWidgetDeepLink.route(from: URL(string: "fylogia://story?id=%0A")!))
   }
+  func testLocalCountryResponseIsReducedToValidatedCountryCode() throws {
+    XCTAssertEqual(
+      LocalWebServer.countryCode(from: Data(#"{"country":"om"}"#.utf8)), "OM")
+    XCTAssertNil(LocalWebServer.countryCode(from: Data(#"{"country":"OMN"}"#.utf8)))
+    XCTAssertNil(LocalWebServer.countryCode(from: Data(#"{"country":"O1"}"#.utf8)))
+    XCTAssertNil(LocalWebServer.countryCode(from: Data(#"{"country":"<script>"}"#.utf8)))
+    XCTAssertNil(LocalWebServer.countryCode(from: Data("not-json".utf8)))
+    XCTAssertNil(LocalWebServer.countryCode(from: Data(repeating: 65, count: 4097)))
+  }
   func testWebKitBridgeDoesNotRetainController() {
     weak var observed: HybridController?
     var web: WKWebView!

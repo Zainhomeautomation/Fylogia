@@ -68,6 +68,12 @@ final class LocalWebServer {
     }
     let path = components.path
     if path.hasPrefix("/api/") {
+      if path == "/api/location", tokens[0] == "GET", !offline,
+        !ProcessInfo.processInfo.arguments.contains("--parity-testing")
+      {
+        lookupLocalCountry(connection)
+        return
+      }
       // Cloud pairing requires a separately reviewed origin/credential design. No proxy bypass.
       send(
         connection, status: 503,
@@ -93,6 +99,44 @@ final class LocalWebServer {
       return
     }
     file(connection, path: path, head: head)
+  }
+  private func lookupLocalCountry(_ connection: NWConnection) {
+    var request = URLRequest(url: URL(string: "https://fylogia.com/api/location")!)
+    request.httpMethod = "GET"
+    request.cachePolicy = .reloadIgnoringLocalCacheData
+    request.timeoutInterval = 8
+    request.httpShouldHandleCookies = false
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.httpCookieStorage = nil
+    configuration.httpShouldSetCookies = false
+    configuration.urlCache = nil
+    let session = URLSession(configuration: configuration)
+    session.dataTask(with: request) { [weak self] data, response, _ in
+      defer { session.invalidateAndCancel() }
+      guard let self,
+        let data, data.count <= 4096,
+        let response = response as? HTTPURLResponse,
+        response.statusCode == 200,
+        let country = Self.countryCode(from: data)
+      else {
+        self?.send(
+          connection, status: 503,
+          data: Data("{\"error\":\"Country unavailable\"}".utf8), mime: "application/json")
+        return
+      }
+      let body = try? JSONSerialization.data(withJSONObject: ["country": country])
+      self.send(
+        connection, data: body ?? Data("{}".utf8), mime: "application/json")
+    }.resume()
+  }
+  static func countryCode(from data: Data) -> String? {
+    guard data.count <= 4096,
+      let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let country = object["country"] as? String,
+      country.utf8.count == 2,
+      country.utf8.allSatisfy({ (65...90).contains($0) || (97...122).contains($0) })
+    else { return nil }
+    return country.uppercased()
   }
   private func file(_ connection: NWConnection, path: String, head: Bool) {
     var url = root.appendingPathComponent(path == "/" ? "index.html" : String(path.dropFirst()))
