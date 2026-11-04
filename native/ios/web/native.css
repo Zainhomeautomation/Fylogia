@@ -179,6 +179,52 @@ body:has(.news-pages-mode) .bottom-nav {
   height: clamp(110px, calc(100dvh - 570px), 440px);
 }
 
+/* Short landscape windows need a viewport-sized spread for UIKit snapshots. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .news-pages-mode.native-tools-closed .news-feed-surface {
+    height: calc(100dvh - 156px);
+    min-height: 0;
+  }
+  .news-pages-mode.native-tools-closed .feed-spread {
+    height: 100%;
+    min-height: 0;
+  }
+  .news-pages-mode.native-tools-closed .feed-sheet {
+    min-height: 0;
+    overflow: hidden;
+    padding: 10px 40px;
+  }
+  .news-pages-mode.native-tools-closed .feed-sheet .story,
+  .news-pages-mode.native-tools-closed .feed-sheet .story .story-open {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  .news-pages-mode.native-tools-closed .feed-sheet .story .story-open img,
+  .news-pages-mode.native-tools-closed .feed-sheet .story .type-art {
+    height: clamp(48px, 14dvh, 84px);
+    min-height: 0;
+    margin-bottom: 6px;
+  }
+  .news-pages-mode.native-tools-closed .feed-sheet .story .story-open h2 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: clamp(18px, 5cqw, 24px);
+    line-height: 1.1;
+    margin: 4px 0;
+  }
+  .news-pages-mode.native-tools-closed .feed-sheet .story .story-open p,
+  .news-pages-mode.native-tools-closed .feed-sheet .story .feed-read,
+  .news-pages-mode.native-tools-closed .feed-sheet .news-period {
+    display: none;
+  }
+  .news-pages-mode.native-tools-closed .feed-sheet .story-meta {
+    padding-top: 2px;
+  }
+}
+
 /* Narrow/portrait feed shares the magazine's paper, cards and controls. */
 html[data-native-paper="cream"] .native-scroll-feed {
   --paper: color(srgb 0.97 0.95 0.89);
