@@ -4,6 +4,16 @@ import XCTest
 @testable import Fylogia
 
 @MainActor final class ReaderTests: XCTestCase {
+  func testShortcutHandoffQueuesAndConsumesDestinationOnce() {
+    let suite = "com.fylogia.unit.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    FylogiaShortcutHandoff.queue(.worldNews, defaults: defaults)
+    XCTAssertEqual(
+      FylogiaShortcutHandoff.consume(defaults: defaults),
+      "categories?fylogiaTopic=World%20News")
+    XCTAssertNil(FylogiaShortcutHandoff.consume(defaults: defaults))
+  }
   func testWebKitBridgeDoesNotRetainController() {
     weak var observed: HybridController?
     var web: WKWebView!

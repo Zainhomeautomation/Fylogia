@@ -1,5 +1,14 @@
 (() => {
   const native = window.webkit?.messageHandlers?.fylogia;
+  window.__fylogiaDeliverNativeShortcut = (route) => {
+    if (typeof route !== "string") return;
+    if (window.__fylogiaRouteNativeShortcut) {
+      window.__fylogiaRouteNativeShortcut(route);
+      return;
+    }
+    window.__fylogiaPendingNativeShortcut = route;
+  };
+  window.__fylogiaPendingNativeShortcut = undefined;
   const paper = () =>
     (document.documentElement.dataset.nativePaper =
       localStorage.getItem("fylogia.native.paper") || "cream");

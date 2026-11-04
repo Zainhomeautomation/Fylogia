@@ -13,6 +13,36 @@ import {
 } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+function appIntentRoutes(code, id) {
+  if (!id.endsWith("/src/App.tsx")) return code;
+  const anchor = "  function goHome() {";
+  if (!code.includes(anchor))
+    throw Error("Native App Intents route anchor missing");
+  return code.replace(
+    anchor,
+    `  useEffect(() => {
+    const deliver = (route: string) => {
+      const [section, query = ""] = route.split("?");
+      const topic = new URLSearchParams(query).get("fylogiaTopic");
+      if (section === "categories" && topic && ["Science", "Technology", "World News"].includes(topic)) {
+        navigate("explore");
+        setFilter(topic);
+        return;
+      }
+      if (!["home", "saved", "history"].includes(section)) return;
+      navigate(section);
+    };
+    (window as any).__fylogiaRouteNativeShortcut = deliver;
+    const pending = (window as any).__fylogiaPendingNativeShortcut;
+    if (typeof pending === "string") {
+      (window as any).__fylogiaPendingNativeShortcut = undefined;
+      deliver(pending);
+    }
+    return () => { delete (window as any).__fylogiaRouteNativeShortcut; };
+  }, []);
+` + anchor,
+  );
+}
 const ios = resolve(dirname(fileURLToPath(import.meta.url)), ".."),
   repo = resolve(ios, "../..");
 execFileSync("sh", [resolve(ios, "scripts/check-development-volume.sh")], {
@@ -62,6 +92,7 @@ transform(code,id){
  code=(${readingSpace.toString()})(code,id);
  code=(${adaptiveFeed.toString()})(code,id);
  code=(${adaptiveReaders.toString()})(code,id);
+ code=(${appIntentRoutes.toString()})(code,id);
  if(id.endsWith('/src/main.tsx')) {
    const anchor = '  await initializeCloudSync();';
    if (!code.includes(anchor)) throw Error('Native launch initialization anchor missing');

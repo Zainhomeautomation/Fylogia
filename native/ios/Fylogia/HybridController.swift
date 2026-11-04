@@ -31,6 +31,10 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
   private var turnStart = Date()
   override func viewDidLoad() {
     super.viewDidLoad()
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(appDidBecomeActive),
+      name: UIApplication.didBecomeActiveNotification,
+      object: nil)
     view.backgroundColor = UIColor(red: 10 / 255, green: 16 / 255, blue: 24 / 255, alpha: 1)
     let config = WKWebViewConfiguration()
     config.userContentController.add(WeakScriptHandler(self), name: "fylogia")
@@ -83,8 +87,24 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
       }
     } catch { fail(error.localizedDescription) }
   }
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    deliverPendingShortcut()
+  }
+  @objc private func appDidBecomeActive() {
+    deliverPendingShortcut()
+  }
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
     updateTextScale()
+    deliverPendingShortcut()
+  }
+  private func deliverPendingShortcut() {
+    guard let web, web.url != nil, !web.isLoading else { return }
+    guard let route = FylogiaShortcutHandoff.consume() else { return }
+    guard let encoded = try? JSONEncoder().encode(route),
+      let json = String(data: encoded, encoding: .utf8)
+    else { return }
+    web.evaluateJavaScript("window.__fylogiaDeliverNativeShortcut?.(\(json))")
   }
   private func updateTextScale() {
     let scale = max(1, UIFontMetrics.default.scaledValue(for: 17) / 17)
