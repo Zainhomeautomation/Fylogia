@@ -43,6 +43,23 @@ function appIntentRoutes(code, id) {
 ` + anchor,
   );
 }
+function dailyBriefingHeadlines(code, id) {
+  if (!id.endsWith("/src/App.tsx")) return code;
+  const anchor = "  const displayedReader =";
+  if (!code.includes(anchor))
+    throw Error("Native daily briefing headline anchor missing");
+  return code.replace(
+    anchor,
+    `  useEffect(() => {
+    const dailyHeadlines = all.slice(0, 12).map((story: any) => ({
+      title: String(story.title || "").slice(0, 120),
+      categories: Array.isArray(story.categories) ? story.categories : [],
+    }));
+    localStorage.setItem("fylogia.native.dailyHeadlines", JSON.stringify(dailyHeadlines));
+  }, [all]);
+` + anchor,
+  );
+}
 const ios = resolve(dirname(fileURLToPath(import.meta.url)), ".."),
   repo = resolve(ios, "../..");
 execFileSync("sh", [resolve(ios, "scripts/check-development-volume.sh")], {
@@ -93,6 +110,7 @@ transform(code,id){
  code=(${adaptiveFeed.toString()})(code,id);
  code=(${adaptiveReaders.toString()})(code,id);
  code=(${appIntentRoutes.toString()})(code,id);
+ code=(${dailyBriefingHeadlines.toString()})(code,id);
  if(id.endsWith('/src/main.tsx')) {
    const anchor = '  await initializeCloudSync();';
    if (!code.includes(anchor)) throw Error('Native launch initialization anchor missing');

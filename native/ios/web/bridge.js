@@ -114,6 +114,106 @@
     );
     options.append(tips);
     settings.append(options);
+    const notifications = document.createElement("section");
+    notifications.className = "native-notifications";
+    const notificationHeading = document.createElement("h2");
+    notificationHeading.textContent = "Daily briefing";
+    notifications.append(notificationHeading);
+    const enabledRow = document.createElement("label");
+    const enabled = document.createElement("input");
+    enabled.type = "checkbox";
+    enabled.checked =
+      localStorage.getItem("fylogia.native.dailyBriefing") === "true";
+    enabledRow.append(
+      enabled,
+      document.createTextNode(" Optional daily summary"),
+    );
+    notifications.append(enabledRow);
+    const timeRow = document.createElement("label");
+    timeRow.append(document.createTextNode("Delivery time"));
+    const time = document.createElement("input");
+    time.type = "time";
+    time.value = localStorage.getItem("fylogia.native.briefingTime") || "08:00";
+    timeRow.append(time);
+    notifications.append(timeRow);
+    const topicField = document.createElement("fieldset");
+    const topicLegend = document.createElement("legend");
+    topicLegend.textContent = "Include topics";
+    topicField.append(topicLegend);
+    let selectedTopics = new Set();
+    try {
+      const storedTopics = JSON.parse(
+        localStorage.getItem("fylogia.native.briefingTopics") || "[]",
+      );
+      if (Array.isArray(storedTopics))
+        selectedTopics = new Set(
+          storedTopics.filter((topic) =>
+            ["World News", "Technology", "Science"].includes(topic),
+          ),
+        );
+    } catch {}
+    const topicInputs = [];
+    for (const topic of ["World News", "Technology", "Science"]) {
+      const row = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = topic;
+      input.checked = selectedTopics.has(topic);
+      row.append(input, document.createTextNode(topic));
+      topicField.append(row);
+      topicInputs.push(input);
+    }
+    notifications.append(topicField);
+    const publishNotifications = () => {
+      const topics = topicInputs
+        .filter((input) => input.checked)
+        .map((input) => input.value);
+      localStorage.setItem(
+        "fylogia.native.dailyBriefing",
+        String(enabled.checked),
+      );
+      localStorage.setItem(
+        "fylogia.native.briefingTime",
+        time.value || "08:00",
+      );
+      localStorage.setItem(
+        "fylogia.native.briefingTopics",
+        JSON.stringify(topics),
+      );
+      let headlines = [];
+      try {
+        const available = JSON.parse(
+          localStorage.getItem("fylogia.native.dailyHeadlines") || "[]",
+        );
+        headlines = enabled.checked
+          ? available
+              .filter(
+                (story) =>
+                  !topics.length ||
+                  topics.some((topic) => story.categories.includes(topic)),
+              )
+              .map((story) => story.title)
+              .filter(Boolean)
+              .slice(0, 2)
+          : [];
+      } catch {}
+      send({
+        action: "notificationPreferences",
+        enabled: enabled.checked,
+        time: time.value || "08:00",
+        topics,
+        headlines,
+      });
+    };
+    for (const input of [enabled, time, ...topicInputs])
+      input.addEventListener("change", publishNotifications);
+    window.__fylogiaNotificationAuthorization = (accepted) => {
+      if (!accepted) {
+        enabled.checked = false;
+        localStorage.setItem("fylogia.native.dailyBriefing", "false");
+      }
+    };
+    settings.append(notifications);
   };
   new MutationObserver(window.__fylogiaNativeOptions).observe(
     document.documentElement,

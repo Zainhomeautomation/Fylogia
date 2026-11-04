@@ -14,6 +14,20 @@ import XCTest
       "categories?fylogiaTopic=World%20News")
     XCTAssertNil(FylogiaShortcutHandoff.consume(defaults: defaults))
   }
+  func testDailyBriefingTimeValidation() {
+    XCTAssertEqual(FylogiaDailyBriefing.timeComponents("08:30")?.hour, 8)
+    XCTAssertEqual(FylogiaDailyBriefing.timeComponents("08:30")?.minute, 30)
+    XCTAssertNil(FylogiaDailyBriefing.timeComponents("25:00"))
+    XCTAssertNil(FylogiaDailyBriefing.timeComponents("12:75"))
+    XCTAssertNil(FylogiaDailyBriefing.timeComponents("later"))
+    XCTAssertEqual(
+      FylogiaDailyBriefing.notificationBody(
+        headlines: [" First headline ", "Second headline", "Ignored"], topics: ["Science"]),
+      "First headline • Second headline")
+    XCTAssertEqual(
+      FylogiaDailyBriefing.notificationBody(headlines: [], topics: ["Invalid"]),
+      "Your daily news briefing is ready.")
+  }
   func testWebKitBridgeDoesNotRetainController() {
     weak var observed: HybridController?
     var web: WKWebView!

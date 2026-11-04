@@ -1,6 +1,7 @@
 import AVFoundation
 import SafariServices
 import UIKit
+import UserNotifications
 import WebKit
 
 /// WebKit retains registered handlers. Keep the controller's lifetime scene-owned.
@@ -16,7 +17,7 @@ import WebKit
 
 @MainActor
 final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelegate,
-  WKScriptMessageHandler
+  WKScriptMessageHandler, UNUserNotificationCenterDelegate
 {
   private(set) var web: WKWebView!
   private var server: LocalWebServer?
@@ -35,6 +36,7 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
       self, selector: #selector(appDidBecomeActive),
       name: UIApplication.didBecomeActiveNotification,
       object: nil)
+    UNUserNotificationCenter.current().delegate = self
     view.backgroundColor = UIColor(red: 10 / 255, green: 16 / 255, blue: 24 / 255, alpha: 1)
     let config = WKWebViewConfiguration()
     config.userContentController.add(WeakScriptHandler(self), name: "fylogia")
@@ -106,6 +108,21 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     else { return }
     web.evaluateJavaScript("window.__fylogiaDeliverNativeShortcut?.(\(json))")
   }
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    if let route = response.notification.request.content.userInfo["fylogiaRoute"] as? String {
+      FylogiaShortcutHandoff.queue(route: route)
+    }
+    completionHandler()
+  }
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    completionHandler([.banner, .sound])
+  }
   private func updateTextScale() {
     let scale = max(1, UIFontMetrics.default.scaledValue(for: 17) / 17)
     web?.evaluateJavaScript(
@@ -161,6 +178,20 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     if body["action"] as? String == "preferences" {
       haptics = body["haptics"] as? Bool ?? false
       sounds = body["sound"] as? Bool ?? false
+      return
+    }
+    if body["action"] as? String == "notificationPreferences" {
+      let enabled = body["enabled"] as? Bool ?? false
+      let time = body["time"] as? String ?? "08:00"
+      let topics = body["topics"] as? [String] ?? []
+      let headlines = body["headlines"] as? [String] ?? []
+      FylogiaNotificationScheduler.shared.updateDailyBriefing(
+        enabled: enabled, time: time, topics: topics, headlines: headlines
+      ) { [weak self] accepted in
+        guard let self else { return }
+        self.web.evaluateJavaScript(
+          "window.__fylogiaNotificationAuthorization?.(\(accepted ? "true" : "false"))")
+      }
       return
     }
     if let action = body["action"] as? String, action.hasPrefix("bound") {

@@ -35,7 +35,11 @@ enum FylogiaShortcutHandoff {
   static let defaultsKey = "com.fylogia.native.pending-shortcut"
 
   static func queue(_ destination: FylogiaShortcutDestination, defaults: UserDefaults = .standard) {
-    defaults.set(destination.route, forKey: defaultsKey)
+    queue(route: destination.route, defaults: defaults)
+  }
+
+  static func queue(route: String, defaults: UserDefaults = .standard) {
+    defaults.set(route, forKey: defaultsKey)
   }
 
   static func consume(defaults: UserDefaults = .standard) -> String? {
