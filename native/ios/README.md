@@ -1,5 +1,7 @@
 > Latest implementation and pending Apple-platform acceptance: [CONSISTENT-READING-REVIEW.md](CONSISTENT-READING-REVIEW.md).
 
+> Current feature status and remaining Apple integration gates: [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md). First launch now opens general news, with optional reading tips that can be replayed in Settings; existing libraries and preferences are retained.
+
 > Current adaptive feed policy and review limitations: [ADAPTIVE-READING-REVIEW.md](ADAPTIVE-READING-REVIEW.md). Earlier prototype notes below remain historical.
 
 # Current native development build

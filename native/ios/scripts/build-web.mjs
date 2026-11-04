@@ -42,6 +42,14 @@ cpSync(
   resolve(ios, "web/native-pdf-stream.tsx"),
   resolve(stage, "src/native-pdf-stream.tsx"),
 );
+cpSync(
+  resolve(ios, "web/native-launch.ts"),
+  resolve(stage, "src/native-launch.ts"),
+);
+cpSync(
+  resolve(ios, "web/native-reading-tips.tsx"),
+  resolve(stage, "src/native-reading-tips.tsx"),
+);
 const nativeCSS = readFileSync(resolve(ios, "web/native.css"), "utf8"),
   bridge =
     readFileSync(resolve(ios, "web/bridge.js"), "utf8") +
@@ -54,8 +62,19 @@ transform(code,id){
  code=(${readingSpace.toString()})(code,id);
  code=(${adaptiveFeed.toString()})(code,id);
  code=(${adaptiveReaders.toString()})(code,id);
+ if(id.endsWith('/src/main.tsx')) {
+   const anchor = '  await initializeCloudSync();';
+   if (!code.includes(anchor)) throw Error('Native launch initialization anchor missing');
+   code = 'import { prepareNativeLaunch } from "./native-launch";\\n' + code.replace(anchor, '  prepareNativeLaunch();');
+   code = code.replace('import { initializeCloudSync } from "./cloud-sync";', '');
+ }
+ if(id.endsWith('/src/App.tsx')) {
+   const anchor = 'const storyView = [...newsSections, "saved", "history"].includes(view);\\n  return (\\n    <>';
+   if (!code.includes(anchor)) throw Error('Native tutorial placement anchor missing');
+   code = 'import { NativeReadingTips } from "./native-reading-tips";\\n' + code.replace(anchor, anchor + '\\n      <NativeReadingTips />');
+ }
  if(id.endsWith('/src/usePageTurn.ts')){code=code.replace('if (!allowed(forward)) return;', 'if (!allowed(forward)) return; if ((window as any).__fylogiaNativeTurn?.(forward, turn, getSurface(), axis)) return;');code=code.replace('if (!surface) return;\\n    let touchSequence', 'if (!surface) return; (window as any).__fylogiaRegisterBound?.(surface, getOptions, async (forward: boolean, signal: AbortSignal) => getOptions().prepare ? getOptions().prepare!(forward, signal) : capture(surface, (forward ? -1 : 1) * (surface.clientWidth + 40)).node);\\n    let touchSequence');code=code.replace('surface.removeEventListener("click", click, true);','(window as any).__fylogiaUnregisterBound?.(surface); surface.removeEventListener("click", click, true);');}
- if(id.endsWith('/src/magazine-layout.ts'))code=code.replace('width >= minimumPageWidth * 2 && viewportWidth >= viewportHeight * 0.9', 'width >= minimumPageWidth * 2 * Math.max(1, Number(document.documentElement.dataset.nativeTextScale || 1))');
+ if(id.endsWith('/src/magazine-layout.ts'))code=code.replace('width >= minimumPageWidth * 2 && viewportWidth >= viewportHeight * 0.9', 'width >= minimumPageWidth * 2 * Math.max(1, Number(document.documentElement.dataset.nativeTextScale || 1))').replace('viewportWidth: number', '_viewportWidth: number').replace('viewportHeight: number', '_viewportHeight: number');
  if(id.endsWith('/src/App.css'))code=code.replace('(max-width: 1100px) and (min-aspect-ratio: 9/10)', '(max-width: 1100px)');
  if(id.endsWith('/src/main.tsx'))code=code.replace('if ("serviceWorker" in navigator && import.meta.env.PROD)', 'if (false)');
  if(id.endsWith('/src/App.tsx'))code=code.replaceAll('onClick={() => setSyncOpen(true)}','onClick={() => setNotice("Native cloud pairing is not connected yet. Your library remains on this device.")}').replace('On iPhone or iPad, open Fylogia in Safari, tap Share, then Add','This native app opens offline from its bundled interface. The website supports Add').replace('to Home Screen. On Mac, use Safari’s Add to Dock or your','to Home Screen and Safari’s Add to Dock or your');

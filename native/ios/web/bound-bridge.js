@@ -18,7 +18,7 @@
   const update = () => {
     if (
       document.querySelector(
-        ".sidebar.open, .news-pages-mode.native-tools-open, .reader-options-panel:not([hidden]), .summary-backdrop",
+        ".sidebar.open, .news-pages-mode.native-tools-open, .reader-options-panel:not([hidden]), .summary-backdrop, .native-reading-tips",
       )
     ) {
       finish();

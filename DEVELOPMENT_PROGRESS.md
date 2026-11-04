@@ -1,5 +1,7 @@
 # Fylogia Apple product development
 
+> Current native continuation: [native implementation checklist](native/ios/IMPLEMENTATION-CHECKLIST.md), updated 4 November 2026. The historical phase ledger below is retained as history. The native first-launch milestone is implemented and independently validated; native curl visual acceptance remains blocked on a functioning Apple simulator environment.
+
 Last updated: 2026-11-02, Asia/Muscat. Personal repository only: `Zainhomeautomation/Fylogia`.
 
 ## Execution boundaries

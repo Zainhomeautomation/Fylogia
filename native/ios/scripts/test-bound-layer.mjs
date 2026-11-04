@@ -72,8 +72,35 @@ try {
     ))
   )
     throw Error("Options must hide native overlay");
+  await p.evaluate(() => {
+    document.querySelector(".reader-options-panel").remove();
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      '<aside class="native-reading-tips">Reading tips</aside>',
+    );
+    window.nativePosts = [];
+    window.__fylogiaBoundReady();
+  });
+  await p.waitForTimeout(300);
+  if (
+    await p.evaluate(() =>
+      window.nativePosts.some((x) => x.action === "boundPrepare"),
+    )
+  )
+    throw Error("Reading tips must not be covered by native pages");
+  await p.evaluate(() => {
+    document.querySelector(".native-reading-tips").remove();
+    window.nativePosts = [];
+  });
+  await p.waitForTimeout(300);
+  if (
+    !(await p.evaluate(() =>
+      window.nativePosts.some((x) => x.action === "boundPrepare"),
+    ))
+  )
+    throw Error("Dismissing reading tips must restore native pages");
   console.log(
-    "PASS native overlay isolation for scrolling readers, visible magazines and reading options",
+    "PASS native overlay isolation for scrolling readers, visible magazines, reading options and tutorial dismissal",
   );
 } finally {
   await b.close();

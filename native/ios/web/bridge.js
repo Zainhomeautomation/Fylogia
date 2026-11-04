@@ -98,6 +98,12 @@
       row.append(input, document.createTextNode(label));
       options.append(row);
     }
+    const tips = document.createElement("button");
+    tips.textContent = "Reading tips";
+    tips.addEventListener("click", () =>
+      window.dispatchEvent(new Event("fylogia-reading-tips")),
+    );
+    options.append(tips);
     settings.append(options);
   };
   new MutationObserver(window.__fylogiaNativeOptions).observe(

@@ -35,6 +35,41 @@ html .feed-sheet .story-meta {
   margin: 10px 0;
 }
 
+.native-reading-tips {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 70;
+  width: min(360px, calc(100vw - 32px));
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid #c9cdbc;
+  border-radius: 12px;
+  background: color(srgb 0.97 0.95 0.89);
+  color: #17241f;
+  box-shadow: 0 8px 32px #0003;
+}
+.native-reading-tips h2 {
+  margin-block: 8px;
+  font-family: var(--serif);
+  font-size: 22px;
+}
+.native-reading-tips .quiet {
+  color: #4c5d52;
+}
+.native-tip-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.native-tip-actions button {
+  min-height: 44px;
+  background: #e9e7d8;
+  color: #17241f;
+  border: 1px solid #84917f;
+}
+
 /* Reading-first native shell: all golden controls remain mounted and usable. */
 .native-reading-toolbar {
   display: flex;
