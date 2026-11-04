@@ -73,3 +73,12 @@ The active GitHub workflow triggers on main pushes/PRs, manual dispatch and sche
 - Evidence is outside the repository: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPadPro11-home.png`, `/Volumes/Developments/Xcode/TestResults/Fylogia-iPhone17-after-stalled-test.jpg`, and result bundles `Fylogia-iPad-Layout-20261104-23.xcresult`, `Fylogia-iPhone18-ProMax-20261104-24.xcresult`, and `Fylogia-Final-Full-iPhone-20261104-22.xcresult`. The XcodeBuildMCP run result is in its local result-bundles folder and reports 16 unit passes plus one UI-runner infrastructure failure.
 
 **Release gate:** NO-GO for physical-device acceptance as a completed simulator-validation milestone. The required matrix has not passed; first resolve the iPad 11 migration failure and Xcode UI-runner connection startup, then rerun the affected UI suite before expanding to the remaining devices.
+
+
+### Startup reliability milestone (4 November 2026)
+
+- [x] Native-only WebKit bootstrap now reports elapsed startup stages, includes a 12-second recovery screen deadline, and offers a retry that reloads without clearing IndexedDB or localStorage.
+- [x] Native library reads fail closed before migration/writes if IndexedDB cannot be read. Startup IndexedDB write transactions report completion/failure/abort and have a 5-second timeout with abort; the already-readable localStorage mirror remains a fallback. No database reset/delete path was added.
+- [x] Isolated WebKit startup fixtures PASS successful initialization (255 ms), delayed transaction timeout (5,000 ms; launch to library 5,408 ms), failed read with retry while preserving saved/history/progress and an offline article, and failed-write fallback. The 12-second bootstrap watchdog is the upper bound before a recovery screen appears.
+- [x] Existing native launch WebKit regression PASS; focused iPhone 17/iOS 27.2 UI smoke PASS (1/1) and native unit tests PASS (16/16) using the same current project build. The UI smoke exercised WebKit progress and forward/back navigation. No normal-startup regression was observed.
+- [ ] Broader iPad/Pro Max simulator acceptance and physical-device testing remain open; this milestone does not claim full simulator matrix completion.

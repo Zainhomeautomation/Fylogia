@@ -317,6 +317,50 @@ html .pdf-spread.native-pdf-flow {
   background: var(--paper);
 }
 
+.native-startup-recovery {
+  box-sizing: border-box;
+  min-height: 100dvh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 18px;
+  padding: 32px max(24px, env(safe-area-inset-left));
+  background: #0a1018;
+  color: #f7f2e3;
+  text-align: center;
+}
+.native-startup-recovery > svg {
+  width: 54px;
+  height: 54px;
+}
+.native-startup-recovery h1 {
+  max-width: 28rem;
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+.native-startup-recovery p {
+  max-width: 34rem;
+  margin: 0;
+  color: #c5c9c7;
+  line-height: 1.55;
+}
+.native-startup-recovery button {
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #e8dfc7;
+  color: #17241f;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.native-startup-recovery button:focus-visible {
+  outline: 3px solid #b7d2bd;
+  outline-offset: 3px;
+}
+
 @media (max-aspect-ratio: 9/10), (max-width: 727px) {
   html :is(.story-grid, .editorial-grid) {
     display: grid;

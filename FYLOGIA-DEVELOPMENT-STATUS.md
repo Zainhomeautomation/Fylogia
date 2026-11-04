@@ -43,3 +43,8 @@ Both registered project instruction files should link to this document:
 - `/Volumes/Developments/Workspace-Configuration/Project-Instructions/Fylogia-Native.md`
 
 Before software changes, run the corresponding `workspace.py` guard, read the instruction file and repository `AGENTS.md` when present, check branch/remote/worktree, and preserve the golden site, user data, AIHomeOS and production boundaries.
+
+
+### Startup reliability update (4 November 2026)
+
+Native startup now has bounded stage diagnostics, a 12-second recoverable error screen, a 5-second IndexedDB startup-write deadline, and fail-closed handling when the existing library cannot be read. Retry reloads without resetting storage. Isolated WebKit scenarios passed: successful open 255 ms; stalled transaction timed out at 5,000 ms and library launch completed in 5,408 ms; failed read/retry preserved bookmarks, saved/history/progress and offline article data; failed-write fallback passed. The native-launch regression passed. Current iPhone 17/iOS 27.2 validation passed 16/16 native unit tests and one focused UI smoke test. Broader iPad/Pro Max matrix, physical testing, and transition-level curl visual acceptance remain incomplete. See the detailed evidence in `native/ios/IMPLEMENTATION-CHECKLIST.md`.

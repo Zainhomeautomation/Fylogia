@@ -78,6 +78,218 @@ function dailyBriefingHeadlines(code, id) {
 ` + anchor,
   );
 }
+
+function nativeStorageGuard(code, id) {
+  if (!id.endsWith("/src/local-library.ts")) return code;
+  const start = code.indexOf("function writeRows(rows: Row[]) {");
+  const end = code.indexOf("\nasync function persist(row: Row) {", start);
+  if (start < 0 || end < 0)
+    throw Error("Native storage transaction guard anchor missing");
+
+  const guardedWriteRows = `let nativeLibraryStartupPhase = true;
+const NATIVE_STORAGE_TRANSACTION_TIMEOUT_MS = 5000;
+function writeRows(rows: Row[]) {
+  return new Promise<void>((resolve, reject) => {
+    if (!db) {
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+    let tx: IDBTransaction;
+    try {
+      tx = db.transaction("records", "readwrite");
+    } catch (error) {
+      console.warn("[fylogia-startup] storage-transaction-create-failed", {
+        recordCount: rows.length,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      });
+      reject(error);
+      return;
+    }
+    const startedAt = performance.now();
+    let settled = false;
+    const finish = (error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      if (error) reject(error);
+      else resolve();
+    };
+    const timer = window.setTimeout(() => {
+      const error = new Error("IndexedDB write transaction timed out");
+      console.warn("[fylogia-startup] storage-transaction-timeout", {
+        elapsedMs: Math.round(performance.now() - startedAt),
+        recordCount: rows.length,
+      });
+      try {
+        tx.abort();
+      } catch {
+        /* The transaction may have completed while its event was delayed. */
+      }
+      finish(error);
+    }, NATIVE_STORAGE_TRANSACTION_TIMEOUT_MS);
+    tx.oncomplete = () => {
+      if (nativeLibraryStartupPhase)
+        console.info("[fylogia-startup] storage-write-complete", {
+          elapsedMs: Math.round(performance.now() - startedAt),
+          recordCount: rows.length,
+        });
+      finish();
+    };
+    tx.onerror = () => {
+      console.warn("[fylogia-startup] storage-transaction-failed", {
+        elapsedMs: Math.round(performance.now() - startedAt),
+        recordCount: rows.length,
+        errorName: tx.error?.name || "UnknownError",
+      });
+      finish(tx.error || new Error("IndexedDB write failed"));
+    };
+    tx.onabort = () => {
+      console.warn("[fylogia-startup] storage-transaction-aborted", {
+        elapsedMs: Math.round(performance.now() - startedAt),
+        recordCount: rows.length,
+        errorName: tx.error?.name || "AbortError",
+      });
+      finish(tx.error || new Error("IndexedDB write was interrupted"));
+    };
+    try {
+      for (const row of rows) tx.objectStore("records").put(row);
+    } catch (error) {
+      try {
+        tx.abort();
+      } catch {
+        /* The transaction may already be inactive. */
+      }
+      finish(error);
+    }
+  });
+}`;
+  code = code.slice(0, start) + guardedWriteRows + code.slice(end);
+
+  const readAnchor = `    let rows: Row[] = [];
+    try {
+      rows = await openDatabase();
+    } catch {
+      /* Keep the app usable with localStorage or in memory. */
+    }`;
+  if (!code.includes(readAnchor))
+    throw Error("Native storage read failure guard anchor missing");
+  code = code.replace(
+    readAnchor,
+    `    let rows: Row[] = [];
+    const storageReadStartedAt = performance.now();
+    try {
+      rows = await openDatabase();
+      console.info("[fylogia-startup] storage-read-complete", {
+        elapsedMs: Math.round(performance.now() - storageReadStartedAt),
+        recordCount: rows.length,
+      });
+    } catch (error) {
+      console.error("[fylogia-startup] storage-read-failed", {
+        elapsedMs: Math.round(performance.now() - storageReadStartedAt),
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      });
+      updateStatus({
+        error:
+          "Fylogia could not read the existing library. No saved data was changed.",
+      });
+      throw new Error("LOCAL_LIBRARY_READ_FAILED");
+    }`,
+  );
+
+  const persistAnchor = `    await Promise.all([
+      persist({ key: "profile", value: profile, savedAt: timestamp() }),
+      ...libraryKeys.map((key) =>
+        persist({ key, value: data[key], savedAt: timestamp() }),
+      ),
+    ]);`;
+  if (!code.includes(persistAnchor))
+    throw Error("Native storage persistence guard anchor missing");
+  return code.replace(
+    persistAnchor,
+    `${persistAnchor}
+    nativeLibraryStartupPhase = false;
+    if (failures.size) {
+      updateStatus({
+        error:
+          "Fylogia could not safely save the existing library. No stored data was reset.",
+      });
+      throw new Error("LOCAL_LIBRARY_WRITE_FAILED");
+    }`,
+  );
+}
+
+function nativeBootstrapGuard(code, id) {
+  if (!id.endsWith("/src/main.tsx")) return code;
+  code = `import { NativeStartupRecovery } from "./native-startup-recovery";\n${code}`;
+  const start = "void initializeLocalLibrary().then(async () => {";
+  if (!code.includes(start))
+    throw Error("Native startup timing anchor missing");
+  code = code.replace(
+    start,
+    `const nativeStartupStartedAt = performance.now();
+let nativeStartupStage = "local-library";
+let nativeStartupFinished = false;
+const nativeStartupLog = (stage: string, detail = {}) =>
+  console.info("[fylogia-startup] " + stage, {
+    elapsedMs: Math.round(performance.now() - nativeStartupStartedAt),
+    ...detail,
+  });
+nativeStartupLog("bootstrap-start");
+const nativeStartupTimer = window.setTimeout(() => {
+  if (nativeStartupFinished) return;
+  nativeStartupLog("deadline-exceeded", {
+    stage: nativeStartupStage,
+    deadlineMs: 12000,
+  });
+  root.render(
+    <NativeStartupRecovery onRetry={() => window.location.reload()} />,
+  );
+}, 12000);
+nativeStartupLog("local-library-start");
+void initializeLocalLibrary().then(async () => {
+  nativeStartupLog("local-library-ready");`,
+  );
+
+  const launchAnchor = "  prepareNativeLaunch();";
+  if (!code.includes(launchAnchor))
+    throw Error("Native first-launch preparation anchor missing");
+  code = code.replace(
+    launchAnchor,
+    `  nativeStartupStage = "native-launch-preparation";
+  nativeStartupLog("native-launch-preparation-start");
+  prepareNativeLaunch();`,
+  );
+
+  const end = `    </StrictMode>,
+  );
+});
+
+if ("serviceWorker"`;
+  if (!code.includes(end))
+    throw Error("Native startup completion anchor missing");
+  return code.replace(
+    end,
+    `    </StrictMode>,
+  );
+  nativeStartupFinished = true;
+  window.clearTimeout(nativeStartupTimer);
+  nativeStartupLog("app-render-requested");
+  requestAnimationFrame(() => nativeStartupLog("first-render-frame"));
+}).catch((error) => {
+  nativeStartupFinished = true;
+  window.clearTimeout(nativeStartupTimer);
+  nativeStartupLog("startup-failed", {
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    stage: nativeStartupStage,
+  });
+  root.render(
+    <NativeStartupRecovery onRetry={() => window.location.reload()} />,
+  );
+});
+
+if ("serviceWorker"`,
+  );
+}
 const ios = resolve(dirname(fileURLToPath(import.meta.url)), ".."),
   repo = resolve(ios, "../..");
 execFileSync("sh", [resolve(ios, "scripts/check-development-volume.sh")], {
@@ -115,6 +327,10 @@ cpSync(
   resolve(ios, "web/native-reading-tips.tsx"),
   resolve(stage, "src/native-reading-tips.tsx"),
 );
+cpSync(
+  resolve(ios, "web/native-startup-recovery.tsx"),
+  resolve(stage, "src/native-startup-recovery.tsx"),
+);
 const nativeCSS = readFileSync(resolve(ios, "web/native.css"), "utf8"),
   bridge =
     readFileSync(resolve(ios, "web/bridge.js"), "utf8") +
@@ -133,7 +349,9 @@ transform(code,id){
    if (!code.includes(anchor)) throw Error('Native launch initialization anchor missing');
    code = 'import { prepareNativeLaunch } from "./native-launch";\\n' + code.replace(anchor, '  prepareNativeLaunch();');
    code = code.replace('import { initializeCloudSync } from "./cloud-sync";', '');
+   code = (${nativeBootstrapGuard.toString()})(code,id);
  }
+ code=(${nativeStorageGuard.toString()})(code,id);
  if(id.endsWith('/src/App.tsx')) {
    const anchor = 'const storyView = [...newsSections, "saved", "history"].includes(view);\\n  return (\\n    <>';
    if (!code.includes(anchor)) throw Error('Native tutorial placement anchor missing');
