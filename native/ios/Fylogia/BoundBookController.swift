@@ -36,6 +36,7 @@ final class BoundBookController: UIViewController, UIPageViewControllerDataSourc
   private let edge = BookEdgeView()
   private var leaves: [Int: BoundLeaf] = [:]
   private var limitingDrag = false
+  private var completionDelivered = false
   // Public UIKit offers no mesh controls. Cancel a gesture at the physical book
   // boundary instead of feeding it unbounded coordinates or using private APIs.
   static func validDrag(_ point: CGPoint, in bounds: CGRect) -> Bool {
@@ -127,6 +128,7 @@ final class BoundBookController: UIViewController, UIPageViewControllerDataSourc
       cancelled()
       return
     }
+    completionDelivered = false
     turning = true
     print("FYLOGIA bound gesture begin spine=\(spread==2 ? "mid":"min")")
     edge.turning = true
@@ -135,9 +137,7 @@ final class BoundBookController: UIViewController, UIPageViewControllerDataSourc
       animated: !UIAccessibility.isReduceMotionEnabled
     ) { [weak self] done in
       guard let self else { return }
-      self.turning = false
-      self.edge.turning = false
-      if done { self.completed(forward) } else { self.cancelled() }
+      self.deliverCompletion(done ? forward : nil)
     }
   }
   func pageViewController(
@@ -164,6 +164,7 @@ final class BoundBookController: UIViewController, UIPageViewControllerDataSourc
     _ pageViewController: UIPageViewController,
     willTransitionTo pendingViewControllers: [UIViewController]
   ) {
+    completionDelivered = false
     turning = true
     print("FYLOGIA bound gesture begin spine=\(spread==2 ? "mid":"min")")
     edge.turning = true
@@ -172,16 +173,21 @@ final class BoundBookController: UIViewController, UIPageViewControllerDataSourc
     _ pageViewController: UIPageViewController, didFinishAnimating finished: Bool,
     previousViewControllers: [UIViewController], transitionCompleted didComplete: Bool
   ) {
-    turning = false
-    edge.turning = false
-    print("FYLOGIA bound gesture complete=\(didComplete)")
     if didComplete,
       let index = pageViewController.viewControllers?.compactMap({ ($0 as? BoundLeaf)?.index })
         .min()
     {
-      completed(index >= spread)
+      deliverCompletion(index >= spread)
     } else {
-      cancelled()
+      deliverCompletion(nil)
     }
+  }
+  private func deliverCompletion(_ forward: Bool?) {
+    guard !completionDelivered else { return }
+    completionDelivered = true
+    turning = false
+    edge.turning = false
+    print("FYLOGIA bound gesture complete=\(forward != nil)")
+    if let forward { completed(forward) } else { cancelled() }
   }
 }

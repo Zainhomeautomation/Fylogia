@@ -27,6 +27,28 @@ function dailyBriefingHeadlines(code, id) {
       categories: Array.isArray(story.categories) ? story.categories : [],
     }));
     localStorage.setItem("fylogia.native.dailyHeadlines", JSON.stringify(dailyHeadlines));
+    const sendBreakingCandidates = () => {
+      if (localStorage.getItem("fylogia.native.breakingOptIn") !== "true") return;
+      const candidates = all.slice(0, 120).flatMap((story: any) => {
+        const contexts = Array.isArray(story.feedContexts) ? story.feedContexts : [];
+        const sources = [...new Set(contexts.map((context: any) => String(context.sourceId || "")).filter(Boolean))];
+        if (!sources.length && story.sourceId) sources.push(String(story.sourceId));
+        return sources.map((source: string) => ({
+          storyID: String(story.id || "").slice(0, 200),
+          title: String(story.title || "").slice(0, 500),
+          source,
+          url: String(story.url || ""),
+          published: String(story.published || ""),
+          topics: Array.isArray(story.categories) ? story.categories : [],
+        }));
+      });
+      (window as any).webkit?.messageHandlers?.fylogia?.postMessage({
+        action: "breakingCandidates",
+        candidates,
+      });
+    };
+    (window as any).__fylogiaSendBreakingCandidates = sendBreakingCandidates;
+    sendBreakingCandidates();
     const deliver = (route: string) => {
       const [section, query = ""] = route.split("?");
       if (section === "article") {
@@ -51,7 +73,7 @@ function dailyBriefingHeadlines(code, id) {
       (window as any).__fylogiaPendingNativeShortcut = undefined;
       deliver(pendingShortcut);
     }
-    return () => { delete (window as any).__fylogiaRouteNativeShortcut; };
+    return () => { delete (window as any).__fylogiaRouteNativeShortcut; delete (window as any).__fylogiaSendBreakingCandidates; };
   }, [all, history, saved, offline.items, online, view, recordVisit]);
 ` + anchor,
   );

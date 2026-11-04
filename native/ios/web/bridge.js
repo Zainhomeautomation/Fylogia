@@ -12,12 +12,26 @@
   const paper = () =>
     (document.documentElement.dataset.nativePaper =
       localStorage.getItem("fylogia.native.paper") || "cream");
+  const nativeReadingMode = () =>
+    (document.documentElement.dataset.nativeReadingMode =
+      localStorage.getItem("fylogia.native.readingMode") === "scroll"
+        ? "scroll"
+        : "adaptive");
+  const nativeViewport = () =>
+    document.documentElement.style.setProperty(
+      "--fylogia-native-viewport-height",
+      `${window.innerHeight}px`,
+    );
   paper();
+  nativeReadingMode();
+  nativeViewport();
+  addEventListener("resize", nativeViewport, { passive: true });
   const send = (value) => native?.postMessage(value);
   let pending, timer;
   window.__fylogiaNativeTurn = (forward, turn, surface, axis) => {
     if (
       !native ||
+      document.documentElement.dataset.nativeReadingMode === "scroll" ||
       axis !== "horizontal" ||
       matchMedia("(prefers-reduced-motion: reduce)").matches
     )
@@ -114,6 +128,28 @@
     );
     options.append(tips);
     settings.append(options);
+    const readingMode = document.createElement("section");
+    readingMode.className = "native-reading-mode";
+    const readingHeading = document.createElement("h2");
+    readingHeading.textContent = "Reading mode";
+    readingMode.append(readingHeading);
+    const scrollingRow = document.createElement("label");
+    const scrolling = document.createElement("input");
+    scrolling.type = "checkbox";
+    scrolling.checked =
+      localStorage.getItem("fylogia.native.readingMode") === "scroll";
+    scrollingRow.append(
+      scrolling,
+      document.createTextNode(" Prefer vertical scrolling in wide layouts"),
+    );
+    scrolling.addEventListener("change", () => {
+      const mode = scrolling.checked ? "scroll" : "adaptive";
+      localStorage.setItem("fylogia.native.readingMode", mode);
+      document.documentElement.dataset.nativeReadingMode = mode;
+      dispatchEvent(new Event("resize"));
+    });
+    readingMode.append(scrollingRow);
+    settings.append(readingMode);
     const notifications = document.createElement("section");
     notifications.className = "native-notifications";
     const notificationHeading = document.createElement("h2");
@@ -214,6 +250,76 @@
       }
     };
     settings.append(notifications);
+    const breaking = document.createElement("section");
+    breaking.className = "native-notifications native-breaking";
+    const breakingHeading = document.createElement("h2");
+    breakingHeading.textContent = "Breaking news alerts";
+    breaking.append(breakingHeading);
+    const breakingOptInRow = document.createElement("label");
+    const breakingOptIn = document.createElement("input");
+    breakingOptIn.type = "checkbox";
+    breakingOptIn.checked =
+      localStorage.getItem("fylogia.native.breakingOptIn") === "true";
+    breakingOptInRow.append(
+      breakingOptIn,
+      document.createTextNode(" Notify me about high-confidence breaking news"),
+    );
+    breaking.append(breakingOptInRow);
+    const breakingTopics = document.createElement("fieldset");
+    const breakingLegend = document.createElement("legend");
+    breakingLegend.textContent = "Alert topics";
+    breakingTopics.append(breakingLegend);
+    let selectedBreakingTopics = new Set();
+    try {
+      const savedTopics = JSON.parse(
+        localStorage.getItem("fylogia.native.breakingTopics") || "[]",
+      );
+      if (Array.isArray(savedTopics))
+        selectedBreakingTopics = new Set(
+          savedTopics.filter((topic) =>
+            ["World News", "Technology", "Science"].includes(topic),
+          ),
+        );
+    } catch {}
+    const breakingTopicInputs = [];
+    for (const topic of ["World News", "Technology", "Science"]) {
+      const row = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = topic;
+      input.checked = selectedBreakingTopics.has(topic);
+      row.append(input, document.createTextNode(topic));
+      breakingTopics.append(row);
+      breakingTopicInputs.push(input);
+    }
+    breaking.append(breakingTopics);
+    const publishBreakingPreferences = () => {
+      const topics = breakingTopicInputs
+        .filter((input) => input.checked)
+        .map((input) => input.value);
+      localStorage.setItem(
+        "fylogia.native.breakingOptIn",
+        String(breakingOptIn.checked),
+      );
+      localStorage.setItem(
+        "fylogia.native.breakingTopics",
+        JSON.stringify(topics),
+      );
+      send({
+        action: "breakingPreferences",
+        optedIn: breakingOptIn.checked,
+        topics,
+      });
+    };
+    for (const input of [breakingOptIn, ...breakingTopicInputs])
+      input.addEventListener("change", publishBreakingPreferences);
+    window.__fylogiaBreakingAuthorization = (accepted) => {
+      if (!accepted) {
+        breakingOptIn.checked = false;
+        localStorage.setItem("fylogia.native.breakingOptIn", "false");
+      }
+    };
+    settings.append(breaking);
   };
   new MutationObserver(window.__fylogiaNativeOptions).observe(
     document.documentElement,

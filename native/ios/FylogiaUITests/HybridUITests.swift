@@ -11,8 +11,20 @@ final class HybridUITests: XCTestCase {
   }
   @MainActor private func navigate(_ name: String, app: XCUIApplication) {
     let open = app.buttons["Open navigation"]
-    if open.exists && open.isHittable { open.tap() }
-    let button = app.buttons[name].firstMatch
+    let close = app.buttons["Close navigation"]
+    if !close.exists || !close.isHittable {
+      XCTAssertTrue(open.waitForExistence(timeout: 5))
+      XCTAssertTrue(open.isHittable, "Navigation opener must be hittable before route selection")
+      open.tap()
+      let drawerOpened = XCTNSPredicateExpectation(
+        predicate: NSPredicate(format: "exists == true AND hittable == true"), object: close)
+      XCTAssertEqual(XCTWaiter.wait(for: [drawerOpened], timeout: 5), .completed)
+    }
+    let drawer = app.otherElements.matching(
+      NSPredicate(format: "label BEGINSWITH %@", "Main navigation")
+    ).firstMatch
+    XCTAssertTrue(drawer.waitForExistence(timeout: 5), "Main navigation drawer is missing")
+    let button = drawer.buttons[name].firstMatch
     XCTAssertTrue(button.waitForExistence(timeout: 5))
     button.tap()
   }
@@ -50,7 +62,11 @@ final class HybridUITests: XCTestCase {
     XCTAssertEqual(nativeBook.value as? String, "spread=2;spine=mid")
     app.buttons["Open navigation"].tap()
     sleep(1)
-    XCTAssertFalse(nativeBook.exists, "Native pages must not cover the overlay navigation")
+    let hidden = XCTNSPredicateExpectation(
+      predicate: NSPredicate(format: "exists == false"), object: nativeBook)
+    XCTAssertEqual(
+      XCTWaiter.wait(for: [hidden], timeout: 5), .completed,
+      "Native pages must not cover the overlay navigation")
     app.buttons["Close navigation"].tap()
     XCTAssertTrue(nativeBook.waitForExistence(timeout: 8))
 
@@ -83,6 +99,11 @@ final class HybridUITests: XCTestCase {
     XCTAssertTrue(
       app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 8))
     XCTAssertFalse(nativeBook.exists)
+    let portraitPosition = app.otherElements.matching(
+      NSPredicate(format: "label CONTAINS %@", "Scrolling news feed. Story")
+    ).firstMatch
+    XCTAssertTrue(portraitPosition.waitForExistence(timeout: 5))
+    XCTAssertTrue(portraitPosition.label.contains("Scrolling news feed. Story 3 of 8"))
     capture("scrolling-portrait", app: app)
     XCUIDevice.shared.orientation = .landscapeLeft
     sleep(3)
@@ -132,10 +153,12 @@ final class HybridUITests: XCTestCase {
     capture("native-portrait", app: app)
     navigate("Settings", app: app)
     XCTAssertTrue(app.staticTexts["Appearance"].waitForExistence(timeout: 5))
-    app.descendants(matching: .any)["Light"].firstMatch.tap()
-    XCTAssertTrue(app.descendants(matching: .any)["Light"].firstMatch.exists)
-    app.descendants(matching: .any)["Editorial Green"].firstMatch.tap()
-    app.descendants(matching: .any)["Midnight Navy"].firstMatch.tap()
+    let light = app.switches.matching(NSPredicate(format: "label == %@", "Light")).firstMatch
+    XCTAssertTrue(light.waitForExistence(timeout: 5))
+    light.tap()
+    XCTAssertTrue(light.exists)
+    app.switches.matching(NSPredicate(format: "label == %@", "Editorial Green")).firstMatch.tap()
+    app.switches.matching(NSPredicate(format: "label == %@", "Midnight Navy")).firstMatch.tap()
     navigate("Categories", app: app)
     let categorySearch = app.textFields["Find a category"]
     XCTAssertTrue(categorySearch.waitForExistence(timeout: 5))
@@ -144,6 +167,17 @@ final class HybridUITests: XCTestCase {
     XCTAssertTrue(
       app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Science ")).firstMatch
         .waitForExistence(timeout: 5))
+    if app.keyboards.firstMatch.exists {
+      app.buttons["Open navigation"].tap()
+      let closeNavigation = app.buttons["Close navigation"]
+      let drawerOpened = XCTNSPredicateExpectation(
+        predicate: NSPredicate(format: "exists == true AND hittable == true"),
+        object: closeNavigation)
+      XCTAssertEqual(XCTWaiter.wait(for: [drawerOpened], timeout: 5), .completed)
+      let keyboardDismissed = XCTNSPredicateExpectation(
+        predicate: NSPredicate(format: "exists == false"), object: app.keyboards.firstMatch)
+      XCTAssertEqual(XCTWaiter.wait(for: [keyboardDismissed], timeout: 5), .completed)
+    }
     navigate("My Sources", app: app)
     XCTAssertTrue(
       app.textFields.firstMatch.waitForExistence(timeout: 5) || app.searchFields.firstMatch.exists)

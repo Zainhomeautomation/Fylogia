@@ -11,6 +11,7 @@ function snapshot() {
     ),
     window.visualViewport?.height || innerHeight,
     Math.max(1, Number(document.documentElement.dataset.nativeTextScale || 1)),
+    document.documentElement.dataset.nativeReadingMode === "scroll" ? 1 : 0,
   ].join(":");
 }
 function subscribe(notify: () => void) {
@@ -25,18 +26,31 @@ function subscribe(notify: () => void) {
   });
   window.addEventListener("resize", update);
   window.visualViewport?.addEventListener("resize", update);
+  const readingModeObserver = new MutationObserver(update);
+  readingModeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-native-reading-mode"],
+  });
   return () => {
     observer.disconnect();
+    readingModeObserver.disconnect();
     window.removeEventListener("resize", update);
     window.visualViewport?.removeEventListener("resize", update);
   };
 }
 /** Actual usable geometry and Dynamic Type, shared across reflowable readers. */
 export function useNativeWide(minimumPageWidth = 340) {
-  const [width, height, scale] = useSyncExternalStore(subscribe, snapshot)
+  const [width, height, scale, forcedScroll] = useSyncExternalStore(
+    subscribe,
+    snapshot,
+  )
     .split(":")
     .map(Number);
-  return width - 48 >= 2 * minimumPageWidth * scale && width >= height * 0.9;
+  return (
+    forcedScroll !== 1 &&
+    width - 48 >= 2 * minimumPageWidth * scale &&
+    width >= height * 0.9
+  );
 }
 export function useNativeReadingScale() {
   return Number(useSyncExternalStore(subscribe, snapshot).split(":")[2]);

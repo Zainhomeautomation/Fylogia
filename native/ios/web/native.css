@@ -25,6 +25,12 @@ html .feed-read,
 html .feed-sheet .story-meta {
   margin-top: 0;
 }
+/* WebKit can report a dynamic viewport taller than its hosted WKWebView during
+   rotation. Keep reader sheets inside the actual native content bounds. */
+html .reader {
+  height: var(--fylogia-native-viewport-height, 100dvh);
+  max-height: var(--fylogia-native-viewport-height, 100dvh);
+}
 .native-options {
   margin: 16px 0;
 }
@@ -33,6 +39,25 @@ html .feed-sheet .story-meta {
   align-items: center;
   gap: 10px;
   margin: 10px 0;
+}
+@media (max-width: 760px) {
+  html .sidebar nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  html .sidebar nav .nav-item {
+    min-height: 32px;
+    margin-bottom: 2px;
+    padding-block: 5px;
+  }
+  html .sidebar nav .nav-item:last-child {
+    margin-top: 4px;
+  }
+  html .sidebar-brand,
+  html .sidebar-brand:has(.brand-tagline) {
+    padding-bottom: 10px;
+  }
 }
 .native-notifications {
   margin-top: 18px;

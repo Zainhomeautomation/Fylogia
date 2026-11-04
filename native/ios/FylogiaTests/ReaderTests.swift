@@ -118,6 +118,70 @@ import XCTest
     XCTAssertEqual(second.anchor, first.anchor)
     XCTAssertTrue(second.saved.contains("a"))
   }
+  func testLocalSyncJournalIsAdditiveAndMergesTombstones() async throws {
+    let name = "com.fylogia.unit.sync.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: name)!
+    defer { defaults.removePersistentDomain(forName: name) }
+    let store = FylogiaLocalSyncStore(defaults: defaults, origin: "device-a")
+    let legacy = FylogiaSyncRecord(
+      collection: .savedArticle, key: "story-1", payload: Data("legacy".utf8),
+      updatedAt: Date(timeIntervalSince1970: 10), origin: "legacy", isDeleted: false)
+    let seeded = await store.seedIfMissing(legacy)
+    XCTAssertTrue(seeded)
+    try await store.put(
+      .savedArticle, key: "story-1", payload: Data("new local value".utf8),
+      at: Date(timeIntervalSince1970: 20))
+    let reseeded = await store.seedIfMissing(legacy)
+    XCTAssertFalse(reseeded, "Initial migration must never overwrite existing data")
+    let remoteDelete = FylogiaSyncRecord(
+      collection: .savedArticle, key: "story-1", payload: Data(),
+      updatedAt: Date(timeIntervalSince1970: 30), origin: "device-b", isDeleted: true)
+    await store.merge([remoteDelete])
+    let merged = await store.snapshot()
+    XCTAssertEqual(merged.count, 1)
+    XCTAssertTrue(merged[0].isDeleted)
+    let reopened = FylogiaLocalSyncStore(defaults: defaults, origin: "device-a")
+    let reopenedSnapshot = await reopened.snapshot()
+    XCTAssertEqual(reopenedSnapshot, merged, "Offline journal must survive app restarts")
+  }
+  func testBreakingNewsRequiresOptInAndIndependentConfirmation() {
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let first = FylogiaBreakingCandidate(
+      storyID: "story-1", title: "Breaking: Central bank cuts rates", source: "News One",
+      url: URL(string: "https://news-one.example/story")!, topics: ["World News"],
+      publishedAt: now, isOfficialSource: false)
+    let second = FylogiaBreakingCandidate(
+      storyID: "story-1", title: "Central bank cuts rates — Breaking", source: "News Two",
+      url: URL(string: "https://news-two.example/story")!, topics: ["World News"],
+      publishedAt: now, isOfficialSource: false)
+    XCTAssertTrue(
+      FylogiaBreakingNewsDetector.classify(
+        [first, second], preferences: FylogiaBreakingPreferences(), now: now
+      ).isEmpty)
+    var preferences = FylogiaBreakingPreferences(optedIn: true, topics: ["World News"])
+    let alerts = FylogiaBreakingNewsDetector.classify(
+      [first, second], preferences: preferences, now: now)
+    XCTAssertEqual(alerts.count, 1, "Matching reports from multiple sources must deduplicate")
+    guard let alert = alerts.first else { return XCTFail("High-confidence report was not emitted") }
+    XCTAssertGreaterThanOrEqual(alert.confidence, 0.9)
+    let gateSuite = "com.fylogia.unit.alert.\(UUID().uuidString)"
+    let gateDefaults = UserDefaults(suiteName: gateSuite)!
+    defer { gateDefaults.removePersistentDomain(forName: gateSuite) }
+    var gate = FylogiaBreakingAlertGate(defaults: gateDefaults)
+    XCTAssertTrue(gate.allow(alert, preferences: preferences, now: now))
+    XCTAssertFalse(gate.allow(alert, preferences: preferences, now: now.addingTimeInterval(3600)))
+    preferences.optedIn = false
+    XCTAssertFalse(gate.allow(alert, preferences: preferences, now: now.addingTimeInterval(7200)))
+  }
+  func testBreakingPreferencesAreOptInByDefaultAndPersistSelectedTopics() {
+    let name = "com.fylogia.unit.breaking-preferences.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: name)!
+    defer { defaults.removePersistentDomain(forName: name) }
+    let store = FylogiaBreakingPreferenceStore(defaults: defaults)
+    XCTAssertFalse(store.load().optedIn)
+    store.save(FylogiaBreakingPreferences(optedIn: true, topics: ["Science", "Invalid"]))
+    XCTAssertEqual(store.load().topics, ["Science"])
+  }
   func testPaginationPerformance() {
     measure { _ = Pagination.pages(stories: Story.fixtures, size: CGSize(width: 480, height: 790)) }
   }

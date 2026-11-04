@@ -201,8 +201,56 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
       }
       return
     }
+    if body["action"] as? String == "breakingPreferences" {
+      let preferences = FylogiaBreakingPreferences(
+        optedIn: body["optedIn"] as? Bool ?? false,
+        topics: Set(body["topics"] as? [String] ?? []))
+      FylogiaBreakingPreferenceStore().save(preferences)
+      guard preferences.optedIn else { return }
+      UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) {
+        [weak self] granted, _ in
+        Task { @MainActor in
+          guard let self else { return }
+          if !granted {
+            FylogiaBreakingPreferenceStore().save(
+              FylogiaBreakingPreferences(optedIn: false, topics: []))
+            self.web.evaluateJavaScript("window.__fylogiaBreakingAuthorization?.(false)")
+          } else {
+            self.web.evaluateJavaScript("window.__fylogiaSendBreakingCandidates?.()")
+          }
+        }
+      }
+      return
+    }
+    if body["action"] as? String == "breakingCandidates" {
+      let preferences = FylogiaBreakingPreferenceStore().load()
+      guard preferences.optedIn, let raw = body["candidates"] as? [[String: Any]] else { return }
+      let formatter = ISO8601DateFormatter()
+      let candidates = raw.compactMap { item -> FylogiaBreakingCandidate? in
+        guard let storyID = item["storyID"] as? String, !storyID.isEmpty,
+          let title = item["title"] as? String, title.count <= 500,
+          let source = item["source"] as? String, !source.isEmpty,
+          let urlText = item["url"] as? String, let url = URL(string: urlText),
+          url.scheme?.lowercased() == "https",
+          let published = item["published"] as? String,
+          let publishedAt = formatter.date(from: published)
+        else { return nil }
+        let topics = Set(item["topics"] as? [String] ?? [])
+          .intersection(FylogiaBreakingPreferences.supportedTopics)
+        return FylogiaBreakingCandidate(
+          storyID: storyID, title: title, source: source, url: url,
+          topics: topics, publishedAt: publishedAt, isOfficialSource: false)
+      }
+      Task { @MainActor in
+        _ = await FylogiaBreakingAlertScheduler().schedule(candidates, preferences: preferences)
+      }
+      return
+    }
     if let action = body["action"] as? String, action.hasPrefix("bound") {
       if action == "boundHide" {
+        // Keep a prepared native page snapshot out of VoiceOver/UI automation
+        // as soon as a web overlay opens, even if UIKit is finishing a curl.
+        bound?.view.accessibilityElementsHidden = true
         if bound?.turning != true { removeBound() }
         return
       }
