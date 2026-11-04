@@ -36,6 +36,9 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
       self, selector: #selector(appDidBecomeActive),
       name: UIApplication.didBecomeActiveNotification,
       object: nil)
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(pendingShortcutAvailable),
+      name: .fylogiaShortcutAvailable, object: nil)
     UNUserNotificationCenter.current().delegate = self
     view.backgroundColor = UIColor(red: 10 / 255, green: 16 / 255, blue: 24 / 255, alpha: 1)
     let config = WKWebViewConfiguration()
@@ -96,6 +99,9 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
   @objc private func appDidBecomeActive() {
     deliverPendingShortcut()
   }
+  @objc private func pendingShortcutAvailable() {
+    deliverPendingShortcut()
+  }
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
     updateTextScale()
     deliverPendingShortcut()
@@ -114,6 +120,7 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
   ) {
     if let route = response.notification.request.content.userInfo["fylogiaRoute"] as? String {
       FylogiaShortcutHandoff.queue(route: route)
+      NotificationCenter.default.post(name: .fylogiaShortcutAvailable, object: nil)
     }
     completionHandler()
   }

@@ -36,8 +36,16 @@ try {
   await page
     .getByText("Your reading journey begins here.")
     .waitFor({ state: "attached" });
+  await page.evaluate(() =>
+    window.__fylogiaDeliverNativeShortcut(
+      "article?fylogiaStoryID=native-parity-2",
+    ),
+  );
+  await page
+    .locator('.reader[aria-label="The art of slowing down to read"]')
+    .waitFor();
   console.log(
-    "PASS App Intents bridge routes to World News, Saved, and History",
+    "PASS App Intents and widget deep-link routes for World News, Saved, History, and articles",
   );
 } finally {
   await browser.close();

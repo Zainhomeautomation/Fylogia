@@ -3,12 +3,19 @@ import SwiftUI
 @main struct FylogiaApp: App {
   var body: some Scene {
     WindowGroup {
-      if ProcessInfo.processInfo.arguments.contains("--native-reader")
-        || ProcessInfo.processInfo.arguments.contains("--ui-testing")
-      {
-        NativeReader().ignoresSafeArea().preferredColorScheme(.dark)
-      } else {
-        GoldenReader().ignoresSafeArea()
+      Group {
+        if ProcessInfo.processInfo.arguments.contains("--native-reader")
+          || ProcessInfo.processInfo.arguments.contains("--ui-testing")
+        {
+          NativeReader().ignoresSafeArea().preferredColorScheme(.dark)
+        } else {
+          GoldenReader().ignoresSafeArea()
+        }
+      }
+      .onOpenURL { url in
+        guard let route = FylogiaWidgetDeepLink.route(from: url) else { return }
+        FylogiaShortcutHandoff.queue(route: route)
+        NotificationCenter.default.post(name: .fylogiaShortcutAvailable, object: nil)
       }
     }
   }

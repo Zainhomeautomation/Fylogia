@@ -31,7 +31,7 @@ Updated 4 November 2026, Asia/Muscat. This supersedes the historical phase statu
 ## Apple integration and release gates
 
 - [ ] iCloud: private container/capabilities, offline conflict handling, deletion semantics, progress/preferences/bookmark/saved synchronization and cross-device tests.
-- [ ] WidgetKit: small/medium/large targets, shared data, refresh/privacy rules and story deep links.
+- [x] WidgetKit: small/medium/large headline layouts, hourly timeline refresh requests, extension-local offline cache, lock-screen privacy redaction and story deep links are implemented. Network refresh, installed widget appearance, size-specific layout and tap acceptance remain NOT RUN on device.
 - [x] Daily briefing notifications: disabled by default; opt-in permission request, local delivery time and topic selection; latest cached matching headlines are included; tapping opens Fylogia. WebKit settings and native schedule/body validation pass. Actual permission grant and notification delivery remain untested.
 - [ ] Breaking-news alerts: no publisher alert or APNs delivery service is configured; requires an approved delivery source and real-device delivery validation.
 - [x] App Intents: app, saved library, reading history and selected categories with tested routing. Siri/Shortcuts presentation and invocation remain unverified.
@@ -47,6 +47,8 @@ PASS: development-volume real and simulated guards; bundled production web build
 App Intents milestone (4 November 2026): PASS Debug simulator build and 10/10 `FylogiaTests` on iPhone 17 / iOS 27.2; PASS Release simulator build with App Intents metadata extraction; PASS WebKit route exercise for World News, Saved and History plus the existing fresh-launch regression. Siri/Shortcuts presentation and actual voice invocation are NOT RUN.
 
 Daily briefing milestone (4 November 2026): PASS native Debug simulator build and 11/11 `FylogiaTests`, including time validation and safe headline formatting; PASS Release simulator build; PASS WebKit settings exercise for default-off state, topic selection, headline inclusion and bridge delivery, plus App Intents routing and fresh-launch regressions. The native permission prompt and scheduled notification delivery were NOT RUN. The repeating local notification uses headlines cached at the last app update; background refresh is not configured.
+
+Widget milestone (4 November 2026): PASS WidgetKit extension build and embedding; PASS Release simulator build; PASS 12/12 `FylogiaTests` on iPhone 17 / iOS 27.2, including widget-link route validation; PASS WebKit story-route exercise. Built app Info.plist registers the `fylogia` URL scheme and extension metadata is valid. Home Screen widget installation, small/medium/large visual acceptance, live network refresh and tap-through on iPhone/iPad are NOT RUN.
 
 NOT RUN successfully: the iPad XCTest/XCUITest baseline. It compiled but stalled before executing cases. A captured simulator frame showed the Apple boot logo, and XcodeBuildMCP accessibility connection timed out. The current Xcode bundle has no `Contents/Developer/Applications/Simulator.app`. The owned stalled build was interrupted after about five minutes; the booted iPad was shut down without erasing its data. These observations do not establish the cause of the stall. A complete functioning Xcode/Simulator environment is needed to resume native curl demonstrations, visual acceptance and hardware preparation. No SDK files or user simulator data were modified to work around this.
 

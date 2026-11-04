@@ -28,6 +28,14 @@ import XCTest
       FylogiaDailyBriefing.notificationBody(headlines: [], topics: ["Invalid"]),
       "Your daily news briefing is ready.")
   }
+  func testWidgetDeepLinkValidatesAndEncodesStoryRoute() {
+    let url = URL(string: "fylogia://story?id=story-123")!
+    XCTAssertEqual(
+      FylogiaWidgetDeepLink.route(from: url),
+      "article?fylogiaStoryID=story-123")
+    XCTAssertNil(FylogiaWidgetDeepLink.route(from: URL(string: "https://fylogia.com/story-123")!))
+    XCTAssertNil(FylogiaWidgetDeepLink.route(from: URL(string: "fylogia://story?id=%0A")!))
+  }
   func testWebKitBridgeDoesNotRetainController() {
     weak var observed: HybridController?
     var web: WKWebView!

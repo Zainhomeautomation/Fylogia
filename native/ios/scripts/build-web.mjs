@@ -13,16 +13,29 @@ import {
 } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-function appIntentRoutes(code, id) {
+function dailyBriefingHeadlines(code, id) {
   if (!id.endsWith("/src/App.tsx")) return code;
-  const anchor = "  function goHome() {";
+  const anchor = "  const displayedReader =";
   if (!code.includes(anchor))
-    throw Error("Native App Intents route anchor missing");
+    throw Error("Native daily briefing headline anchor missing");
   return code.replace(
     anchor,
     `  useEffect(() => {
+    const dailyHeadlines = all.slice(0, 12).map((story: any) => ({
+      id: story.id,
+      title: String(story.title || "").slice(0, 120),
+      categories: Array.isArray(story.categories) ? story.categories : [],
+    }));
+    localStorage.setItem("fylogia.native.dailyHeadlines", JSON.stringify(dailyHeadlines));
     const deliver = (route: string) => {
       const [section, query = ""] = route.split("?");
+      if (section === "article") {
+        const storyID = new URLSearchParams(query).get("fylogiaStoryID");
+        const story = all.find((item: any) => item.id === storyID);
+        if (story) open(story);
+        else (window as any).__fylogiaPendingNativeShortcut = route;
+        return;
+      }
       const topic = new URLSearchParams(query).get("fylogiaTopic");
       if (section === "categories" && topic && ["Science", "Technology", "World News"].includes(topic)) {
         navigate("explore");
@@ -33,30 +46,13 @@ function appIntentRoutes(code, id) {
       navigate(section);
     };
     (window as any).__fylogiaRouteNativeShortcut = deliver;
-    const pending = (window as any).__fylogiaPendingNativeShortcut;
-    if (typeof pending === "string") {
+    const pendingShortcut = (window as any).__fylogiaPendingNativeShortcut;
+    if (typeof pendingShortcut === "string") {
       (window as any).__fylogiaPendingNativeShortcut = undefined;
-      deliver(pending);
+      deliver(pendingShortcut);
     }
     return () => { delete (window as any).__fylogiaRouteNativeShortcut; };
-  }, []);
-` + anchor,
-  );
-}
-function dailyBriefingHeadlines(code, id) {
-  if (!id.endsWith("/src/App.tsx")) return code;
-  const anchor = "  const displayedReader =";
-  if (!code.includes(anchor))
-    throw Error("Native daily briefing headline anchor missing");
-  return code.replace(
-    anchor,
-    `  useEffect(() => {
-    const dailyHeadlines = all.slice(0, 12).map((story: any) => ({
-      title: String(story.title || "").slice(0, 120),
-      categories: Array.isArray(story.categories) ? story.categories : [],
-    }));
-    localStorage.setItem("fylogia.native.dailyHeadlines", JSON.stringify(dailyHeadlines));
-  }, [all]);
+  }, [all, history, saved, offline.items, online, view, recordVisit]);
 ` + anchor,
   );
 }
@@ -109,7 +105,6 @@ transform(code,id){
  code=(${readingSpace.toString()})(code,id);
  code=(${adaptiveFeed.toString()})(code,id);
  code=(${adaptiveReaders.toString()})(code,id);
- code=(${appIntentRoutes.toString()})(code,id);
  code=(${dailyBriefingHeadlines.toString()})(code,id);
  if(id.endsWith('/src/main.tsx')) {
    const anchor = '  await initializeCloudSync();';
