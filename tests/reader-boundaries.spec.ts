@@ -1,6 +1,63 @@
 import { test, expect } from "@playwright/test";
 import { defaults } from "../src/catalog";
 
+test("opening geometry and temporary single-page layouts cannot overwrite saved progress", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const edition = await (await page.request.get("data/edition.json")).json();
+  const article = {
+    ...edition.articles.find((item: any) => item.full),
+    id: "restored-geometry-fixture",
+    title: "Original progress restoration fixture",
+    image: undefined,
+    full: true,
+    content: Array.from(
+      { length: 10 },
+      (_, index) =>
+        `<p>Paragraph ${index + 1}. ${"This original fixture verifies that opening an article and changing its layout cannot erase an existing reading position. ".repeat(3)}</p>`,
+    ).join(""),
+  };
+  await page.addInitScript(
+    ({ article, prefs }) => {
+      localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
+      localStorage.setItem("folio.v1.saved", JSON.stringify([article]));
+      localStorage.setItem(
+        "folio.v1.progress",
+        JSON.stringify({ [article.id]: 0.4 }),
+      );
+    },
+    {
+      article,
+      prefs: { ...defaults, complete: true, reading: "pages", fontSize: 24 },
+    },
+  );
+  await page.goto("./saved");
+  await page.locator(".story-open").click();
+  const previous = page.getByRole("button", {
+    name: "Previous page",
+    exact: true,
+  });
+  await expect(previous).toBeEnabled();
+  await page.setViewportSize({ width: 1600, height: 2400 });
+  await expect(page.locator(".reader-footer [role=status]")).toHaveText(
+    "Page 1 of 1",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(previous).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  expect(
+    await page.evaluate(
+      (id) => JSON.parse(localStorage.getItem("folio.v1.progress")!)[id],
+      article.id,
+    ),
+  ).toBe(0.4);
+  await page.locator(".story-open").click();
+  await expect(previous).toBeEnabled();
+});
+
 test("queued article turns stay within the first and last text pages", async ({
   page,
 }) => {
