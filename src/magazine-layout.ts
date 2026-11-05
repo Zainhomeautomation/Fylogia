@@ -24,3 +24,16 @@ export function wideReadingViewport(
 ): boolean {
   return width >= minimumWidth && width >= height * 0.9;
 }
+
+/**
+ * Read the layout viewport used to lay out the page. iOS Safari may update
+ * visualViewport asynchronously while its browser chrome and orientation are
+ * changing; using that transient size for React layout decisions can leave the
+ * feed in the wrong presentation until a later resize event.
+ */
+export function layoutViewport(): { width: number; height: number } {
+  return {
+    width: document.documentElement.clientWidth || window.innerWidth,
+    height: document.documentElement.clientHeight || window.innerHeight,
+  };
+}

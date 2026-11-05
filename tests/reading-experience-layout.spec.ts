@@ -73,6 +73,124 @@ test("automatic portrait scrolling and wide page mode retain the story anchor on
   ).toBeInViewport();
 });
 
+test("mid-feed orientation changes render the anchored magazine and restore scrolling", async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  // Model iOS Safari's short rotation interval where the visual viewport is
+  // stale even though the layout viewport has already resized.
+  await page.addInitScript(() => {
+    const staleViewport = new EventTarget() as VisualViewport;
+    Object.defineProperties(staleViewport, {
+      width: { configurable: true, get: () => 390 },
+      height: { configurable: true, get: () => 844 },
+      scale: { configurable: true, get: () => 1 },
+      offsetLeft: { configurable: true, get: () => 0 },
+      offsetTop: { configurable: true, get: () => 0 },
+      pageLeft: { configurable: true, get: () => 0 },
+      pageTop: { configurable: true, get: () => 0 },
+    });
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: staleViewport,
+    });
+  });
+  await seed(page, 100);
+  const surface = page.locator(".news-book > .news-feed-surface");
+  const rotate = async (width: number, height: number) => {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("resize"));
+      window.dispatchEvent(new Event("orientationchange"));
+    });
+  };
+  const target = page.locator('.news-feed-list [data-story-id="layout-42"]');
+  await target.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(100);
+  await expect(surface).toHaveClass(/scrolling-feed/);
+  await expect(target).toBeInViewport();
+  await target.getByRole("button", { name: /Save Layout story 43/ }).click();
+  await expect(target.locator("button.is-saved")).toHaveCount(1);
+  if (process.env.FYLOGIA_SCREENSHOTS)
+    await page.screenshot({
+      path: `${process.env.FYLOGIA_SCREENSHOTS}/rotation-before-${info.project.name}.png`,
+    });
+
+  await rotate(844, 390);
+  await expect(surface).not.toHaveClass(/scrolling-feed/);
+  await expect(
+    surface.locator('.feed-spread [data-story-id="layout-42"]'),
+  ).toBeInViewport();
+  await expect(
+    surface.locator(".feed-spread .story-open").first(),
+  ).toBeVisible();
+  if (process.env.FYLOGIA_SCREENSHOTS)
+    await page.screenshot({
+      path: `${process.env.FYLOGIA_SCREENSHOTS}/rotation-landscape-${info.project.name}.png`,
+    });
+
+  for (let turn = 0; turn < 2; turn++) {
+    await rotate(390, 844);
+    await expect(surface).toHaveClass(/scrolling-feed/);
+    await expect(
+      surface.locator('.news-feed-list [data-story-id="layout-42"]'),
+    ).toBeInViewport();
+    await rotate(844, 390);
+    await expect(surface).not.toHaveClass(/scrolling-feed/);
+    await expect(
+      surface.locator('.feed-spread [data-story-id="layout-42"]'),
+    ).toBeInViewport();
+  }
+
+  const bounds = (await surface.boundingBox())!;
+  await page.mouse.move(
+    bounds.x + bounds.width - 8,
+    bounds.y + bounds.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    bounds.x + bounds.width * 0.82,
+    bounds.y + bounds.height / 2,
+    {
+      steps: 4,
+    },
+  );
+  await expect(surface.locator(".paper-fold")).toBeVisible();
+  if (process.env.FYLOGIA_SCREENSHOTS)
+    await page.screenshot({
+      path: `${process.env.FYLOGIA_SCREENSHOTS}/rotation-partial-curl-${info.project.name}.png`,
+    });
+  await rotate(390, 844);
+  await page.mouse.up();
+  await expect(surface).toHaveClass(/scrolling-feed/);
+  await expect(surface.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => false,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  await expect(
+    surface.locator('.news-feed-list [data-story-id="layout-42"]'),
+  ).toBeInViewport();
+  await expect(
+    surface.locator(
+      '.news-feed-list [data-story-id="layout-42"] button.is-saved',
+    ),
+  ).toHaveCount(1);
+  if (process.env.FYLOGIA_SCREENSHOTS)
+    await page.screenshot({
+      path: `${process.env.FYLOGIA_SCREENSHOTS}/rotation-restored-${info.project.name}.png`,
+    });
+});
+
 test("near-square unfolded-sized viewport gets a facing spread while narrow folded view scrolls", async ({
   page,
 }) => {

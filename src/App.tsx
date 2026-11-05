@@ -75,7 +75,7 @@ import { decodeLibrary, encryptLibrary } from "./library-backup";
 import { replaceLocalLibrary, snapshotLibrary } from "./local-library";
 import { Onboarding } from "./Onboarding";
 import { NewsFeed } from "./NewsFeed";
-import { wideReadingViewport } from "./magazine-layout";
+import { layoutViewport, wideReadingViewport } from "./magazine-layout";
 import { StoryCard } from "./StoryCard";
 import { Reader } from "./Reader";
 import { Sources } from "./Sources";
@@ -664,27 +664,34 @@ export default function App() {
       return "auto";
     }
   });
-  const [wideReadingLayout, setWideReadingLayout] = useState(() =>
-    wideReadingViewport(
-      window.visualViewport?.width || window.innerWidth,
-      window.visualViewport?.height || window.innerHeight,
-    ),
-  );
+  const [wideReadingLayout, setWideReadingLayout] = useState(() => {
+    const viewport = layoutViewport();
+    return wideReadingViewport(viewport.width, viewport.height);
+  });
   const menuButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    const measure = () =>
-      setWideReadingLayout(
-        wideReadingViewport(
-          window.visualViewport?.width || window.innerWidth,
-          window.visualViewport?.height || window.innerHeight,
-        ),
-      );
+    let frame = 0;
+    const measure = () => {
+      if (frame) cancelAnimationFrame(frame);
+      // Safari emits several resize notifications while rotating. Coalesce
+      // them and read the final CSS layout viewport on the next paint frame.
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const viewport = layoutViewport();
+        setWideReadingLayout(
+          wideReadingViewport(viewport.width, viewport.height),
+        );
+      });
+    };
     window.addEventListener("resize", measure, { passive: true });
+    window.addEventListener("orientationchange", measure, { passive: true });
     window.visualViewport?.addEventListener("resize", measure, {
       passive: true,
     });
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
   }, []);
