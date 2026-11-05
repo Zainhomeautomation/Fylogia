@@ -179,8 +179,8 @@ test("slow full-width mouse over-drag keeps the moving sheet bound to the center
   await expect(page.locator(".reader-footer")).toContainText(
     pageSpread === 2 ? "Page 3–4 of 15" : "Page 2 of 15",
   );
-  await finishGeometrySampling(page, info, "forward-mouse");
   await expect(page.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
+  await finishGeometrySampling(page, info, "forward-mouse");
 
   const previousPage = (await spread.locator("canvas").first().boundingBox())!;
   const reverseStart = { x: previousPage.x + 10, y: previousPage.y + 22 };
@@ -208,8 +208,8 @@ test("slow full-width mouse over-drag keeps the moving sheet bound to the center
   await expect(page.locator(".reader-footer")).toContainText(
     pageSpread === 2 ? "Page 1–2 of 15" : "Page 1 of 15",
   );
-  await finishGeometrySampling(page, info, "backward-mouse");
   await expect(page.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
+  await finishGeometrySampling(page, info, "backward-mouse");
 });
 
 test("touch full-width turn follows the finger without allowing hinge shear", async ({
@@ -275,6 +275,6 @@ test("touch full-width turn follows the finger without allowing hinge shear", as
   await expect(page.locator(".reader-footer")).toContainText(
     pageSpread === 2 ? "Page 3–4 of 15" : "Page 2 of 15",
   );
-  await finishGeometrySampling(page, info, "forward-touch");
   await expect(page.locator(".paper-fold,.curl-underlay")).toHaveCount(0);
+  await finishGeometrySampling(page, info, "forward-touch");
 });
