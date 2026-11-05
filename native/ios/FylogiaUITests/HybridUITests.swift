@@ -1,12 +1,62 @@
 import XCTest
 
 final class HybridUITests: XCTestCase {
-  @MainActor private func launch() -> XCUIApplication {
+  private enum ReadinessError: Error, CustomStringConvertible {
+    case webViewUnavailable
+    case feedUnavailable
+    case homepageControlUnavailable
+
+    var description: String {
+      switch self {
+      case .webViewUnavailable: "WebKit view did not attach within 30 seconds after launch."
+      case .feedUnavailable: "Fylogia feed content did not become accessible within 60 seconds."
+      case .homepageControlUnavailable:
+        "Fylogia rendered feed content, but the homepage control was not accessible within 10 seconds."
+      }
+    }
+  }
+
+  @MainActor private func attachReadinessDiagnostics(_ app: XCUIApplication, stage: String) {
+    let screenshot = XCTAttachment(screenshot: app.screenshot())
+    screenshot.name = "startup-\(stage)-screenshot"
+    screenshot.lifetime = .keepAlways
+    add(screenshot)
+
+    let hierarchy = XCTAttachment(string: app.debugDescription)
+    hierarchy.name = "startup-\(stage)-accessibility-hierarchy"
+    hierarchy.lifetime = .keepAlways
+    add(hierarchy)
+  }
+
+  @MainActor private func launch() throws -> XCUIApplication {
     let app = XCUIApplication()
     app.launchArguments = ["--parity-testing"]
     app.launch()
-    XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20))
-    XCTAssertTrue(app.buttons["Fylogia — Go to homepage"].firstMatch.waitForExistence(timeout: 20))
+
+    guard app.webViews.firstMatch.waitForExistence(timeout: 30) else {
+      attachReadinessDiagnostics(app, stage: "webview-unavailable")
+      throw ReadinessError.webViewUnavailable
+    }
+
+    let landscape =
+      XCUIDevice.shared.orientation == .landscapeLeft
+      || XCUIDevice.shared.orientation == .landscapeRight
+    let contentReady =
+      landscape
+      ? app.staticTexts["Story 1–2 of 8"]
+      : app.buttons.matching(
+        NSPredicate(format: "label CONTAINS %@", "A new perspective on our changing world")
+      ).firstMatch
+    guard contentReady.waitForExistence(timeout: 60) else {
+      attachReadinessDiagnostics(app, stage: "feed-content-unavailable")
+      throw ReadinessError.feedUnavailable
+    }
+
+    let homepage = app.buttons["Fylogia — Go to homepage"].firstMatch
+    guard homepage.waitForExistence(timeout: 10) else {
+      attachReadinessDiagnostics(app, stage: "homepage-control-unavailable")
+      throw ReadinessError.homepageControlUnavailable
+    }
     return app
   }
   @MainActor private func navigate(_ name: String, app: XCUIApplication) {
@@ -36,9 +86,9 @@ final class HybridUITests: XCTestCase {
     add(a)
     print("PARITY viewport \(name) \(web.frame.width)x\(web.frame.height)")
   }
-  @MainActor func testAdaptiveFeedAndBoundDrag() {
+  @MainActor func testAdaptiveFeedAndBoundDrag() throws {
     XCUIDevice.shared.orientation = .landscapeLeft
-    let app = launch()
+    let app = try launch()
     let progress = app.staticTexts["Story 1–2 of 8"]
     XCTAssertTrue(progress.waitForExistence(timeout: 10))
     sleep(3)
@@ -111,9 +161,9 @@ final class HybridUITests: XCTestCase {
     capture("bound-landscape", app: app)
     XCUIDevice.shared.orientation = .portrait
   }
-  @MainActor func testArticleModesAndNavigationSurviveRotation() {
+  @MainActor func testArticleModesAndNavigationSurviveRotation() throws {
     XCUIDevice.shared.orientation = .portrait
-    let app = launch()
+    let app = try launch()
     for pass in 0..<2 {
       let story = app.buttons.matching(
         NSPredicate(format: "label CONTAINS %@", "A new perspective on our changing world")
@@ -147,9 +197,9 @@ final class HybridUITests: XCTestCase {
         app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 8))
     }
   }
-  @MainActor func testGoldenNavigationSettingsAndScreenshots() {
+  @MainActor func testGoldenNavigationSettingsAndScreenshots() throws {
     XCUIDevice.shared.orientation = .portrait
-    let app = launch()
+    let app = try launch()
     capture("native-portrait", app: app)
     navigate("Settings", app: app)
     XCTAssertTrue(app.staticTexts["Appearance"].waitForExistence(timeout: 5))
