@@ -77,3 +77,7 @@ Native startup now has bounded stage diagnostics, a 12-second recoverable error 
 - No app defect was established and no application source changed. Failure stages include simulator display readiness, WebKit GPU/content rendering, CoreSimulator data migration, and simulator accessibility/launch control. The complete matrix remains partial.
 
 **Release gate:** NO-GO for physical-device acceptance. Existing focused Pro Max and iPad mini adaptive tests and four WebKit Duo viewports pass, but the required simulator/orientation/feature matrix is incomplete. Continue sequentially on the existing 8 GB Mac; do not infer physical Duo behavior from viewport tests.
+
+### iPhone 17 settings/navigation follow-up (5 November 2026)
+
+The earlier settings/navigation UI test had two XCTest accessibility timeouts: homepage-button discovery during initial WebKit load and a five-second wait for the navigation drawer close control. Its later steps still reached Settings, found the Appearance controls and completed navigation. One isolated rerun of the same test passed 1/1, including Appearance, categories, sources, saved articles, magazines, For You, and portrait/landscape captures. No application defect was confirmed and no source change was made. The test uses the non-persistent parity WebKit store. Memory and evidence details are recorded in `native/ios/IMPLEMENTATION-CHECKLIST.md`; broader simulator acceptance remains NO-GO.
