@@ -43,9 +43,10 @@ try {
     .first()
     .click();
 
-  const enabled = page.locator(
-    ".native-notifications > label input[type=checkbox]",
-  );
+  const enabled = page.getByRole("checkbox", {
+    name: "Optional daily summary",
+    exact: true,
+  });
   await enabled.waitFor();
   assert.equal(
     await enabled.isChecked(),
