@@ -97,6 +97,7 @@ export function Reader({
   const optionsButton = useRef<HTMLButtonElement>(null),
     optionsPanel = useRef<HTMLDivElement>(null);
   const pageValue = useRef(0);
+  const userNavigated = useRef(false);
   const [page, setPageState] = useState(0),
     [count, setCount] = useState(1),
     [width, setWidth] = useState(0),
@@ -114,6 +115,7 @@ export function Reader({
         ),
       );
       pageValue.current = nextPage;
+      userNavigated.current = true;
       navigation.current = true;
       anchor.current = null;
       position.current = count > 1 ? nextPage / (count - 1) : 0;
@@ -160,6 +162,7 @@ export function Reader({
   const anchor = useRef<Range | null>(null);
   useLayoutEffect(() => {
     if (
+      !userNavigated.current ||
       !content.current ||
       !viewport.current ||
       reading !== "pages" ||
@@ -203,7 +206,6 @@ export function Reader({
     }
   }, [page, width, spread, count, reading]);
 
-  const restored = useRef(false);
   const { html, leadCaption } = useMemo(() => {
     let html = DOMPurify.sanitize(article.content, {
       ALLOWED_TAGS: [
@@ -321,7 +323,6 @@ export function Reader({
           Math.ceil((content.current.scrollWidth + 40) / (w + 40)),
         );
         setCount(n);
-        if (n > 1) restored.current = true;
         const location = anchor.current?.startContainer.isConnected
           ? Math.floor(
               (anchor.current.getBoundingClientRect().left -
@@ -354,10 +355,18 @@ export function Reader({
     };
   }, [reading, prefs.fontSize, html]);
   useEffect(() => {
-    if (reading !== "pages" || measuring.current) return;
-    position.current = count > 1 ? page / (count - 1) : openingProgress;
-    if (restored.current || openingProgress === 0)
-      onProgress(count > 1 ? page / (count - 1) : 0);
+    // Opening layout passes can briefly produce a cover or a single page as
+    // fonts and images settle. Keep the saved ratio authoritative until an
+    // intentional page turn; those intermediate layouts are not reading.
+    if (
+      reading !== "pages" ||
+      measuring.current ||
+      !userNavigated.current ||
+      count <= 1
+    )
+      return;
+    position.current = page / (count - 1);
+    onProgress(position.current);
   }, [page, count, onProgress, openingProgress, reading]);
   useEffect(() => {
     close.current?.focus();

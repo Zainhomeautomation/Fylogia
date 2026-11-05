@@ -75,6 +75,7 @@ import { decodeLibrary, encryptLibrary } from "./library-backup";
 import { replaceLocalLibrary, snapshotLibrary } from "./local-library";
 import { Onboarding } from "./Onboarding";
 import { NewsFeed } from "./NewsFeed";
+import { wideReadingViewport } from "./magazine-layout";
 import { StoryCard } from "./StoryCard";
 import { Reader } from "./Reader";
 import { Sources } from "./Sources";
@@ -657,13 +658,47 @@ export default function App() {
   }
   const [newsView, setNewsView] = useState(() => {
     try {
-      return localStorage.getItem("fylogia.news.view") === "list"
-        ? "list"
-        : "pages";
+      const saved = localStorage.getItem("fylogia.news.view");
+      return saved === "list" || saved === "pages" ? saved : "auto";
     } catch {
-      return "pages";
+      return "auto";
     }
   });
+  const [wideReadingLayout, setWideReadingLayout] = useState(() =>
+    wideReadingViewport(
+      window.visualViewport?.width || window.innerWidth,
+      window.visualViewport?.height || window.innerHeight,
+    ),
+  );
+  const menuButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const measure = () =>
+      setWideReadingLayout(
+        wideReadingViewport(
+          window.visualViewport?.width || window.innerWidth,
+          window.visualViewport?.height || window.innerHeight,
+        ),
+      );
+    window.addEventListener("resize", measure, { passive: true });
+    window.visualViewport?.addEventListener("resize", measure, {
+      passive: true,
+    });
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+    };
+  }, []);
+  useEffect(() => {
+    if (!menu) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setMenu(false);
+      menuButton.current?.focus();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [menu]);
   if (!prefs.complete || personalizing)
     return (
       <>
@@ -698,8 +733,15 @@ export default function App() {
       </>
     );
   const current = navigation.find((n) => n.id === view)!;
+  const automaticNewsMode =
+    newsView === "auto" ? (wideReadingLayout ? "pages" : "scroll") : newsView;
   const newsPages =
-    newsSections.includes(view) && newsView === "pages" && !selecting;
+    newsSections.includes(view) && automaticNewsMode === "pages" && !selecting;
+  const newsAutoScroll =
+    newsSections.includes(view) &&
+    newsView === "auto" &&
+    automaticNewsMode === "scroll" &&
+    !selecting;
   const storyView = [...newsSections, "saved", "history"].includes(view);
   return (
     <>
@@ -709,8 +751,11 @@ export default function App() {
       </a>
       <header className={`mobile-header ${newsPages ? "magazine-header" : ""}`}>
         <button
+          ref={menuButton}
           className="icon-button"
           aria-label="Open navigation"
+          aria-expanded={menu}
+          aria-controls="main-navigation"
           onClick={() => setMenu(true)}
         >
           <Menu />
@@ -735,7 +780,10 @@ export default function App() {
         </button>
       </header>
       <aside
+        id="main-navigation"
         className={`sidebar ${menu ? "open" : ""} ${newsPages ? "magazine-sidebar" : ""}`}
+        aria-hidden={!menu}
+        inert={!menu}
       >
         <div className="sidebar-brand">
           <div className="brand-lockup">
@@ -757,7 +805,7 @@ export default function App() {
             <X />
           </button>
         </div>
-        <nav aria-label="Main navigation">
+        <nav id="navigation-list" aria-label="Main navigation">
           {navigation.map((n) => (
             <button
               key={n.id}
@@ -792,7 +840,10 @@ export default function App() {
           aria-label="Close navigation overlay"
         />
       )}
-      <main id="main" className={`main ${newsPages ? "news-pages-mode" : ""}`}>
+      <main
+        id="main"
+        className={`main ${newsPages ? "news-pages-mode" : ""} ${newsAutoScroll ? "news-auto-scroll" : ""}`}
+      >
         <div className="edition-bar">
           <span>
             {new Date().toLocaleDateString("en", {
@@ -884,7 +935,8 @@ export default function App() {
             )}
             {view === "home" && (
               <button
-                className="secondary"
+                className="secondary daily-download"
+                title="Download Daily Edition"
                 disabled={!online || offline.busy || !daily.stories.length}
                 onClick={() => downloadDaily(daily)}
               >
@@ -920,213 +972,226 @@ export default function App() {
         )}
         {storyView ? (
           <>
-            {newsSections.includes(view) && (
-              <div className="news-organization">
-                <label>
-                  Sort stories
-                  <select
-                    aria-label="Sort stories"
-                    value={ordering}
-                    disabled={view === "latest"}
-                    onChange={(e) =>
-                      patch({ newsSort: e.target.value as NewsSort })
-                    }
-                  >
-                    <option value="latest">Latest</option>
-                    <option value="oldest">Oldest</option>
-                    <option value="relevant">Most Relevant</option>
-                  </select>
-                </label>
-                {view === "local" && (
-                  <small role="status">
-                    {localLocation.loading
-                      ? "Checking approximate country…"
-                      : detectedCountry
-                        ? `${countryName(detectedCountry)} · ${countryRegion(detectedCountry)} · approximate country`
-                        : "Country unavailable · Worldwide coverage is available in World News."}
-                  </small>
-                )}
-                {view === "regional" && <span>{newsRegion(prefs.region)}</span>}
-                {view === "latest" && (
-                  <small>
-                    Newest publication first, across available sources.
-                  </small>
-                )}
-              </div>
-            )}
-            <div className="story-tools">
-              <div className="filter-tabs" aria-label="Filter stories">
-                {[
-                  "All stories",
-                  ...(view === "home" ? prefs.interests : categories),
-                ].map((c) => (
-                  <button
-                    className={filter === c ? "selected" : ""}
-                    key={c}
-                    aria-pressed={filter === c}
-                    onClick={() => setFilter(c)}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {filter === "Apple" && (
-              <AppleNavigation
-                value={apple}
-                onChange={setApple}
-                following={selectedApple(prefs.topics).some(
-                  (id) => id === apple,
-                )}
-                onReset={() => {
-                  setApple("all");
-                  setQuery("");
-                  setPublicationId("");
-                  setReadableOnly(false);
-                }}
-                onFollow={() => {
-                  const selected = appleSection(apple);
-                  if (!selected) return;
-                  setPrefs((p) => {
-                    const followed = selectedApple(p.topics).includes(
-                      selected.id,
-                    );
-                    const topics = p.topics.filter(
-                      (t) => appleSection(t)?.id !== selected.id,
-                    );
-                    if (followed) return { ...p, topics };
-                    const additions = recommendSources(
-                      [...sources, ...p.customSources],
-                      {
-                        interests: ["Apple"],
-                        region: p.region,
-                        topics: [selected.name],
-                      },
-                      edition.statuses,
-                      3,
-                    ).map((s) => s.id);
-                    return {
-                      ...p,
-                      interests: [...new Set([...p.interests, "Apple"])],
-                      topics: [...topics, selected.name],
-                      sourceIds: [...new Set([...p.sourceIds, ...additions])],
-                    };
-                  });
-                }}
-                onMagazines={() => {
-                  const selection = apple;
-                  navigate("magazines");
-                  setMagazineApple(selection);
-                  setMagazineCategory("Apple");
-                }}
-              />
-            )}
-            {filter === "Sports" && (
-              <SportsNavigation
-                value={sport}
-                onChange={setSport}
-                following={selectedSports(prefs.topics).some(
-                  (id) => id === sport,
-                )}
-                onFollow={() => {
-                  const selected = sportForTopic(sport);
-                  if (!selected) return;
-                  setPrefs((p) => {
-                    const followed = selectedSports(p.topics).includes(
-                      selected.id,
-                    );
-                    const nextTopics = p.topics.filter(
-                      (t) => sportForTopic(t)?.id !== selected.id,
-                    );
-                    const additions = followed
-                      ? []
-                      : recommendSources(
-                          sources,
-                          {
-                            ...p,
-                            interests: ["Sports"],
-                            topics: [selected.topic],
-                          },
-                          edition.statuses,
-                          3,
-                        ).map((s) => s.id);
-                    return {
-                      ...p,
-                      interests: [...new Set([...p.interests, "Sports"])],
-                      topics: followed
-                        ? nextTopics
-                        : [...nextTopics, selected.topic],
-                      sourceIds: [...new Set([...p.sourceIds, ...additions])],
-                    };
-                  });
-                }}
-                onMagazines={() => {
-                  const selection = sport;
-                  navigate("magazines");
-                  setMagazineCategory("Sports");
-                  setMagazineSport(selection);
-                }}
-              />
-            )}
-            <button
-              className="secondary readable-filter"
-              aria-pressed={readableOnly}
-              onClick={() => setReadableOnly(!readableOnly)}
-            >
-              Full articles only
-            </button>
-            {view === "explore" && publicationId && (
-              <div className="publication-selection" role="status">
-                Articles from{" "}
-                {sourceLabels.get(publicationId)?.name || "this publication"}
-                <button
-                  className="text-button"
-                  onClick={() => setPublicationId("")}
-                  aria-label="Clear publication filter"
-                >
-                  All publications <X size={15} />
-                </button>
-              </div>
-            )}
-            <label className="search-field">
-              <Search size={17} />
-              <input
-                aria-label="Search stories"
-                placeholder="Search stories, sources, ideas…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              {query && (
-                <button
-                  className="icon-button"
-                  aria-label="Clear search"
-                  onClick={() => setQuery("")}
-                >
-                  <X size={15} />
-                </button>
-              )}
-            </label>
-            {newsSections.includes(view) && (
-              <div className="feed-view-switch" aria-label="News presentation">
-                {["pages", "list"].map((mode) => (
-                  <button
-                    key={mode}
-                    className="text-button"
-                    aria-pressed={newsView === mode}
-                    onClick={() => {
-                      setNewsView(mode);
-                      try {
-                        localStorage.setItem("fylogia.news.view", mode);
-                      } catch {
-                        /* This visit remains usable without storage. */
+            <div className="reading-controls">
+              {newsSections.includes(view) && (
+                <div className="news-organization">
+                  <label>
+                    Sort stories
+                    <select
+                      aria-label="Sort stories"
+                      value={ordering}
+                      disabled={view === "latest"}
+                      onChange={(e) =>
+                        patch({ newsSort: e.target.value as NewsSort })
                       }
-                    }}
-                  >
-                    {mode === "pages" ? "Magazine pages" : "Story list"}
-                  </button>
-                ))}
+                    >
+                      <option value="latest">Latest</option>
+                      <option value="oldest">Oldest</option>
+                      <option value="relevant">Most Relevant</option>
+                    </select>
+                  </label>
+                  {view === "local" && (
+                    <small role="status">
+                      {localLocation.loading
+                        ? "Checking approximate country…"
+                        : detectedCountry
+                          ? `${countryName(detectedCountry)} · ${countryRegion(detectedCountry)} · approximate country`
+                          : "Country unavailable · Worldwide coverage is available in World News."}
+                    </small>
+                  )}
+                  {view === "regional" && (
+                    <span>{newsRegion(prefs.region)}</span>
+                  )}
+                  {view === "latest" && (
+                    <small>
+                      Newest publication first, across available sources.
+                    </small>
+                  )}
+                </div>
+              )}
+              <div className="story-tools">
+                <div className="filter-tabs" aria-label="Filter stories">
+                  {[
+                    "All stories",
+                    ...(view === "home" ? prefs.interests : categories),
+                  ].map((c) => (
+                    <button
+                      className={filter === c ? "selected" : ""}
+                      key={c}
+                      aria-pressed={filter === c}
+                      onClick={() => setFilter(c)}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
+              {filter === "Apple" && (
+                <AppleNavigation
+                  value={apple}
+                  onChange={setApple}
+                  following={selectedApple(prefs.topics).some(
+                    (id) => id === apple,
+                  )}
+                  onReset={() => {
+                    setApple("all");
+                    setQuery("");
+                    setPublicationId("");
+                    setReadableOnly(false);
+                  }}
+                  onFollow={() => {
+                    const selected = appleSection(apple);
+                    if (!selected) return;
+                    setPrefs((p) => {
+                      const followed = selectedApple(p.topics).includes(
+                        selected.id,
+                      );
+                      const topics = p.topics.filter(
+                        (t) => appleSection(t)?.id !== selected.id,
+                      );
+                      if (followed) return { ...p, topics };
+                      const additions = recommendSources(
+                        [...sources, ...p.customSources],
+                        {
+                          interests: ["Apple"],
+                          region: p.region,
+                          topics: [selected.name],
+                        },
+                        edition.statuses,
+                        3,
+                      ).map((s) => s.id);
+                      return {
+                        ...p,
+                        interests: [...new Set([...p.interests, "Apple"])],
+                        topics: [...topics, selected.name],
+                        sourceIds: [...new Set([...p.sourceIds, ...additions])],
+                      };
+                    });
+                  }}
+                  onMagazines={() => {
+                    const selection = apple;
+                    navigate("magazines");
+                    setMagazineApple(selection);
+                    setMagazineCategory("Apple");
+                  }}
+                />
+              )}
+              {filter === "Sports" && (
+                <SportsNavigation
+                  value={sport}
+                  onChange={setSport}
+                  following={selectedSports(prefs.topics).some(
+                    (id) => id === sport,
+                  )}
+                  onFollow={() => {
+                    const selected = sportForTopic(sport);
+                    if (!selected) return;
+                    setPrefs((p) => {
+                      const followed = selectedSports(p.topics).includes(
+                        selected.id,
+                      );
+                      const nextTopics = p.topics.filter(
+                        (t) => sportForTopic(t)?.id !== selected.id,
+                      );
+                      const additions = followed
+                        ? []
+                        : recommendSources(
+                            sources,
+                            {
+                              ...p,
+                              interests: ["Sports"],
+                              topics: [selected.topic],
+                            },
+                            edition.statuses,
+                            3,
+                          ).map((s) => s.id);
+                      return {
+                        ...p,
+                        interests: [...new Set([...p.interests, "Sports"])],
+                        topics: followed
+                          ? nextTopics
+                          : [...nextTopics, selected.topic],
+                        sourceIds: [...new Set([...p.sourceIds, ...additions])],
+                      };
+                    });
+                  }}
+                  onMagazines={() => {
+                    const selection = sport;
+                    navigate("magazines");
+                    setMagazineCategory("Sports");
+                    setMagazineSport(selection);
+                  }}
+                />
+              )}
+              <button
+                className="secondary readable-filter"
+                aria-pressed={readableOnly}
+                onClick={() => setReadableOnly(!readableOnly)}
+              >
+                Full articles only
+              </button>
+              {view === "explore" && publicationId && (
+                <div className="publication-selection" role="status">
+                  Articles from{" "}
+                  {sourceLabels.get(publicationId)?.name || "this publication"}
+                  <button
+                    className="text-button"
+                    onClick={() => setPublicationId("")}
+                    aria-label="Clear publication filter"
+                  >
+                    All publications <X size={15} />
+                  </button>
+                </div>
+              )}
+              <label className="search-field">
+                <Search size={17} />
+                <input
+                  aria-label="Search stories"
+                  placeholder="Search stories, sources, ideas…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                {query && (
+                  <button
+                    className="icon-button"
+                    aria-label="Clear search"
+                    onClick={() => setQuery("")}
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </label>
+              {newsSections.includes(view) && (
+                <div
+                  className="feed-view-switch"
+                  aria-label="News presentation"
+                >
+                  {(["auto", "pages", "list"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      className="text-button"
+                      aria-pressed={newsView === mode}
+                      onClick={() => {
+                        setNewsView(mode);
+                        try {
+                          if (mode === "auto")
+                            localStorage.removeItem("fylogia.news.view");
+                          else localStorage.setItem("fylogia.news.view", mode);
+                        } catch {
+                          /* This visit remains usable without storage. */
+                        }
+                      }}
+                    >
+                      {mode === "auto"
+                        ? "Automatic"
+                        : mode === "pages"
+                          ? "Magazine pages"
+                          : "Story list"}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {busy && !all.length ? (
               <div className="empty" role="status">
                 <BrandMark />
@@ -1181,7 +1246,7 @@ export default function App() {
                   <ArrowRight size={16} />
                 </button>
               </div>
-            ) : newsPages ? (
+            ) : newsPages || newsAutoScroll ? (
               <NewsFeed
                 key={[
                   view,
@@ -1195,10 +1260,13 @@ export default function App() {
                   readableOnly,
                 ].join(":")}
                 articles={articles}
-                renderStory={(a, current) => (
+                presentation={newsPages ? "pages" : "scroll"}
+                readerOpen={Boolean(reader || dailyOpen)}
+                renderStory={(a, current, magazinePage) => (
                   <StoryCard
                     article={a}
-                    magazinePage
+                    magazinePage={magazinePage}
+                    lead={!magazinePage && a.id === articles[0]?.id}
                     imagePriority={current ? "high" : "low"}
                     imageRetryToken={imageRetryToken}
                     saved={saved.some((s) => s.id === a.id)}

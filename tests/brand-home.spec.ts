@@ -19,9 +19,13 @@ async function sidebarBrand(page: Page) {
     exact: true,
   });
   if (await menu.isVisible()) await menu.click();
-  return page
+  const brand = page
     .locator(".sidebar")
     .getByRole("button", { name: label, exact: true });
+  await expect
+    .poll(async () => (await brand.boundingBox())?.x ?? -1)
+    .toBeGreaterThanOrEqual(0);
+  return brand;
 }
 async function snapshot(page: Page) {
   return page.evaluate(() =>
@@ -37,6 +41,17 @@ test.beforeEach(async ({ page }) => {
   const e = await (await page.request.get("data/edition.json")).json();
   const article = e.articles.find((a: any) => a.full && a.sourceId === "nasa");
   expect(article).toBeTruthy();
+  // This suite tests navigation, not article freshness. Keep a frozen edition
+  // usable across calendar boundaries without rewriting publisher dates or
+  // weakening the application's Today-only selection policy.
+  const latestFollowed = Math.max(
+    ...e.articles
+      .filter((a: any) => ["nasa", "bbc-world"].includes(a.sourceId))
+      .map((a: any) => Date.parse(a.published))
+      .filter(Number.isFinite),
+  );
+  expect(Number.isFinite(latestFollowed)).toBe(true);
+  await page.clock.setFixedTime(new Date(latestFollowed));
   await page.addInitScript(
     ({ prefs, article }) => {
       if (!localStorage.getItem("folio.v1.preferences"))
@@ -140,12 +155,9 @@ test("keyboard activation, homepage top and mobile-header logo use the same Home
   for (const width of [320, 390, 760, 820, 1194, 1440]) {
     await page.setViewportSize({ width, height: 850 });
     await nav(page, "Categories");
-    const target =
-      width <= 760
-        ? page
-            .locator(".mobile-header")
-            .getByRole("button", { name: label, exact: true })
-        : await sidebarBrand(page);
+    const target = page
+      .locator(".mobile-header")
+      .getByRole("button", { name: label, exact: true });
     const b = await target.boundingBox();
     expect(b!.x).toBeGreaterThanOrEqual(0);
     expect(b!.x + b!.width).toBeLessThanOrEqual(width + 1);

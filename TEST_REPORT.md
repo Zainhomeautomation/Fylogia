@@ -1,0 +1,53 @@
+# Fylogia Apple programme test report
+
+Updated 2026-11-02, Asia/Muscat. Prior website results do not establish native or physical-device quality.
+
+## Phase 1 — frozen website
+
+| Check                                     | Status                    | Evidence                                                                                                                                                                                                                                     |
+| ----------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Personal ownership and freeze consistency | PASS                      | Zainhomeautomation/Fylogia; main and live matched `26fd37f27bd70cd7495f33209b823796770d9c22` at freeze.                                                                                                                                      |
+| Golden tag and protection                 | PASS                      | `fylogia-web-golden-v1`, annotated object `ca205e79dcecbd891522984a83289eb3f34a835d`; active exact-tag update/deletion ruleset 26345306, no bypass actors. Administrators can change policy.                                                 |
+| Backup integrity and recovery             | PASS                      | Complete-history bundle verified; independent detached recovery checkout passes fsck, production build and all 151 server tests using cached locked dependencies. Source/build archives and checksums are owner-local outside checkout.      |
+| Compiled recovery assets                  | PASS                      | Three JS/CSS assets hash-equal the live golden build; generated build timestamps are not claimed identical.                                                                                                                                  |
+| Original immutable-tag CI                 | FAIL                      | Run 41394627737: quality job passes, three browser jobs expose a calendar-sensitive Daily Magazine navigation fixture. Tag remains unchanged.                                                                                                |
+| Corrected maintenance CI                  | PASS with retry           | Run 41396670781 at `3356d62`: lint, formatting, build and 151 server tests pass; 510 browser cases complete across Chromium, iPhone WebKit and iPad WebKit. One iPhone category-expansion test passed on automatic retry, not first attempt. |
+| Focused navigation regression             | PASS                      | Nine local cases. Only test Date fixed to latest followed fixture publication; real timers and publisher dates remain unchanged.                                                                                                             |
+| Local recovered-browser subset            | FAIL / partial            | 50 pass, one Chromium original-PDF canvas timeout; both WebKit original-PDF cases pass. Subsequent local server startup timed out before assertions. Full Linux CI above passes these PDF cases. No local failure is concealed.              |
+| Extra live browser check                  | BLOCKED by host file read | Runner failed before tests with ETIMEDOUT reading installed `@acemir/cssom` dependency. No live browser assertions ran in this attempt.                                                                                                      |
+| Live asset/security checks                | PASS at freeze            | Golden JS/CSS match; manifest icons load; anonymous private sync endpoint returns 401.                                                                                                                                                       |
+| Runtime preservation                      | PASS                      | Maintenance diff changes documentation and one test only; src/public/functions/server/scripts/config/package metadata and build configuration unchanged. No production merge or website deployment performed.                                |
+| Live rollback                             | NOT RUN intentionally     | Recovery rehearsed in isolation; no user data or production state reset.                                                                                                                                                                     |
+
+The pre-existing scheduled feed refresh remains enabled. At 2026-11-02 06:23 UTC, live build-info reports `295ed69c36b8a4fc30adb996a88832f5c4241a5e`, dirty=false, built 06:18 UTC. This later live observation does not move the golden tag. Fresh remote checkout confirms main at that SHA and only public/data/edition.json differs from the golden tag. Application code is unchanged.
+
+## Apple environment
+
+| Check                                                                           | Status                     | Evidence                                                                                                                                                                     |
+| ------------------------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Xcode                                                                           | AVAILABLE                  | Read-only check: Xcode 27.2 (27B52), selected /Applications/Xcode.app/Contents/Developer. Initial absence/license gate resolved by owner setup; agent accepted no agreement. |
+| Simulator inventory                                                             | AVAILABLE, not boot-tested | XcodeBuildMCP lists ten iOS 17.0 iPhone/iPad simulators, all shut down at inventory.                                                                                         |
+| Native application                                                              | NOT RUN                    | No native project built or launched; sequential architecture gate not reached.                                                                                               |
+| Actual Safari / Home Screen PWA comparison                                      | NOT RUN                    | Owner-reported standalone slowdown remains open. Desktop display-mode emulation is not actual host proof.                                                                    |
+| Physical devices / Apple Pencil                                                 | NOT RUN                    | No physical hardware test performed.                                                                                                                                         |
+| Instruments / native accessibility / widgets / intents / notifications / iCloud | NOT RUN                    | Later phases; no functional claim.                                                                                                                                           |
+
+No permanent PWA correction, frame-rate guarantee or App Store release readiness is claimed.
+
+## Phase 2 live follow-up
+
+PASS: all 18 live SEO/PDF cases, zero retries, in the fresh checkout. Log: /tmp/fylogia-phase2-production-tests.log. This resolves the fresh-run PDF check after the original checkout's host filesystem errors; original failed attempts remain recorded above. All 57 canonical sitemap URLs are checked by each SEO API test.
+
+Search Console: personal session available, domain property unverified; manual TXT prepared but unsaved pending owner confirmation. Sitemap submission and Google coverage: NOT RUN. See docs/search-discovery.md for the client-specific Cloudflare 1010 finding and actual 301/200/404 curl results.
+
+Refreshed Apple inventory: 21 available simulators across iOS 27.2 and 17.0; Xcode 27.2 includes iOS/iOS Simulator 27.2 SDKs. `devicectl list devices` reports no connected devices. No native app/simulator-host performance claim.
+
+## Google ownership approval completed — 2026-11-02
+
+Owner approved the prepared verification. On resuming, Cloudflare already displayed exactly one matching Google verification TXT record alongside the two unchanged Pages CNAME records; no duplicate was added. Google then confirmed **Ownership verified**, method Domain name provider. Submitted https://fylogia.com/sitemap.xml; Search Console reports **Success**, last read 2 November 2026, **57 discovered pages**, zero videos.
+
+Overview reports that performance, indexing and experience data are still processing. Discovered URLs are not proof of indexing. Retain the verification record. No website code, routing records, security configuration or user data was modified for this verification. Earlier pending-verification entries are historical and superseded by this checkpoint. Phase 2 ownership/submission gate is complete; Phase 3 standalone PWA reproduction remains next.
+
+## Native continuation environment check
+
+Simulator start command: PASS. Usable simulator UI/Safari/standalone PWA comparison: NOT YET VERIFIED (first boot migrating LaunchServices). Physical device tests: NOT RUN. Native application build: NOT RUN. No confirmed PWA root cause, performance benchmark, correction or native release claim. Host free disk approximately 5 GiB; storage preparation requested before sustained native builds/tests.

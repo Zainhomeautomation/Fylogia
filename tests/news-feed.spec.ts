@@ -1,9 +1,15 @@
 import { test, mockEdition } from "./edition-fixture";
 import { expect, type Page } from "@playwright/test";
 import { defaults } from "../src/catalog";
-// Exercise the actual default, independently of the retained list regressions.
+// Exercise magazine gestures independently of the retained list regressions.
 test.use({ hasTouch: true, storageState: { cookies: [], origins: [] } });
 async function seed(page: Page) {
+  // This suite exercises page-turn mechanics. Automatic portrait scrolling is
+  // covered separately by reading-experience-layout.spec.ts.
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("fylogia.news.view"))
+      localStorage.setItem("fylogia.news.view", "pages");
+  });
   const edition = await (await page.request.get("data/edition.json")).json();
   await mockEdition(page, {
     ...edition,
@@ -264,8 +270,14 @@ test("missing photographs, reduced motion, keyboard and list option remain acces
   await expect(active(page)).not.toHaveText(before);
   await expect(page.locator(".paper-fold")).toHaveCount(0);
   await page.getByRole("button", { name: "Story list", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Story list", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".news-book")).toHaveCount(0);
   await expect(page.locator(".story")).toHaveCount(12);
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("fylogia.news.view")))
+    .toBe("list");
   await page.reload();
   await expect(
     page.getByRole("button", { name: "Story list", exact: true }),

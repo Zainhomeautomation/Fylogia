@@ -141,7 +141,7 @@ test("compact toolbar, reserved navigation rail and single-tap immersive control
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(
     await page.locator(".sidebar").evaluate((el) => (el as HTMLElement).inert),
-  ).toBeFalsy();
+  ).toBeTruthy();
 });
 test("summary stays above page corners and returns keyboard focus to visible reading options", async ({
   page,
@@ -179,5 +179,5 @@ test("summary stays above page corners and returns keyboard focus to visible rea
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(
     await page.locator(".sidebar").evaluate((el) => (el as HTMLElement).inert),
-  ).toBeFalsy();
+  ).toBeTruthy();
 });

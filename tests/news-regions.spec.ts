@@ -67,6 +67,10 @@ const items = [
   ...(sourceId === "cyprus-mail" ? { publisherTags: ["Cyprus News"] } : {}),
 }));
 async function seed(page: Page, view = "explore", country?: string) {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("fylogia.news.view"))
+      localStorage.setItem("fylogia.news.view", "pages");
+  });
   const edition = await (await page.request.get("data/edition.json")).json();
   await mockEdition(page, { ...edition, articles: items });
   await page.clock.setFixedTime(new Date(now));

@@ -14,6 +14,10 @@ const titles = [
     "SingaporeInfrastructure".repeat(16),
 ];
 async function seed(page: Page) {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("fylogia.news.view"))
+      localStorage.setItem("fylogia.news.view", "pages");
+  });
   const edition = await (await page.request.get("data/edition.json")).json();
   await mockEdition(page, {
     ...edition,
