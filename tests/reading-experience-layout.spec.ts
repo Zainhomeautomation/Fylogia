@@ -4,11 +4,11 @@ import { defaults } from "../src/catalog";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-async function seed(page: Page) {
+async function seed(page: Page, count = 16) {
   const edition = await (await page.request.get("data/edition.json")).json();
   await mockEdition(page, {
     ...edition,
-    articles: Array.from({ length: 16 }, (_, index) => ({
+    articles: Array.from({ length: count }, (_, index) => ({
       id: `layout-${index}`,
       title: `Layout story ${index + 1}: a readable headline for every screen`,
       sourceId: "nasa",
@@ -123,6 +123,55 @@ test("navigation is a full-screen overlay on desktop and mobile and closes by ou
     .getByRole("button", { name: "Close navigation", exact: true })
     .click();
   await expect(sidebar).toHaveAttribute("aria-hidden", "true");
+});
+
+test("rotation retains a story beyond the first scrolling batch and more stories remain available", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1194, height: 834 });
+  await seed(page, 100);
+  const surface = page.locator(".news-book > .news-feed-surface");
+  const status = page.locator(".feed-pagination");
+  for (let turn = 1; turn <= 38; turn++) {
+    await page
+      .getByRole("button", { name: "Next stories", exact: true })
+      .click();
+    await expect(status).toContainText(`Story ${turn * 2 + 1}–`);
+  }
+  await page.setViewportSize({ width: 834, height: 1194 });
+  await expect(surface).toHaveClass(/scrolling-feed/);
+  const active = surface.locator('[data-story-id="layout-76"]');
+  await expect(active).toBeInViewport();
+  await page.getByRole("button", { name: /Show more stories/ }).click();
+  await expect(
+    surface.locator(".news-feed-list > [data-story-id]"),
+  ).toHaveCount(100);
+});
+
+test("opening a lower visible story keeps its selected position through history updates and reader rotation", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 834, height: 1194 });
+  await seed(page);
+  const target = page.locator('.news-feed-list [data-story-id="layout-2"]');
+  await target.evaluate((node) => {
+    window.scrollBy({
+      top: node.getBoundingClientRect().top - 300,
+      behavior: "instant",
+    });
+  });
+  await page.waitForTimeout(80);
+  await target.locator(".story-open").click({ position: { x: 30, y: 30 } });
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.setViewportSize({ width: 1194, height: 834 });
+  await page
+    .getByRole("button", { name: "Back to previous section", exact: true })
+    .click();
+  const surface = page.locator(".news-book > .news-feed-surface");
+  await expect(
+    surface.locator(':scope > .feed-spread [data-story-id="layout-2"]'),
+  ).toBeInViewport();
 });
 
 test("paper stays warm cream with readable ink across light and dark themes", async ({

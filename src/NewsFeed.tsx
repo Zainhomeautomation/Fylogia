@@ -15,9 +15,11 @@ export function NewsFeed({
   articles,
   renderStory,
   presentation = "pages",
+  readerOpen = false,
 }: {
   articles: Article[];
   presentation?: "pages" | "scroll";
+  readerOpen?: boolean;
   renderStory: (
     article: Article,
     current: boolean,
@@ -27,8 +29,10 @@ export function NewsFeed({
   const surface = useRef<HTMLDivElement>(null);
   const neighbors = useRef<HTMLDivElement>(null);
   const previousPresentation = useRef(presentation);
-  const [anchor, setAnchor] = useState(articles[0]?.id);
+  const [cursor, setCursor] = useState({ id: articles[0]?.id, limit: 75 });
+  const anchor = cursor.id;
   const [spread, setSpread] = useState(1);
+  const [scrollLimit, setScrollLimit] = useState(75);
   const index = Math.max(
     0,
     articles.findIndex((a) => a.id === anchor),
@@ -36,6 +40,7 @@ export function NewsFeed({
   const start = Math.floor(index / spread) * spread;
   const previous = start > 0;
   const next = start + spread < articles.length;
+  const renderedStories = Math.max(scrollLimit, cursor.limit, index + 1);
   useLayoutEffect(() => {
     const node = surface.current;
     if (!node) return;
@@ -63,6 +68,7 @@ export function NewsFeed({
     };
   }, []);
   useLayoutEffect(() => {
+    if (readerOpen) return;
     const previousMode = previousPresentation.current;
     if (previousMode === presentation) return;
     previousPresentation.current = presentation;
@@ -81,9 +87,9 @@ export function NewsFeed({
       ? Math.max(0, Math.min(headerRect.height, headerRect.bottom))
       : 0;
     window.scrollBy({ top: top - header - 12, behavior: "instant" });
-  }, [anchor, presentation]);
+  }, [anchor, index, presentation, readerOpen]);
   useEffect(() => {
-    if (presentation !== "scroll") return;
+    if (presentation !== "scroll" || readerOpen) return;
     let frame = 0;
     const updateAnchor = () => {
       frame = 0;
@@ -98,32 +104,34 @@ export function NewsFeed({
         (story) => story.getBoundingClientRect().bottom > readingLine,
       );
       const id = visible?.dataset.storyId;
-      if (id) setAnchor((old) => (old === id ? old : id));
+      if (id) setCursor((old) => (old.id === id ? old : { ...old, id }));
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(updateAnchor);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    updateAnchor();
     return () => {
       window.removeEventListener("scroll", onScroll);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [presentation, articles]);
+  }, [presentation, readerOpen]);
   const step = (forward: boolean) => {
     // A queued turn must advance from the committed anchor, not the render
     // that received a rapid second tap.
-    setAnchor((old) => {
+    setCursor((old) => {
       const current = Math.max(
         0,
-        articles.findIndex((a) => a.id === old),
+        articles.findIndex((a) => a.id === old.id),
       );
       const at = Math.floor(current / spread) * spread;
       const target = Math.max(
         0,
         Math.min(articles.length - 1, at + (forward ? spread : -spread)),
       );
-      return articles[target].id;
+      return {
+        id: articles[target].id,
+        limit: Math.max(old.limit, target + 1),
+      };
     });
   };
   const curl = usePageTurn(
@@ -161,7 +169,7 @@ export function NewsFeed({
       data-feed-neighbor={neighbor}
       style={{ gridTemplateColumns: `repeat(${spread}, minmax(0, 1fr))` }}
     >
-      {articles.slice(at, at + spread).map((a) => (
+      {articles.slice(at, at + spread).map((a, offset) => (
         <div
           className="feed-sheet"
           key={a.id}
@@ -170,7 +178,10 @@ export function NewsFeed({
             // A facing spread has two possible entry points. Remember the one
             // actually opened, including resizing while the reader overlays it.
             if ((event.target as Element).closest("[data-feed-open]"))
-              setAnchor(a.id);
+              setCursor((old) => ({
+                id: a.id,
+                limit: Math.max(old.limit, at + offset + 1),
+              }));
           }}
         >
           {renderStory(a, !neighbor, true)}
@@ -219,19 +230,28 @@ export function NewsFeed({
           pages(start)
         ) : (
           <div className="news-feed-list">
-            {articles.slice(0, 75).map((article, i) => (
+            {articles.slice(0, renderedStories).map((article, i) => (
               <div
                 key={article.id}
                 data-story-id={article.id}
-                onClickCapture={() => setAnchor(article.id)}
+                onClickCapture={() =>
+                  setCursor((old) => ({
+                    id: article.id,
+                    limit: Math.max(old.limit, i + 1),
+                  }))
+                }
               >
                 {renderStory(article, article.id === anchor || i === 0, false)}
               </div>
             ))}
-            {articles.length > 75 && (
-              <p className="quiet">
-                Showing the first 75 stories. Filter or search to discover more.
-              </p>
+            {articles.length > renderedStories && (
+              <button
+                className="secondary"
+                onClick={() => setScrollLimit(renderedStories + 75)}
+              >
+                Show more stories ({articles.length - renderedStories}{" "}
+                remaining)
+              </button>
             )}
           </div>
         )}

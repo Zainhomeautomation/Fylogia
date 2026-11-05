@@ -1261,6 +1261,7 @@ export default function App() {
                 ].join(":")}
                 articles={articles}
                 presentation={newsPages ? "pages" : "scroll"}
+                readerOpen={Boolean(reader || dailyOpen)}
                 renderStory={(a, current, magazinePage) => (
                   <StoryCard
                     article={a}
