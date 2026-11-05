@@ -51,6 +51,24 @@ test("paper crease preserves a stationary region and changes tangents across a c
       assert.equal(new Set(angles).size, 12);
     }
 });
+test("extreme drag input stays within one bound turn and limits hinge drift", () => {
+  for (const [w, h] of [
+    [320, 600],
+    [450, 450],
+    [700, 900],
+  ])
+    for (const distance of [-2, 0, 0.25, 0.9, 1.4, 1.99, 2, 2.3])
+      for (const vertical of [-4, -0.5, 0, 0.5, 4]) {
+        const f = crease(w, h, distance, vertical),
+          drift = (Math.abs(f.ny / f.nx) * h) / w;
+        assert.ok(Number.isFinite(f.nx) && Number.isFinite(f.ny));
+        assert.ok(
+          drift <= 0.030001,
+          "the turning edge stays close to the binding",
+        );
+      }
+  assert.deepEqual(crease(450, 650, 2.3), crease(450, 650, 2));
+});
 test("forward and reverse geometry share the same fixed spine with opposite horizontal orientation", () => {
   const f = crease(400, 600, 0.8),
     front = foldPlane(f, 0, "front");

@@ -8,11 +8,29 @@ export function crease(
   vertical = 0,
   corner = 1,
 ): Fold {
-  const progress = Math.max(0.00001, Math.min(0.99999, distance / 2));
+  // Keep the paper travel within one complete bound turn (two page widths).
+  // The previous 14%-of-page-height sinusoidal offset tilted the crease by
+  // roughly 10 degrees in the middle of a turn. That moved the bound edge
+  // tens of pixels away from the center spine during full-width drags.
+  const boundedDistance = Number.isFinite(distance)
+    ? Math.max(0, Math.min(2, distance))
+    : 0;
+  const progress = Math.max(0.00001, Math.min(0.99999, boundedDistance / 2));
   const dx = width * progress * 2;
-  const dy =
-    (corner ? 1 : -1) * height * 0.14 * Math.sin(Math.PI * progress) -
-    vertical * height;
+  // A bound sheet may bow slightly around a corner, but its hinge must stay
+  // nearly parallel to the spine. Limit the crease's cross-page drift to 3%
+  // of the leaf width, tapering it to zero at both settled positions.
+  const maxBindingDrift = width * 0.03;
+  const maxNormalOffset =
+    (Math.abs(dx) * maxBindingDrift * Math.sin(Math.PI * progress)) /
+    Math.max(1, height);
+  const cornerBias = (corner ? 1 : -1) * maxNormalOffset * 0.08;
+  const requestedOffset =
+    (Number.isFinite(vertical) ? -vertical * height : 0) + cornerBias;
+  const dy = Math.max(
+    -maxNormalOffset,
+    Math.min(maxNormalOffset, requestedOffset),
+  );
   const length = Math.hypot(dx, dy);
   const nx = dx / length,
     ny = dy / length;

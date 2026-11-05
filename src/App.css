@@ -2876,7 +2876,9 @@ html[data-theme="light"] .brand-mark-light {
 
 /* A local moving crease with two printed faces; the book's spine never slides. */
 .paper-fold.turn-leaf {
-  overflow: visible;
+  /* The moving sheet is bounded by the open spread. This prevents over-drags
+     from painting paper beyond the physical magazine edges. */
+  overflow: hidden;
   background: none;
   box-shadow: none;
   perspective: none;
