@@ -19,9 +19,13 @@ async function sidebarBrand(page: Page) {
     exact: true,
   });
   if (await menu.isVisible()) await menu.click();
-  return page
+  const brand = page
     .locator(".sidebar")
     .getByRole("button", { name: label, exact: true });
+  await expect
+    .poll(async () => (await brand.boundingBox())?.x ?? -1)
+    .toBeGreaterThanOrEqual(0);
+  return brand;
 }
 async function snapshot(page: Page) {
   return page.evaluate(() =>
@@ -151,12 +155,9 @@ test("keyboard activation, homepage top and mobile-header logo use the same Home
   for (const width of [320, 390, 760, 820, 1194, 1440]) {
     await page.setViewportSize({ width, height: 850 });
     await nav(page, "Categories");
-    const target =
-      width <= 760
-        ? page
-            .locator(".mobile-header")
-            .getByRole("button", { name: label, exact: true })
-        : await sidebarBrand(page);
+    const target = page
+      .locator(".mobile-header")
+      .getByRole("button", { name: label, exact: true });
     const b = await target.boundingBox();
     expect(b!.x).toBeGreaterThanOrEqual(0);
     expect(b!.x + b!.width).toBeLessThanOrEqual(width + 1);

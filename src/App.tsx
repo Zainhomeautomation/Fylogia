@@ -75,6 +75,7 @@ import { decodeLibrary, encryptLibrary } from "./library-backup";
 import { replaceLocalLibrary, snapshotLibrary } from "./local-library";
 import { Onboarding } from "./Onboarding";
 import { NewsFeed } from "./NewsFeed";
+import { wideReadingViewport } from "./magazine-layout";
 import { StoryCard } from "./StoryCard";
 import { Reader } from "./Reader";
 import { Sources } from "./Sources";
@@ -657,13 +658,47 @@ export default function App() {
   }
   const [newsView, setNewsView] = useState(() => {
     try {
-      return localStorage.getItem("fylogia.news.view") === "list"
-        ? "list"
-        : "pages";
+      const saved = localStorage.getItem("fylogia.news.view");
+      return saved === "list" || saved === "pages" ? saved : "auto";
     } catch {
-      return "pages";
+      return "auto";
     }
   });
+  const [wideReadingLayout, setWideReadingLayout] = useState(() =>
+    wideReadingViewport(
+      window.visualViewport?.width || window.innerWidth,
+      window.visualViewport?.height || window.innerHeight,
+    ),
+  );
+  const menuButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const measure = () =>
+      setWideReadingLayout(
+        wideReadingViewport(
+          window.visualViewport?.width || window.innerWidth,
+          window.visualViewport?.height || window.innerHeight,
+        ),
+      );
+    window.addEventListener("resize", measure, { passive: true });
+    window.visualViewport?.addEventListener("resize", measure, {
+      passive: true,
+    });
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+    };
+  }, []);
+  useEffect(() => {
+    if (!menu) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setMenu(false);
+      menuButton.current?.focus();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [menu]);
   if (!prefs.complete || personalizing)
     return (
       <>
@@ -698,8 +733,15 @@ export default function App() {
       </>
     );
   const current = navigation.find((n) => n.id === view)!;
+  const automaticNewsMode =
+    newsView === "auto" ? (wideReadingLayout ? "pages" : "scroll") : newsView;
   const newsPages =
-    newsSections.includes(view) && newsView === "pages" && !selecting;
+    newsSections.includes(view) && automaticNewsMode === "pages" && !selecting;
+  const newsAutoScroll =
+    newsSections.includes(view) &&
+    newsView === "auto" &&
+    automaticNewsMode === "scroll" &&
+    !selecting;
   const storyView = [...newsSections, "saved", "history"].includes(view);
   return (
     <>
@@ -709,8 +751,11 @@ export default function App() {
       </a>
       <header className={`mobile-header ${newsPages ? "magazine-header" : ""}`}>
         <button
+          ref={menuButton}
           className="icon-button"
           aria-label="Open navigation"
+          aria-expanded={menu}
+          aria-controls="main-navigation"
           onClick={() => setMenu(true)}
         >
           <Menu />
@@ -735,7 +780,10 @@ export default function App() {
         </button>
       </header>
       <aside
+        id="main-navigation"
         className={`sidebar ${menu ? "open" : ""} ${newsPages ? "magazine-sidebar" : ""}`}
+        aria-hidden={!menu}
+        inert={!menu}
       >
         <div className="sidebar-brand">
           <div className="brand-lockup">
@@ -757,7 +805,7 @@ export default function App() {
             <X />
           </button>
         </div>
-        <nav aria-label="Main navigation">
+        <nav id="navigation-list" aria-label="Main navigation">
           {navigation.map((n) => (
             <button
               key={n.id}
@@ -792,7 +840,10 @@ export default function App() {
           aria-label="Close navigation overlay"
         />
       )}
-      <main id="main" className={`main ${newsPages ? "news-pages-mode" : ""}`}>
+      <main
+        id="main"
+        className={`main ${newsPages ? "news-pages-mode" : ""} ${newsAutoScroll ? "news-auto-scroll" : ""}`}
+      >
         <div className="edition-bar">
           <span>
             {new Date().toLocaleDateString("en", {
@@ -1108,7 +1159,7 @@ export default function App() {
             </label>
             {newsSections.includes(view) && (
               <div className="feed-view-switch" aria-label="News presentation">
-                {["pages", "list"].map((mode) => (
+                {(["auto", "pages", "list"] as const).map((mode) => (
                   <button
                     key={mode}
                     className="text-button"
@@ -1116,13 +1167,19 @@ export default function App() {
                     onClick={() => {
                       setNewsView(mode);
                       try {
-                        localStorage.setItem("fylogia.news.view", mode);
+                        if (mode === "auto")
+                          localStorage.removeItem("fylogia.news.view");
+                        else localStorage.setItem("fylogia.news.view", mode);
                       } catch {
                         /* This visit remains usable without storage. */
                       }
                     }}
                   >
-                    {mode === "pages" ? "Magazine pages" : "Story list"}
+                    {mode === "auto"
+                      ? "Automatic"
+                      : mode === "pages"
+                        ? "Magazine pages"
+                        : "Story list"}
                   </button>
                 ))}
               </div>
@@ -1181,7 +1238,7 @@ export default function App() {
                   <ArrowRight size={16} />
                 </button>
               </div>
-            ) : newsPages ? (
+            ) : newsPages || newsAutoScroll ? (
               <NewsFeed
                 key={[
                   view,
@@ -1195,10 +1252,12 @@ export default function App() {
                   readableOnly,
                 ].join(":")}
                 articles={articles}
-                renderStory={(a, current) => (
+                presentation={newsPages ? "pages" : "scroll"}
+                renderStory={(a, current, magazinePage) => (
                   <StoryCard
                     article={a}
-                    magazinePage
+                    magazinePage={magazinePage}
+                    lead={!magazinePage && current}
                     imagePriority={current ? "high" : "low"}
                     imageRetryToken={imageRetryToken}
                     saved={saved.some((s) => s.id === a.id)}

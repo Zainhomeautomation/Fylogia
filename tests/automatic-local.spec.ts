@@ -19,6 +19,12 @@ const examples = [
   ],
 ];
 async function seed(page: Page, country: string | null) {
+  // The assertions in this suite inspect filtered story records, not the
+  // default responsive presentation. Pin magazine mode for these fixtures.
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("fylogia.news.view"))
+      localStorage.setItem("fylogia.news.view", "pages");
+  });
   const edition = await (await page.request.get("data/edition.json")).json();
   await mockEdition(page, {
     ...edition,

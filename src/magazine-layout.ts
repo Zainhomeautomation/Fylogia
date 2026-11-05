@@ -11,3 +11,16 @@ export function magazineSpread(
     ? 2
     : 1;
 }
+
+/**
+ * Wide, near-square viewports can keep facing pages legible. This adapts to
+ * usable browser dimensions (including foldable inner displays) without
+ * identifying a device model.
+ */
+export function wideReadingViewport(
+  width: number,
+  height: number,
+  minimumWidth = 740,
+): boolean {
+  return width >= minimumWidth && width >= height * 0.9;
+}

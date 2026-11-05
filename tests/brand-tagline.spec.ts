@@ -95,11 +95,13 @@ test("homepage brand tagline stays secondary, responsive and exclusive to For Yo
   const preferences = await page.evaluate(() =>
     localStorage.getItem("folio.v1.preferences"),
   );
+  await page.getByRole("button", { name: "Open navigation" }).click();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
     .getByRole("button", { name: "Explore", exact: true })
     .click();
   await expect(page.locator(".brand-tagline")).toHaveCount(0);
+  await page.getByRole("button", { name: "Open navigation" }).click();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
     .getByRole("button", { name: "For You", exact: true })

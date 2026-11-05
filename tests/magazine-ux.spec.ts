@@ -5,6 +5,10 @@ test.use({ hasTouch: true, storageState: { cookies: [], origins: [] } });
 const surface = (p: Page) => p.locator(".news-book > .news-feed-surface");
 const active = (p: Page) => surface(p).locator(":scope > .feed-spread");
 async function seed(page: Page) {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("fylogia.news.view"))
+      localStorage.setItem("fylogia.news.view", "pages");
+  });
   const edition = await (await page.request.get("data/edition.json")).json();
   await mockEdition(page, {
     ...edition,
