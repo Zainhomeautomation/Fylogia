@@ -1,6 +1,6 @@
 # Native implementation checklist
 
-Updated 4 November 2026, Asia/Muscat. This supersedes the historical phase statuses in the root progress ledger. Development remains on `native-ios-foundation`; the golden website and production are protected.
+Updated 5 November 2026, Asia/Muscat. This supersedes the historical phase statuses in the root progress ledger. Development remains on `native-ios-foundation`; the golden website and production are protected.
 
 ## Current milestone
 
@@ -92,7 +92,7 @@ The active GitHub workflow triggers on main pushes/PRs, manual dispatch and sche
 - Direct feed screenshot: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPad-mini-launch-after-35s-20261105.png`. Home Screen screenshot: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPad-mini-homescreen-ready-20261105.png`.
 - One focused XCTest, `HybridUITests/testAdaptiveFeedAndBoundDrag`, passed 1/1 (test body 78.3 seconds; run 123.5 seconds) using the existing nonpersistent parity store. The runner installed/launched and validated portrait scrolling mode, landscape facing pages, cancellation/drag settling, rotation and reading-position state. Exported portrait/landscape/final-state attachments are in `/Volumes/Developments/Xcode/TestResults/Fylogia-iPad-mini-XCTest-20261105/attachments/`. This provides focused iPad-mini UI automation evidence despite the earlier runner failures. It does not cover the article reader, PDF, Pro iPads or complete matrix.
 - The separate XcodeBuildMCP accessibility snapshot still failed once with `Timed out creating the simulator remote automation session`; Simulator frontend was not available to CUA. XCTest automation subsequently passed. No second UI test or retry was run.
-- Memory on the 8 GB Mac: before boot, memory-pressure free percentage 72%, swap used 2.38 GB. During initial boot/app loading, free percentage reached 30%, swap grew to 6.01 GB. During XCTest, the lowest observed free percentage was 28%, with peak observed swap 6.15 GB of 7.17 GB. After graceful simulator shutdown, free percentage recovered to 57% and swap use fell to 2.16 GB. The focused test passed under these conditions; this does not prove RAM caused prior `-308` runner failures. A larger-memory Mac is advisable for the remaining long, serial full matrix but is not a prerequisite established by this single-device pass.
+- Memory on the permanent 8 GB Mac: before boot, memory-pressure free percentage 72%, swap used 2.38 GB. During initial boot/app loading, free percentage reached 30%, swap grew to 6.01 GB. During XCTest, the lowest observed free percentage was 28%, with peak observed swap 6.15 GB of 7.17 GB. After graceful simulator shutdown, memory free recovered to 57% and swap use fell to 2.16 GB. The focused test passed under these conditions; this does not prove RAM caused prior `-308` runner failures. Continue with one simulator and one test at a time on this machine while recording pressure.
 - iPad Pro 13 prior logs still fail at XCTest runner launch with `NSMachErrorDomain Code=-308`; iPad Pro 11 remains blocked at device data migration. No attempt was repeated on either device. No source changes or simulator data resets were made.
 
 **Release gate:** iPad mini direct launch and one focused adaptive UI test PASS. Overall iPad/simulator and physical-device acceptance remains NO-GO until the Pro 11/13 blockers and required wider matrix are resolved; article-reader behavior on iPad remains unverified in this pass.
@@ -105,3 +105,36 @@ The active GitHub workflow triggers on main pushes/PRs, manual dispatch and sche
 - [x] Isolated WebKit startup fixtures PASS successful initialization (255 ms), delayed transaction timeout (5,000 ms; launch to library 5,408 ms), failed read with retry while preserving saved/history/progress and an offline article, and failed-write fallback. The 12-second bootstrap watchdog is the upper bound before a recovery screen appears.
 - [x] Existing native launch WebKit regression PASS; focused iPhone 17/iOS 27.2 UI smoke PASS (1/1) and native unit tests PASS (16/16) using the same current project build. The UI smoke exercised WebKit progress and forward/back navigation. No normal-startup regression was observed.
 - [ ] Broader iPad/Pro Max simulator acceptance and physical-device testing remain open; this milestone does not claim full simulator matrix completion.
+
+### Low-RAM sequential simulator follow-up (5 November 2026)
+
+Tested only existing iOS 27.2 devices, one at a time. No device was erased or created. The SSD volume guard passed with 42.99 GB internal free before the final attempt and 40 GB after; the 20 GB heavy-test minimum was maintained. The post-run booted-device list was empty.
+
+| Device/configuration | Result | Evidence and scope |
+| --- | --- | --- |
+| iPhone 17, portrait/landscape | BLOCKED this pass at display readiness; earlier current-source unit/UI smoke evidence remains available | This pass reached bootstatus Finished but showed a black screen even after Home action. No app launch/XCTest. Screenshots: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPhone17-boot-20261105.png`, `Fylogia-iPhone17-home-ready-20261105.png`, `Fylogia-iPhone17-home-after-button-20261105.png`. |
+| iPhone 18 Pro Max, portrait/landscape | PASS focused adaptive test 1/1 twice on existing result bundles; fresh direct launch BLOCKED | Existing `testAdaptiveFeedAndBoundDrag` covers portrait scroll, landscape spread/curl drag, optional scroll, rotation and position. Fresh pass reached Home after button action, but accessibility snapshot and direct `simctl launch` stalled; no new test ran. Home screenshot: `/Volumes/Developments/Xcode/TestResults/Fylogia-ProMax-home-after-button-20261105.png`. |
+| iPad mini, portrait/landscape | PASS focused adaptive test 1/1 previously; BLOCKED on fresh direct launch | Prior `testAdaptiveFeedAndBoundDrag` covers feed mode, curl gesture, rotation and position. This pass reached Home, then WebKit GPU unresponsiveness/crashes kept Fylogia on its loading screen. No retry/XCTest. Evidence: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPadMini-WebKit-GPU-20261105.log` and `Fylogia-iPadMini-matrix-launch-after-20s-20261105.png`. |
+| iPad Pro 11-inch, portrait/landscape | BLOCKED | Existing device reports CoreSimulator `Data Migration Failed`; data was preserved and no repair requiring reset was attempted. |
+| iPad Pro 13-inch, portrait/landscape | BLOCKED | Prior XCTest attempt ended `NSMachErrorDomain -308`; this pass's single boot ended `Data Migration Failed`, and screenshot showed Apple boot logo. No install/XCTest. `/Volumes/Developments/Xcode/TestResults/Fylogia-iPadPro13-direct-boot-20261105.png`. |
+| Duo external portrait 390x844 | PASS WebKit viewport regression only | Single-column scrolling rule; no physical fold evidence. |
+| Duo external landscape 844x390 | PASS WebKit viewport regression only | Responsive facing-page rule at this viewport; not actual external-display testing. |
+| Duo internal portrait 840x900 | PASS WebKit viewport regression only | Responsive facing-page rule at this viewport; not physical internal-display/fold testing. |
+| Duo internal landscape 1180x820 | PASS WebKit viewport regression only | Facing-page rule at this viewport; not physical fold/hinge testing. |
+
+| Test area | Result | Scope / remaining coverage |
+| --- | --- | --- |
+| Portrait scrolling; landscape spread/curl gestures | PASS focused Pro Max twice and iPad mini once; both orientations exercised | Does not validate every listed profile. iPhone 17 fresh display blocked; Pro 11/13 boot blocked. |
+| Optional landscape scrolling preference | PASS existing WebKit preference persistence and news/article consistency tests | Native settings interaction not rechecked in this pass; per-iPad acceptance NOT RUN. |
+| Full articles and reading-position rotation | PASS recorded iPhone 17 UI regressions and WebKit article/rotation tests | Native iPad article rendering and reading-position assertions NOT RUN. |
+| PDFs, bookmarks, settings, offline reading, navigation | PASS existing WebKit regressions; prior iPhone 17 suite covers native navigation/settings/saved/offline paths for its recorded build | Not individually exercised on Pro Max/mini/iPad Pro in this pass. |
+| Accessibility and reduced motion | NOT RUN as a dedicated accessibility audit | Pro Max remote accessibility session timed out; no dedicated VoiceOver/reduced-motion checks. |
+| Four Duo viewport rules | PASS WebKit viewport regression only | Device fold/hinge transitions and actual Duo layout NOT RUN. |
+| Active curl frames and tearing | NOT RUN | Existing stills show settled pages; no valid transition video/frame sequence. |
+| FPS, sustained memory, battery, navigation response | NOT RUN | Host memory/swap observations are recorded above; pagination microbenchmark is not a frame-rate or responsiveness measurement. |
+
+WebKit results already recorded above continue to cover article/PDF/offline continuity and reading-mode persistence. Native iPad article/PDF, iPad accessibility, settings/bookmark/offline acceptance across every profile, Duo fold transitions, active curl transition frames, page-tearing review, sustained FPS, total/peak app memory, battery and navigation latency remain NOT RUN. Existing pagination timing is not frame-rate evidence. No application defect was established and no source code changed.
+
+Memory during this sequential pass: starting 64% free and 2.67 GB swap; mini WebKit GPU stall reached 29% free and 5.05 GB swap; Pro 13 shutdown recovered to 62% free and 2.62 GB swap; Pro Max started at 66% free / 2.57 GB and reached 29% free / 2.80 GB while direct simulator control stalled, then 62% / 2.91 GB after shutdown. These measurements do not establish an 8 GB RAM root cause. The permanent Mac remains the test machine.
+
+**Gate: NO-GO for physical-device acceptance.** Focused Pro Max/mini feed tests and WebKit Duo viewport checks pass, but simulator readiness, WebKit rendering and iPad migration blockers leave the required device/orientation/feature matrix incomplete. No physical Duo behavior is inferred from viewport tests.
