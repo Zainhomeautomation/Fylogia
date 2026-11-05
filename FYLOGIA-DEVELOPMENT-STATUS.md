@@ -7,7 +7,7 @@ Last refreshed: 5 November 2026 (Asia/Muscat). This shared status points to the 
 | Area | SSD checkout | Development branch | Latest source checkpoint | State |
 | --- | --- | --- | --- | --- |
 | Website | `/Volumes/Developments/Projects/Fylogia/Web` | `web-maintenance-after-golden-v1` | `ef6eb2695d1535efc3ecfd02f1b7f2e43b5e01f3` | Accessible, clean; remote branch matches. Website production remains on its separate `main` deployment path. |
-| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` | `36f9d293bd9cf111c8e1fb71ea68b77830e693bb` | Accessible; latest source change is the iPad mini offline PDF test correction. The latest Pro 11/Fresh Pro 11/Pro 13 boot results are recorded below; all three reached `Data Migration Failed` before app/UI testing. Native changes are not deployed to the website. |
+| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` | `b284755` | Accessible; latest source change adds privacy-filtered startup OSLog instrumentation and tests. Fresh Pro 11 boot succeeded, but the updated app install timed out before launch; details are below. Native changes are not deployed to the website. |
 
 The Codex sidebar already has a **Fylogia — Developments SSD** section containing separate local **Web** and **Native** projects, each linked to the path above. Registered project IDs and section IDs are in `/Volumes/Developments/Workspace-Configuration/projects.json`.
 
