@@ -86,6 +86,17 @@ The active GitHub workflow triggers on main pushes/PRs, manual dispatch and sche
 
 **Release gate:** NO-GO for physical-device acceptance. Pro Max targeted adaptive coverage passes, but iPad mini/XCTest startup, remaining iPad profiles, full Pro Max suite, active transition visual review, sustained performance measurements and actual Duo fold-state behavior remain incomplete.
 
+### iPad mini direct-launch recovery (5 November 2026)
+
+- Existing iPad mini (A20 Pro), iOS 27.2, UUID `4204A891-B5F3-4074-B37C-E9EB40858E71`: one direct non-XCTest launch succeeded. `simctl bootstatus -b` reached Finished at 6 seconds, but a screenshot at that point still showed the Apple boot logo. SpringBoard/backboardd were present; after app launch, the feed rendered in about 35 seconds with headlines and the first tutorial tip. A later hardware Home action returned to a stable Home Screen. This supersedes the earlier mini status only for boot/app launch; it does not repair the separate snapshot automation timeout.
+- Direct feed screenshot: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPad-mini-launch-after-35s-20261105.png`. Home Screen screenshot: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPad-mini-homescreen-ready-20261105.png`.
+- One focused XCTest, `HybridUITests/testAdaptiveFeedAndBoundDrag`, passed 1/1 (test body 78.3 seconds; run 123.5 seconds) using the existing nonpersistent parity store. The runner installed/launched and validated portrait scrolling mode, landscape facing pages, cancellation/drag settling, rotation and reading-position state. Exported portrait/landscape/final-state attachments are in `/Volumes/Developments/Xcode/TestResults/Fylogia-iPad-mini-XCTest-20261105/attachments/`. This provides focused iPad-mini UI automation evidence despite the earlier runner failures. It does not cover the article reader, PDF, Pro iPads or complete matrix.
+- The separate XcodeBuildMCP accessibility snapshot still failed once with `Timed out creating the simulator remote automation session`; Simulator frontend was not available to CUA. XCTest automation subsequently passed. No second UI test or retry was run.
+- Memory on the 8 GB Mac: before boot, memory-pressure free percentage 72%, swap used 2.38 GB. During initial boot/app loading, free percentage reached 30%, swap grew to 6.01 GB. During XCTest, the lowest observed free percentage was 28%, with peak observed swap 6.15 GB of 7.17 GB. After graceful simulator shutdown, free percentage recovered to 57% and swap use fell to 2.16 GB. The focused test passed under these conditions; this does not prove RAM caused prior `-308` runner failures. A larger-memory Mac is advisable for the remaining long, serial full matrix but is not a prerequisite established by this single-device pass.
+- iPad Pro 13 prior logs still fail at XCTest runner launch with `NSMachErrorDomain Code=-308`; iPad Pro 11 remains blocked at device data migration. No attempt was repeated on either device. No source changes or simulator data resets were made.
+
+**Release gate:** iPad mini direct launch and one focused adaptive UI test PASS. Overall iPad/simulator and physical-device acceptance remains NO-GO until the Pro 11/13 blockers and required wider matrix are resolved; article-reader behavior on iPad remains unverified in this pass.
+
 
 ### Startup reliability milestone (4 November 2026)
 
