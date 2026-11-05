@@ -7,7 +7,7 @@ Last refreshed: 5 November 2026 (Asia/Muscat). This shared status points to the 
 | Area | SSD checkout | Development branch | Latest source checkpoint | State |
 | --- | --- | --- | --- | --- |
 | Website | `/Volumes/Developments/Projects/Fylogia/Web` | `web-maintenance-after-golden-v1` | `ef6eb2695d1535efc3ecfd02f1b7f2e43b5e01f3` | Accessible, clean; remote branch matches. Website production remains on its separate `main` deployment path. |
-| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` | `bfdecebe0a0f49d7e8a575ba4e6c3361f93945a6` | Accessible; latest source checkpoint records the focused adaptive overlay PASS and an XCTest accessibility-session blocker for the new PDF UI test. The shared status records this source checkpoint and its validation results below. Native changes are not deployed to the website. |
+| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` | `71d5c72f074d52ff2580c0e220329d9b2e6d94fe` | Accessible; latest source checkpoint records the focused adaptive overlay PASS and an XCTest accessibility-session blocker for the new PDF UI test. This branch includes the source checkpoint and the current cross-project status record. Native changes are not deployed to the website. |
 
 The Codex sidebar already has a **Fylogia — Developments SSD** section containing separate local **Web** and **Native** projects, each linked to the path above. Registered project IDs and section IDs are in `/Volumes/Developments/Workspace-Configuration/projects.json`.
 
