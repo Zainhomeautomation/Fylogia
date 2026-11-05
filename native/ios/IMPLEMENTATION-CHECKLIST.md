@@ -222,6 +222,26 @@ Memory during this sequential pass: starting 64% free and 2.67 GB swap; mini Web
 
 **Root cause:** XCTest's canvas hit-testing assumption and repeated swipes, not a confirmed lazy-loading or offline PDF defect. Focused PDF/offline regression is **PASS**. The overall simulator matrix and physical-device acceptance remain **NO-GO**.
 
+### Fresh iPad Pro 11 remaining acceptance (5 November 2026)
+
+Used the existing Fresh iPad Pro 11 (M5), UUID `470EDEE0-BF32-456B-A2A9-B8CED4B0FB76`, on iOS 27.2. Reused the existing compiled `.xctestrun` with `test-without-building`, one destination, `-parallel-testing-enabled NO`, and `-jobs 1`. Tests ran individually. The simulator was never erased; existing app data and the experimental curl patch were preserved. Evidence is under `/Volumes/Developments/Xcode/TestResults/Fylogia-iPadPro11-Remaining-20261105/`.
+
+| Focus | Result | Evidence / notes |
+|---|---|---|
+| Article, orientation changes, navigation and reading-position restoration | **PASS** 1/1, 52.446 s | `ArticleRotation.xcresult`; captured portrait and landscape article screenshots in `ArticleRotation-attachments/`. |
+| Bookmark and saved reading-position restoration | **PASS** 1/1, 29.852 s | `BookmarkRestore.xcresult`; test turns, saves, resizes/rotates, relaunches and restores the saved state using test-suite-isolated defaults. |
+| Native offline PDF continuous reading | **PASS** 1/1, 83.948 s | `OfflinePDF.xcresult`; isolated offline PDF rendered and advanced through pages 1, 4, 6 and 8. Page captures in `OfflinePDF-attachments/`. |
+| Settings appearance and navigation | **FAIL** 1/1, 44.757 s | `SettingsNavigation.xcresult`; Appearance and theme controls were found and exercised. Three assertions at `HybridUITests.swift:68–70` then expected an `Open navigation` button. The iPad accessibility hierarchy instead exposes a persistent `Main navigation` sidebar and route buttons. This is a test-helper/layout assumption mismatch; no application defect was established and no app code was changed. |
+| Reduced-motion navigation | **PASS** 1/1, 29.755 s | `ReducedMotion.xcresult`. |
+| Accessibility discovery | **PARTIAL; full audit NOT RUN** | The Settings failure hierarchy exposed the persistent navigation and Appearance controls. No dedicated VoiceOver/screen-reader audit was executed, so broad accessibility acceptance remains open. |
+| Adaptive curl and gesture capture | **PASS** 1/1, 120.146 s | `CurlVideoAdaptive.xcresult` and `CurlTransition.mov`; extracted frames/contact sheets for slow, reverse/fast and extreme gesture intervals. Video capture metadata is 8.125 fps, so it is not a device-performance FPS measurement. The fast-reverse frames show the sheet moving across the spread; the capture does not establish that page-tearing is resolved. |
+
+Portrait/landscape article screenshots and PDF pages are saved alongside results. Representative transition review: `fast-reverse-contact.png`; complete recording: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPadPro11-Remaining-20261105/CurlTransition.mov`. No measured scrolling/curl FPS or sustained performance result is claimed. The recording and extracted frames are useful gesture evidence, but the page-tearing visual acceptance remains **OPEN**.
+
+Resource observations on the 8 GB Mac: before the final capture pass, memory was 49% free with 7.12 GB swap used; during the earlier focused test batches the lowest observed free memory was about 28–30%, with peak swap about 6.60 GB. At final shutdown, memory recovered to 64% free with 3.27 GB swap used. Internal free space was 25.94 GB before shutdown and 27 GB afterward, remaining above the required 20 GB. The simulator shut down gracefully and no simulator remained booted. The exact measurements are samples, not a performance benchmark.
+
+**Pro 11 acceptance:** article/rotation, bookmark/position, offline PDF, reduced-motion, and adaptive curl are **PASS**; Settings/navigation XCTest is **FAIL** on the test's missing `Open navigation` expectation despite the always-visible iPad sidebar; full accessibility audit is **NOT RUN**. Page-tearing and real FPS remain unverified. No native source changes were justified. Overall physical-device/release acceptance remains **NO-GO** pending correction and rerun of the iPad-specific Settings test, a full accessibility audit, transition-level tearing review, and remaining device matrix.
+
 ### Native startup OSLog diagnostics (5 November 2026)
 
 - Added privacy-filtered Apple OSLog startup events for app launch, HybridController/WebView creation, local server readiness, WebKit navigation/process lifecycle, JavaScript bootstrap, IndexedDB read and transaction stages, local-library readiness, app render, first frame, feed DOM readiness, and startup recovery activation. Elapsed time is logged relative to native process start and JavaScript bootstrap; IndexedDB operations also include their bounded operation duration. The WebKit API has no dedicated callback for content-process creation, so navigation start is recorded as the earliest native process-start proxy, followed by document commit/finish and explicit process termination callbacks.
