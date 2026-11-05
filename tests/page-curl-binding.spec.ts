@@ -165,7 +165,9 @@ test("slow full-width mouse over-drag keeps the moving sheet bound to the center
     await page.mouse.move(start.x - leafWidth * fraction, start.y, {
       steps: 8,
     });
-    await page.waitForTimeout(36);
+    // Hold at each drag position so WebKit can paint and sample the live curl
+    // instead of coalescing the whole gesture into a handful of RAF callbacks.
+    await page.waitForTimeout(120);
     await expect(spread.locator(".paper-fold")).toBeVisible();
     await assertBoundGeometry(spread);
     if ([0.5, 0.9, 1.4, 1.95, 2.3].includes(fraction))
@@ -195,7 +197,7 @@ test("slow full-width mouse over-drag keeps the moving sheet bound to the center
         steps: 8,
       },
     );
-    await page.waitForTimeout(24);
+    await page.waitForTimeout(120);
     await assertBoundGeometry(spread);
     if ([0.95, 1.8, 2.25].includes(fraction))
       await captureFrame(
