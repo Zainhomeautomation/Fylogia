@@ -1,13 +1,13 @@
 # Fylogia Development Status
 
-Last refreshed: 4 November 2026 (Asia/Muscat). This shared status points to the separate Web and Native SSD checkouts; they remain separate Git repositories and are not merged.
+Last refreshed: 5 November 2026 (Asia/Muscat). This shared status points to the separate Web and Native SSD checkouts; they remain separate Git repositories and are not merged.
 
 ## Workspace map
 
 | Area | SSD checkout | Development branch | Latest source checkpoint | State |
 | --- | --- | --- | --- | --- |
 | Website | `/Volumes/Developments/Projects/Fylogia/Web` | `web-maintenance-after-golden-v1` | `ef6eb2695d1535efc3ecfd02f1b7f2e43b5e01f3` | Accessible, clean; remote branch matches. Website production remains on its separate `main` deployment path. |
-| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` | `c3ed447fa4d797abdac3de3d473663d208f334b2` | Accessible, clean; remote branch matches. Native changes are not deployed to the website. |
+| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` | `1c99e91bc41e41e7a247f72baa38d028d90dc5cb` | Accessible, clean; remote branch matches. Bounded simulator continuation and WebKit regression evidence are recorded in the implementation checklist. Native changes are not deployed to the website. |
 
 The Codex sidebar already has a **Fylogia — Developments SSD** section containing separate local **Web** and **Native** projects, each linked to the path above. Registered project IDs and section IDs are in `/Volumes/Developments/Workspace-Configuration/projects.json`.
 
@@ -48,3 +48,11 @@ Before software changes, run the corresponding `workspace.py` guard, read the in
 ### Startup reliability update (4 November 2026)
 
 Native startup now has bounded stage diagnostics, a 12-second recoverable error screen, a 5-second IndexedDB startup-write deadline, and fail-closed handling when the existing library cannot be read. Retry reloads without resetting storage. Isolated WebKit scenarios passed: successful open 255 ms; stalled transaction timed out at 5,000 ms and library launch completed in 5,408 ms; failed read/retry preserved bookmarks, saved/history/progress and offline article data; failed-write fallback passed. The native-launch regression passed. Current iPhone 17/iOS 27.2 validation passed 16/16 native unit tests and one focused UI smoke test. Broader iPad/Pro Max matrix, physical testing, and transition-level curl visual acceptance remain incomplete. See the detailed evidence in `native/ios/IMPLEMENTATION-CHECKLIST.md`.
+
+### Simulator validation continuation (5 November 2026)
+
+- Active developer directory is the SSD Xcode 27.2 build 27B52. Its bundle still lacks `Simulator.app`; no Xcode reinstall or runtime changes were made. Internal free space remained above 20 GB (44.88 GB at the end), and no simulator remained booted.
+- iPhone 18 Pro Max focused adaptive feed/curl/drag test passed 1/1 twice. Static screenshots show the portrait feed and settled landscape binding/spread. The broader UI run passed one test then stalled at the next app launch; it was canceled. iPad mini's one bounded focused run stalled before test execution and was canceled; previous iPad mini/Pro 13 logs ended with CoreSimulator IPC server death (`-308`), while iPad Pro 11 ended with data migration failure. No Fylogia app startup defect was confirmed.
+- WebKit adaptive feed checks passed ten viewport sizes, including four Duo-shaped viewports; reading mode, rotation/position, offline, PDF, first-launch recovery, content failures, notification settings, App Intents, and overlay-isolation regressions passed. These viewport tests do not prove fold/hinge behavior.
+- Current performance evidence is limited to a WebKit content process at about 153 MB and 0.1% CPU after load; no scroll/curl FPS, sustained peak memory, battery or transition video was measured. Curl tearing remains unreviewed at transition-frame level.
+- **Gate: NO-GO for physical-device acceptance/full simulator completion.** Remaining tasks: repair simulator/XCTest startup through a supported path, run untested iPad Pro profiles and full Pro Max suite, capture actual transition frames, measure sustained performance, and test the physical Duo.
