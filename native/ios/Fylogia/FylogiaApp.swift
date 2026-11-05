@@ -1,6 +1,10 @@
 import SwiftUI
 
 @main struct FylogiaApp: App {
+  init() {
+    NativeStartupDiagnostics.mark("application-launch")
+  }
+
   var body: some Scene {
     WindowGroup {
       Group {

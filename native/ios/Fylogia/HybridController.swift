@@ -32,6 +32,7 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
   private var turnStart = Date()
   override func viewDidLoad() {
     super.viewDidLoad()
+    NativeStartupDiagnostics.mark("hybrid-controller-view-loaded")
     NotificationCenter.default.addObserver(
       self, selector: #selector(appDidBecomeActive),
       name: UIApplication.didBecomeActiveNotification,
@@ -57,7 +58,9 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
       (controller: HybridController, _: UITraitCollection) in controller.updateTextScale()
     }
+    NativeStartupDiagnostics.mark("webview-creation-start")
     web = WKWebView(frame: .zero, configuration: config)
+    NativeStartupDiagnostics.mark("webview-created")
     web.navigationDelegate = self
     web.uiDelegate = self
     web.isOpaque = false
@@ -72,6 +75,7 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
       web.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
     ])
     guard let root = Bundle.main.url(forResource: "WebAssets", withExtension: nil) else {
+      NativeStartupDiagnostics.mark("web-assets-missing")
       fail("Bundled golden interface is missing. Run build-web.mjs before building the app.")
       return
     }
@@ -79,13 +83,16 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
       root: root, offline: ProcessInfo.processInfo.arguments.contains("--offline-test"))
     self.server = server
     do {
+      NativeStartupDiagnostics.mark("local-server-start")
       try server.start { [weak self] result in
         DispatchQueue.main.async {
           guard let self else { return }
           switch result {
           case .success:
+            NativeStartupDiagnostics.mark("local-server-ready")
             self.web.load(URLRequest(url: URL(string: "http://127.0.0.1:\(LocalWebServer.port)/")!))
           case .failure(let error):
+            NativeStartupDiagnostics.mark("local-server-failed")
             self.fail("Local interface could not start: \(error.localizedDescription)")
           }
         }
@@ -103,8 +110,30 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     deliverPendingShortcut()
   }
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    NativeStartupDiagnostics.mark("web-navigation-finished")
     updateTextScale()
     deliverPendingShortcut()
+  }
+  func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+    // WebKit exposes navigation lifecycle, not a separate content-process launch callback.
+    NativeStartupDiagnostics.mark("web-content-startup-requested")
+  }
+  func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+    NativeStartupDiagnostics.mark("web-content-document-committed")
+  }
+  func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+    NativeStartupDiagnostics.mark("web-content-process-terminated")
+  }
+  func webView(
+    _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
+    withError error: Error
+  ) {
+    NativeStartupDiagnostics.mark("web-navigation-provisional-failed")
+  }
+  func webView(
+    _ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error
+  ) {
+    NativeStartupDiagnostics.mark("web-navigation-failed")
   }
   private func deliverPendingShortcut() {
     guard let web, web.url != nil, !web.isLoading else { return }
@@ -182,6 +211,10 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
       message.frameInfo.securityOrigin.port == Int(LocalWebServer.port),
       let body = message.body as? [String: Any]
     else { return }
+    if body["action"] as? String == "startupStage" {
+      NativeStartupDiagnostics.recordJavaScript(body["event"] ?? [:])
+      return
+    }
     if body["action"] as? String == "preferences" {
       haptics = body["haptics"] as? Bool ?? false
       sounds = body["sound"] as? Bool ?? false

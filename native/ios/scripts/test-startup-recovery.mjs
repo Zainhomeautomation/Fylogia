@@ -51,8 +51,30 @@ async function makeContext(initScript = `${fixture}\n${seedScript}`) {
   const context = await browser.newContext({
     viewport: { width: 393, height: 852 },
   });
-  await context.addInitScript(initScript);
+  await context.addInitScript(`
+    window.__fylogiaNativeStartupEvents = [];
+    const handlers = window.webkit?.messageHandlers || {};
+    window.webkit = {
+      ...(window.webkit || {}),
+      messageHandlers: {
+        ...handlers,
+        fylogia: {
+          postMessage(message) {
+            if (message?.action === "startupStage")
+              window.__fylogiaNativeStartupEvents.push(structuredClone(message));
+          },
+        },
+      },
+    };
+    ${initScript}
+  `);
   return context;
+}
+
+async function startupStages(page) {
+  return page.evaluate(() =>
+    window.__fylogiaNativeStartupEvents.map((message) => message.event.stage),
+  );
 }
 
 async function waitForLibrary(page) {
@@ -86,6 +108,41 @@ try {
     );
     assert.ok(
       diagnostics.some((line) => line.includes("app-render-requested")),
+    );
+    await page.waitForFunction(() =>
+      window.__fylogiaNativeStartupEvents.some(
+        (message) => message.event?.stage === "feed-render-ready",
+      ),
+    );
+    const stages = await startupStages(page);
+    for (const stage of [
+      "bootstrap-start",
+      "local-library-start",
+      "indexeddb-read-start",
+      "indexeddb-read-ready",
+      "local-library-ready",
+      "app-render-requested",
+      "first-render-frame",
+      "feed-render-ready",
+    ])
+      assert.ok(stages.includes(stage), `missing forwarded stage ${stage}`);
+    const forwarded = await page.evaluate(
+      () => window.__fylogiaNativeStartupEvents,
+    );
+    assert.ok(forwarded.every((message) => message.action === "startupStage"));
+    assert.ok(
+      forwarded.every((message) =>
+        Object.keys(message.event).every((key) =>
+          [
+            "stage",
+            "elapsedMs",
+            "operationElapsedMs",
+            "failureStage",
+            "errorName",
+          ].includes(key),
+        ),
+      ),
+      "startup bridge must not forward library content",
     );
     assert.deepEqual(errors, []);
     results.push({ scenario: "successful-open", durationMs, result: "PASS" });
@@ -148,6 +205,10 @@ try {
     assert.ok(
       diagnostics.some((line) => line.includes("storage-transaction-timeout")),
       "a stalled transaction must be logged with its elapsed time",
+    );
+    assert.ok(
+      (await startupStages(page)).includes("storage-transaction-timeout"),
+      "native startup bridge must forward a delayed IndexedDB stage",
     );
     assertRetainedData(
       await page.evaluate(readRetained, Object.keys(retained)),
@@ -219,6 +280,10 @@ try {
       retained,
     );
     assert.ok(diagnostics.some((line) => line.includes("storage-read-failed")));
+    const failedStages = await startupStages(page);
+    assert.ok(failedStages.includes("storage-read-failed"));
+    assert.ok(failedStages.includes("startup-failed"));
+    assert.ok(failedStages.includes("recovery-screen-activated"));
     await page.getByRole("button", { name: "Retry opening Fylogia" }).click();
     await waitForLibrary(page);
     assertRetainedData(

@@ -98,7 +98,7 @@ function writeRows(rows: Row[]) {
     try {
       tx = db.transaction("records", "readwrite");
     } catch (error) {
-      console.warn("[fylogia-startup] storage-transaction-create-failed", {
+      window.__fylogiaNativeStartupLog?.("storage-transaction-create-failed", {
         recordCount: rows.length,
         errorName: error instanceof Error ? error.name : "UnknownError",
       });
@@ -116,7 +116,7 @@ function writeRows(rows: Row[]) {
     };
     const timer = window.setTimeout(() => {
       const error = new Error("IndexedDB write transaction timed out");
-      console.warn("[fylogia-startup] storage-transaction-timeout", {
+      window.__fylogiaNativeStartupLog?.("storage-transaction-timeout", {
         elapsedMs: Math.round(performance.now() - startedAt),
         recordCount: rows.length,
       });
@@ -129,14 +129,14 @@ function writeRows(rows: Row[]) {
     }, NATIVE_STORAGE_TRANSACTION_TIMEOUT_MS);
     tx.oncomplete = () => {
       if (nativeLibraryStartupPhase)
-        console.info("[fylogia-startup] storage-write-complete", {
+        window.__fylogiaNativeStartupLog?.("storage-write-complete", {
           elapsedMs: Math.round(performance.now() - startedAt),
           recordCount: rows.length,
         });
       finish();
     };
     tx.onerror = () => {
-      console.warn("[fylogia-startup] storage-transaction-failed", {
+      window.__fylogiaNativeStartupLog?.("storage-transaction-failed", {
         elapsedMs: Math.round(performance.now() - startedAt),
         recordCount: rows.length,
         errorName: tx.error?.name || "UnknownError",
@@ -144,7 +144,7 @@ function writeRows(rows: Row[]) {
       finish(tx.error || new Error("IndexedDB write failed"));
     };
     tx.onabort = () => {
-      console.warn("[fylogia-startup] storage-transaction-aborted", {
+      window.__fylogiaNativeStartupLog?.("storage-transaction-aborted", {
         elapsedMs: Math.round(performance.now() - startedAt),
         recordCount: rows.length,
         errorName: tx.error?.name || "AbortError",
@@ -177,14 +177,16 @@ function writeRows(rows: Row[]) {
     readAnchor,
     `    let rows: Row[] = [];
     const storageReadStartedAt = performance.now();
+    window.__fylogiaNativeStartupLog?.("indexeddb-read-start");
     try {
       rows = await openDatabase();
-      console.info("[fylogia-startup] storage-read-complete", {
+      window.__fylogiaNativeStartupLog?.("indexeddb-read-ready");
+      window.__fylogiaNativeStartupLog?.("storage-read-complete", {
         elapsedMs: Math.round(performance.now() - storageReadStartedAt),
         recordCount: rows.length,
       });
     } catch (error) {
-      console.error("[fylogia-startup] storage-read-failed", {
+      window.__fylogiaNativeStartupLog?.("storage-read-failed", {
         elapsedMs: Math.round(performance.now() - storageReadStartedAt),
         errorName: error instanceof Error ? error.name : "UnknownError",
       });
@@ -229,11 +231,23 @@ function nativeBootstrapGuard(code, id) {
     `const nativeStartupStartedAt = performance.now();
 let nativeStartupStage = "local-library";
 let nativeStartupFinished = false;
-const nativeStartupLog = (stage: string, detail = {}) =>
-  console.info("[fylogia-startup] " + stage, {
-    elapsedMs: Math.round(performance.now() - nativeStartupStartedAt),
-    ...detail,
+const nativeStartupLog = (stage: string, detail: any = {}) => {
+  const elapsedMs = Math.round(performance.now() - nativeStartupStartedAt);
+  console.info("[fylogia-startup] " + stage, { elapsedMs, ...detail });
+  (window as any).webkit?.messageHandlers?.fylogia?.postMessage({
+    action: "startupStage",
+    event: {
+      stage,
+      elapsedMs,
+      ...(typeof detail.elapsedMs === "number" && Number.isFinite(detail.elapsedMs)
+        ? { operationElapsedMs: Math.round(detail.elapsedMs) }
+        : {}),
+      ...(detail.stage ? { failureStage: detail.stage } : {}),
+      ...(detail.errorName ? { errorName: detail.errorName } : {}),
+    },
   });
+};
+(window as any).__fylogiaNativeStartupLog = nativeStartupLog;
 nativeStartupLog("bootstrap-start");
 const nativeStartupTimer = window.setTimeout(() => {
   if (nativeStartupFinished) return;
@@ -241,6 +255,7 @@ const nativeStartupTimer = window.setTimeout(() => {
     stage: nativeStartupStage,
     deadlineMs: 12000,
   });
+  nativeStartupLog("recovery-screen-activated", { stage: nativeStartupStage });
   root.render(
     <NativeStartupRecovery onRetry={() => window.location.reload()} />,
   );
@@ -274,6 +289,27 @@ if ("serviceWorker"`;
   nativeStartupFinished = true;
   window.clearTimeout(nativeStartupTimer);
   nativeStartupLog("app-render-requested");
+  const reportFeedReady = () => {
+    if (!document.querySelector(".native-story-list .story-open")) return false;
+    nativeStartupLog("feed-render-ready");
+    return true;
+  };
+  if (!reportFeedReady()) {
+    const feedObserver = new MutationObserver(() => {
+      if (reportFeedReady()) {
+        feedObserver.disconnect();
+        window.clearTimeout(feedObserverTimeout);
+      }
+    });
+    feedObserver.observe(document.getElementById("root")!, {
+      childList: true,
+      subtree: true,
+    });
+    const feedObserverTimeout = window.setTimeout(
+      () => feedObserver.disconnect(),
+      60000,
+    );
+  }
   requestAnimationFrame(() => nativeStartupLog("first-render-frame"));
 }).catch((error) => {
   nativeStartupFinished = true;
@@ -282,6 +318,7 @@ if ("serviceWorker"`;
     errorName: error instanceof Error ? error.name : "UnknownError",
     stage: nativeStartupStage,
   });
+  nativeStartupLog("recovery-screen-activated", { stage: nativeStartupStage });
   root.render(
     <NativeStartupRecovery onRetry={() => window.location.reload()} />,
   );

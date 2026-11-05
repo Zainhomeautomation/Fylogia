@@ -28,6 +28,31 @@ import XCTest
       FylogiaDailyBriefing.notificationBody(headlines: [], topics: ["Invalid"]),
       "Your daily news briefing is ready.")
   }
+  func testStartupDiagnosticsValidateMissingDelayedAndFailedStages() {
+    XCTAssertNil(NativeStartupStageEvent(message: [:]))
+    XCTAssertNil(
+      NativeStartupStageEvent(message: ["stage": "unknown", "elapsedMs": 1]))
+
+    let delayed = NativeStartupStageEvent(
+      message: [
+        "stage": "storage-transaction-timeout", "elapsedMs": 5_000,
+        "operationElapsedMs": 5_000,
+      ])
+    XCTAssertEqual(delayed?.elapsedMilliseconds, 5_000)
+    XCTAssertEqual(delayed?.operationElapsedMilliseconds, 5_000)
+
+    let failed = NativeStartupStageEvent(
+      message: [
+        "stage": "startup-failed", "elapsedMs": 12_001,
+        "failureStage": "local-library", "errorName": "SecurityError",
+        "privateMessage": "must not be retained",
+      ])
+    XCTAssertEqual(failed?.failureStage, "local-library")
+    XCTAssertEqual(failed?.errorName, "SecurityError")
+    XCTAssertNil(NativeStartupStageEvent(message: ["stage": "startup-failed", "elapsedMs": -1]))
+    XCTAssertNil(
+      NativeStartupStageEvent(message: ["stage": "startup-failed", "elapsedMs": 600_001]))
+  }
   func testWidgetDeepLinkValidatesAndEncodesStoryRoute() {
     let url = URL(string: "fylogia://story?id=story-123")!
     XCTAssertEqual(
