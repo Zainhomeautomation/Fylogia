@@ -7,7 +7,7 @@ import {
 } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Article } from "./catalog";
-import { magazineSpread } from "./magazine-layout";
+import { layoutViewport, magazineSpread } from "./magazine-layout";
 import { usePageTurn } from "./usePageTurn";
 
 /** A bounded news book. Story identity survives resize and reader overlays. */
@@ -44,26 +44,31 @@ export function NewsFeed({
   useLayoutEffect(() => {
     const node = surface.current;
     if (!node) return;
+    let frame = 0;
     const measure = () => {
-      const width = node.clientWidth;
-      // Use available page space, not content height: long headlines must not
-      // oscillate between one and two columns as the sheet grows.
-      const viewport = window.visualViewport;
-      setSpread(
-        magazineSpread(
-          width,
-          viewport?.width || window.innerWidth,
-          viewport?.height || window.innerHeight,
-        ),
-      );
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        // Use available page space, not content height: long headlines must
+        // not oscillate between one and two columns as the sheet grows. Read
+        // the same layout viewport as the application mode selector so a
+        // stale iOS visualViewport cannot pair page mode with one-page geometry.
+        const viewport = layoutViewport();
+        setSpread(
+          magazineSpread(node.clientWidth, viewport.width, viewport.height),
+        );
+      });
     };
     const observer = new ResizeObserver(measure);
     observer.observe(node);
     window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
     window.visualViewport?.addEventListener("resize", measure);
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
   }, []);
