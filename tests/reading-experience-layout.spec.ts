@@ -80,9 +80,18 @@ test("near-square unfolded-sized viewport gets a facing spread while narrow fold
   await seed(page);
   const surface = page.locator(".news-book > .news-feed-surface");
   await expect(surface).toHaveClass(/scrolling-feed/);
-  await page.setViewportSize({ width: 850, height: 900 });
-  await expect(surface).not.toHaveClass(/scrolling-feed/);
-  await expect(surface).toHaveAttribute("data-paper-spread", "2");
+  for (const viewport of [
+    { width: 915, height: 412 },
+    { width: 850, height: 900 },
+    { width: 900, height: 850 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(surface).not.toHaveClass(/scrolling-feed/);
+    await expect(surface).toHaveAttribute("data-paper-spread", "2");
+    const bounds = await surface.boundingBox();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+  }
   await page.setViewportSize({ width: 412, height: 915 });
   await expect(surface).toHaveClass(/scrolling-feed/);
 });
@@ -122,6 +131,8 @@ test("paper stays warm cream with readable ink across light and dark themes", as
   await page.setViewportSize({ width: 1194, height: 834 });
   await seed(page);
   const sheet = page.locator(".news-book > .news-feed-surface");
+  const bounds = await sheet.boundingBox();
+  expect(bounds!.y).toBeLessThan(834 / 2);
   for (const theme of ["navy", "dark", "light"]) {
     await page.evaluate((value) => {
       document.documentElement.dataset.theme = value;
@@ -132,5 +143,9 @@ test("paper stays warm cream with readable ink across light and dark themes", as
     }));
     expect(colors.background).toBe("rgb(247, 242, 227)");
     expect(colors.color).toBe("rgb(32, 37, 31)");
+    await expect(sheet.locator(".type-art").first()).toHaveCSS(
+      "background-color",
+      "rgb(232, 229, 214)",
+    );
   }
 });
