@@ -1266,7 +1266,7 @@ export default function App() {
                   <StoryCard
                     article={a}
                     magazinePage={magazinePage}
-                    lead={!magazinePage && current}
+                    lead={!magazinePage && a.id === articles[0]?.id}
                     imagePriority={current ? "high" : "low"}
                     imageRetryToken={imageRetryToken}
                     saved={saved.some((s) => s.id === a.id)}

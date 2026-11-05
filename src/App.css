@@ -4142,7 +4142,8 @@ html[data-theme="light"] .brand-mark-light {
   }
   .main,
   .main.news-pages-mode {
-    padding: 6px max(12px, env(safe-area-inset-right)) 30px
+    padding: 6px max(12px, env(safe-area-inset-right))
+      calc(80px + env(safe-area-inset-bottom))
       max(12px, env(safe-area-inset-left));
   }
   .news-book .news-feed-surface {

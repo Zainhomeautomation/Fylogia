@@ -174,6 +174,41 @@ test("opening a lower visible story keeps its selected position through history 
   ).toBeInViewport();
 });
 
+test("scrolling keeps card geometry stable and the bottom navigation leaves final story controls accessible", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seed(page);
+  await page.evaluate(() => document.fonts.ready);
+  const cards = page.locator(".news-feed-list .story");
+  const heights = await cards.evaluateAll((nodes) =>
+    nodes.map((node) => node.getBoundingClientRect().height),
+  );
+  await cards.nth(5).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(80);
+  const after = await cards.evaluateAll((nodes) =>
+    nodes.map((node) => node.getBoundingClientRect().height),
+  );
+  after.forEach((height, index) =>
+    expect(Math.abs(height - heights[index])).toBeLessThan(1),
+  );
+  await cards.last().scrollIntoViewIfNeeded();
+  await page.evaluate(() =>
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: "instant",
+    }),
+  );
+  const navigation = await page.locator(".bottom-nav").boundingBox();
+  await expect
+    .poll(
+      async () =>
+        (await cards.last().locator(".story-meta").boundingBox())!.y +
+        (await cards.last().locator(".story-meta").boundingBox())!.height,
+    )
+    .toBeLessThanOrEqual(navigation!.y);
+});
+
 test("paper stays warm cream with readable ink across light and dark themes", async ({
   page,
 }) => {
