@@ -88,6 +88,36 @@ final class HybridUITests: XCTestCase {
     add(a)
     print("PARITY viewport \(name) \(web.frame.width)x\(web.frame.height)")
   }
+  @MainActor private func scrollToVisiblePDFPage(
+    _ number: Int, app: XCUIApplication, maxGestures: Int = 10
+  ) -> XCUIElement? {
+    let canvas = app.descendants(matching: .any)["Magazine page \(number)"].firstMatch
+    let webView = app.webViews.firstMatch
+    let zoomToolbar = app.otherElements["Magazine zoom"]
+    let footer = app.otherElements["section footer"]
+    guard zoomToolbar.waitForExistence(timeout: 5), footer.waitForExistence(timeout: 5) else {
+      return nil
+    }
+    let viewport = CGRect(
+      x: webView.frame.minX,
+      y: zoomToolbar.frame.maxY,
+      width: webView.frame.width,
+      height: max(0, footer.frame.minY - zoomToolbar.frame.maxY))
+    let counter = app.staticTexts["Page \(number) of 8"]
+
+    for gesture in 0..<maxGestures {
+      if canvas.exists && canvas.frame.intersects(viewport) && counter.exists { return canvas }
+      print("PDF page \(number) visibility gesture \(gesture + 1)/\(maxGestures)")
+      let start = webView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.82))
+      let end = webView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.30))
+      start.press(
+        forDuration: 0.08, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.15)
+    }
+    if canvas.exists {
+      print("PDF page \(number) final frame \(canvas.frame), viewport \(viewport)")
+    }
+    return nil
+  }
   @MainActor func testAdaptiveFeedAndBoundDrag() throws {
     XCUIDevice.shared.orientation = .landscapeLeft
     let app = try launch()
@@ -188,14 +218,18 @@ final class HybridUITests: XCTestCase {
     XCTAssertTrue(
       firstCanvas.waitForExistence(timeout: 15), "The first offline PDF page must render")
 
-    let laterCanvas = app.descendants(matching: .any)["Magazine page 6"].firstMatch
-    for _ in 0..<8 where !laterCanvas.exists {
-      app.webViews.firstMatch.swipeUp()
+    for number in [4, 6, 8] {
+      let canvas = scrollToVisiblePDFPage(number, app: app)
+      XCTAssertNotNil(
+        canvas,
+        "Offline PDF page \(number) must lazy-render and become visible after scrolling")
+      guard let canvas else { return }
+      let counter = app.staticTexts["Page \(number) of 8"]
+      XCTAssertTrue(
+        counter.waitForExistence(timeout: 5),
+        "The continuous reader should report page \(number) while it is visible")
+      capture("offline-pdf-continuous-page-\(number)", app: app)
     }
-    XCTAssertTrue(
-      laterCanvas.waitForExistence(timeout: 20),
-      "Scrolling the offline PDF must load later pages continuously")
-    capture("offline-pdf-continuous-page-6", app: app)
   }
   @MainActor func testArticleModesAndNavigationSurviveRotation() throws {
     XCUIDevice.shared.orientation = .portrait
