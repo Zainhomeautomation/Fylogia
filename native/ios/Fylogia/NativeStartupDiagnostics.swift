@@ -9,13 +9,20 @@ struct NativeStartupStageEvent: Equatable {
   let errorName: String?
 
   static let supportedStages: Set<String> = [
-    "bootstrap-start", "local-library-start", "indexeddb-read-start",
-    "storage-read-complete", "storage-read-failed", "storage-write-complete",
-    "storage-transaction-create-failed", "storage-transaction-timeout",
-    "storage-transaction-failed", "storage-transaction-aborted",
-    "indexeddb-read-ready", "local-library-ready", "native-launch-preparation-start",
-    "app-render-requested", "first-render-frame", "feed-render-ready",
-    "deadline-exceeded", "startup-failed", "recovery-screen-activated",
+    "bootstrap-start", "local-library-start", "library-read-start",
+    "library-read-complete", "library-read-failed", "indexeddb-open-start",
+    "indexeddb-upgrade-start", "indexeddb-upgrade-complete", "indexeddb-open-ready",
+    "indexeddb-open-failed", "indexeddb-open-blocked", "indexeddb-open-timeout",
+    "indexeddb-read-start", "indexeddb-read-complete", "indexeddb-read-failed",
+    "indexeddb-read-timeout", "indexeddb-write-start", "indexeddb-write-complete",
+    "indexeddb-write-failed", "indexeddb-write-aborted", "indexeddb-write-timeout",
+    "library-reconciliation-start", "library-reconciliation-complete",
+    "library-write-batch-start", "library-write-batch-complete", "library-write-batch-failed",
+    "storage-write-complete", "indexeddb-read-ready", "local-library-ready",
+    "native-launch-preparation-start", "app-render-requested", "first-render-frame",
+    "feed-preparation-start", "feed-preparation-complete", "feed-render-ready",
+    "feed-readiness-timeout", "deadline-exceeded", "startup-failed",
+    "recovery-screen-activated",
   ]
 
   init?(message: Any) {
@@ -40,7 +47,10 @@ struct NativeStartupStageEvent: Equatable {
     }
 
     if let value = values["failureStage"] as? String,
-      ["local-library", "native-launch-preparation"].contains(value)
+      [
+        "local-library", "indexeddb-open", "indexeddb-read", "library-reconciliation",
+        "library-write-batch", "native-launch-preparation", "feed-preparation",
+      ].contains(value)
     {
       failureStage = value
     } else {
@@ -49,7 +59,7 @@ struct NativeStartupStageEvent: Equatable {
     if let value = values["errorName"] as? String,
       [
         "UnknownError", "SecurityError", "AbortError", "InvalidStateError",
-        "DataError", "QuotaExceededError", "NotFoundError", "TypeError", "Error",
+        "DataError", "QuotaExceededError", "NotFoundError", "TypeError", "TimeoutError", "Error",
         "LOCAL_LIBRARY_READ_FAILED",
       ].contains(value)
     {

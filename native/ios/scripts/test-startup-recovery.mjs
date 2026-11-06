@@ -104,7 +104,7 @@ try {
       await page.evaluate(readRetained, Object.keys(retained)),
     );
     assert.ok(
-      diagnostics.some((line) => line.includes("storage-read-complete")),
+      diagnostics.some((line) => line.includes("library-read-complete")),
     );
     assert.ok(
       diagnostics.some((line) => line.includes("app-render-requested")),
@@ -118,11 +118,19 @@ try {
     for (const stage of [
       "bootstrap-start",
       "local-library-start",
+      "indexeddb-open-start",
+      "indexeddb-open-ready",
       "indexeddb-read-start",
-      "indexeddb-read-ready",
+      "indexeddb-read-complete",
+      "library-read-complete",
+      "library-reconciliation-start",
+      "library-reconciliation-complete",
+      "library-write-batch-start",
+      "library-write-batch-complete",
       "local-library-ready",
       "app-render-requested",
       "first-render-frame",
+      "feed-preparation-complete",
       "feed-render-ready",
     ])
       assert.ok(stages.includes(stage), `missing forwarded stage ${stage}`);
@@ -203,11 +211,11 @@ try {
       "startup must stay within its deadline",
     );
     assert.ok(
-      diagnostics.some((line) => line.includes("storage-transaction-timeout")),
+      diagnostics.some((line) => line.includes("indexeddb-write-timeout")),
       "a stalled transaction must be logged with its elapsed time",
     );
     assert.ok(
-      (await startupStages(page)).includes("storage-transaction-timeout"),
+      (await startupStages(page)).includes("indexeddb-write-timeout"),
       "native startup bridge must forward a delayed IndexedDB stage",
     );
     assertRetainedData(
@@ -279,9 +287,11 @@ try {
       await page.evaluate(readRetained, Object.keys(retained)),
       retained,
     );
-    assert.ok(diagnostics.some((line) => line.includes("storage-read-failed")));
+    assert.ok(diagnostics.some((line) => line.includes("indexeddb-open-failed")));
+    assert.ok(diagnostics.some((line) => line.includes("library-read-failed")));
     const failedStages = await startupStages(page);
-    assert.ok(failedStages.includes("storage-read-failed"));
+    assert.ok(failedStages.includes("indexeddb-open-failed"));
+    assert.ok(failedStages.includes("library-read-failed"));
     assert.ok(failedStages.includes("startup-failed"));
     assert.ok(failedStages.includes("recovery-screen-activated"));
     await page.getByRole("button", { name: "Retry opening Fylogia" }).click();
@@ -336,7 +346,7 @@ try {
     );
     assert.ok(
       diagnostics.some((line) =>
-        line.includes("storage-transaction-create-failed"),
+        line.includes("indexeddb-write-failed"),
       ),
     );
     results.push({ scenario: "failed-write-fallback", result: "PASS" });

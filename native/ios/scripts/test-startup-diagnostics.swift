@@ -9,13 +9,24 @@ import Foundation
 
     let delayed = NativeStartupStageEvent(
       message: [
-        "stage": "storage-transaction-timeout", "elapsedMs": 5_420,
+        "stage": "indexeddb-write-timeout", "elapsedMs": 5_420,
         "operationElapsedMs": 5_000,
+        "errorName": "TimeoutError",
       ])
     precondition(delayed?.elapsedMilliseconds == 5_420, "total stage time must be retained")
     precondition(
       delayed?.operationElapsedMilliseconds == 5_000,
       "IndexedDB operation duration must be retained")
+    precondition(delayed?.errorName == "TimeoutError", "timeout kind must be retained")
+
+    let failedRead = NativeStartupStageEvent(
+      message: [
+        "stage": "indexeddb-read-failed", "elapsedMs": 2_500,
+        "operationElapsedMs": 2_500, "failureStage": "indexeddb-read",
+        "errorName": "SecurityError",
+      ])
+    precondition(failedRead?.failureStage == "indexeddb-read", "read stage must be retained")
+    precondition(failedRead?.errorName == "SecurityError", "safe error type must be retained")
 
     let failed = NativeStartupStageEvent(
       message: [

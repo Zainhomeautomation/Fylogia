@@ -35,11 +35,31 @@ import XCTest
 
     let delayed = NativeStartupStageEvent(
       message: [
-        "stage": "storage-transaction-timeout", "elapsedMs": 5_000,
+        "stage": "indexeddb-write-timeout", "elapsedMs": 5_000,
         "operationElapsedMs": 5_000,
+        "errorName": "TimeoutError",
       ])
     XCTAssertEqual(delayed?.elapsedMilliseconds, 5_000)
     XCTAssertEqual(delayed?.operationElapsedMilliseconds, 5_000)
+    XCTAssertEqual(delayed?.errorName, "TimeoutError")
+
+    let failedRead = NativeStartupStageEvent(
+      message: [
+        "stage": "indexeddb-read-failed", "elapsedMs": 2_500,
+        "operationElapsedMs": 2_500, "failureStage": "indexeddb-read",
+        "errorName": "SecurityError",
+      ])
+    XCTAssertEqual(failedRead?.stage, "indexeddb-read-failed")
+    XCTAssertEqual(failedRead?.failureStage, "indexeddb-read")
+    XCTAssertEqual(failedRead?.errorName, "SecurityError")
+
+    let stalledFeed = NativeStartupStageEvent(
+      message: [
+        "stage": "feed-readiness-timeout", "elapsedMs": 60_000,
+        "failureStage": "feed-preparation", "errorName": "TimeoutError",
+      ])
+    XCTAssertEqual(stalledFeed?.failureStage, "feed-preparation")
+    XCTAssertEqual(stalledFeed?.errorName, "TimeoutError")
 
     let failed = NativeStartupStageEvent(
       message: [
@@ -52,6 +72,9 @@ import XCTest
     XCTAssertNil(NativeStartupStageEvent(message: ["stage": "startup-failed", "elapsedMs": -1]))
     XCTAssertNil(
       NativeStartupStageEvent(message: ["stage": "startup-failed", "elapsedMs": 600_001]))
+    XCTAssertNil(
+      NativeStartupStageEvent(
+        message: ["stage": "indexeddb-read-failed", "elapsedMs": 4, "errorName": "PrivateMessage"]))
   }
   func testWidgetDeepLinkValidatesAndEncodesStoryRoute() {
     let url = URL(string: "fylogia://story?id=story-123")!

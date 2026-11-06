@@ -45,6 +45,52 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     let config = WKWebViewConfiguration()
     config.userContentController.add(WeakScriptHandler(self), name: "fylogia")
     let testing = ProcessInfo.processInfo.arguments.contains("--parity-testing")
+    if ProcessInfo.processInfo.arguments.contains("--startup-diagnostics") {
+      let source = #"""
+        (function(){
+          const events = [];
+          const update = () => {
+            let probe = document.getElementById("fylogia-startup-diagnostics");
+            if (!probe && document.body) {
+              probe = document.createElement("div");
+              probe.id = "fylogia-startup-diagnostics";
+              probe.setAttribute("role", "status");
+              probe.setAttribute("aria-label", "Fylogia startup diagnostics");
+              probe.style.cssText = "position:fixed;left:0;bottom:0;width:2px;height:2px;overflow:hidden;opacity:.02;z-index:2147483647";
+              document.body.appendChild(probe);
+            }
+            if (probe) {
+              probe.textContent = "Startup diagnostics: " + events.map(event => {
+                const parts = [event.stage, event.elapsedMs + "ms"];
+                if (Number.isFinite(event.operationElapsedMs)) parts.push("op=" + event.operationElapsedMs + "ms");
+                if (event.failureStage) parts.push("failure=" + event.failureStage);
+                if (event.errorName) parts.push("error=" + event.errorName);
+                return parts.join(" ");
+              }).join(" | ");
+            } else {
+              document.addEventListener("DOMContentLoaded", update, { once: true });
+            }
+          };
+          window.__fylogiaRecordStartupDiagnosticForTests = event => {
+            if (!event || typeof event.stage !== "string" || !Number.isFinite(event.elapsedMs)) return;
+            const safeEvent = {
+              stage: event.stage,
+              elapsedMs: Math.round(event.elapsedMs),
+              ...(Number.isFinite(event.operationElapsedMs) ? { operationElapsedMs: Math.round(event.operationElapsedMs) } : {}),
+              ...(typeof event.failureStage === "string" ? { failureStage: event.failureStage } : {}),
+              ...(typeof event.errorName === "string" ? { errorName: event.errorName } : {}),
+            };
+            const existing = events.findIndex(item => item.stage === safeEvent.stage);
+            if (existing < 0) events.push(safeEvent);
+            else if (safeEvent.failureStage || safeEvent.errorName) events[existing] = safeEvent;
+            if (events.length > 32) events.shift();
+            update();
+          };
+        })();
+        """#
+      config.userContentController.addUserScript(
+        WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+    }
     if testing {
       // Isolated test store; never resets or replaces the reviewer's real library.
       config.websiteDataStore = .nonPersistent()

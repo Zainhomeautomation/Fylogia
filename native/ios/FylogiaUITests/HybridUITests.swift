@@ -159,6 +159,64 @@ final class HybridUITests: XCTestCase {
       app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 10))
     XCTAssertFalse(app.otherElements["Native bound magazine"].exists)
   }
+  @MainActor func testLandscapeStartupDiagnosticsAndHorizontalFeedReadiness() {
+    XCUIDevice.shared.orientation = .landscapeLeft
+    let app = XCUIApplication()
+    app.launchArguments = ["--parity-testing", "--startup-diagnostics"]
+    app.launch()
+
+    guard app.webViews.firstMatch.waitForExistence(timeout: 30) else {
+      attachReadinessDiagnostics(app, stage: "startup-diagnostics-webview-unavailable")
+      XCTFail("Startup diagnostics: WKWebView did not attach within 30 seconds")
+      return
+    }
+
+    let markerPredicate = NSPredicate(
+      format: "label CONTAINS %@", "Startup diagnostics:")
+    let diagnostics = app.descendants(matching: .any).matching(markerPredicate).firstMatch
+    guard diagnostics.waitForExistence(timeout: 15) else {
+      attachReadinessDiagnostics(app, stage: "startup-diagnostics-probe-unavailable")
+      XCTFail("Startup diagnostics probe was not exposed to XCTest")
+      return
+    }
+
+    let terminalPredicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
+      NSPredicate(format: "label CONTAINS %@", "feed-render-ready"),
+      NSPredicate(format: "label CONTAINS %@", "recovery-screen-activated"),
+      NSPredicate(format: "label CONTAINS %@", "feed-readiness-timeout"),
+    ])
+    let terminal = XCTNSPredicateExpectation(predicate: terminalPredicate, object: diagnostics)
+    let terminalResult = XCTWaiter.wait(for: [terminal], timeout: 75)
+    let timeline = diagnostics.label
+    print("FYLOGIA_STARTUP_TIMELINE \(timeline)")
+    guard terminalResult == .completed else {
+      attachReadinessDiagnostics(app, stage: "startup-diagnostics-no-terminal-stage")
+      XCTFail("Startup diagnostics produced no ready/failure terminal marker. \(timeline)")
+      return
+    }
+    guard timeline.contains("feed-render-ready") else {
+      attachReadinessDiagnostics(app, stage: "startup-diagnostics-feed-not-ready")
+      XCTFail("Fylogia startup stopped before feed readiness. \(timeline)")
+      return
+    }
+
+    let initialSpread = app.staticTexts["Story 1–2 of 8"]
+    XCTAssertTrue(initialSpread.waitForExistence(timeout: 10))
+    XCTAssertFalse(app.otherElements["Native bound magazine"].exists)
+    let nextSpreadLead = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS %@", "The art of slowing down to read")
+    ).firstMatch
+    app.webViews.firstMatch.swipeLeft()
+    XCTAssertTrue(nextSpreadLead.waitForExistence(timeout: 8))
+    let firstSpreadLead = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS %@", "A new perspective on our changing world")
+    ).firstMatch
+    app.webViews.firstMatch.swipeRight()
+    XCTAssertTrue(firstSpreadLead.waitForExistence(timeout: 8))
+    XCTAssertTrue(timeline.contains("library-reconciliation-complete"))
+    XCTAssertTrue(timeline.contains("library-write-batch-complete"))
+    XCTAssertTrue(timeline.contains("feed-preparation-complete"))
+  }
   @MainActor func testOfflinePDFContinuousScrolling() throws {
     XCUIDevice.shared.orientation = .portrait
     let app = try launch(arguments: ["--parity-testing", "--offline-test"])
