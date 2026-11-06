@@ -1,6 +1,33 @@
 import XCTest
 
 final class ReaderUITests: XCTestCase {
+  @MainActor func testPageTurnControlsAreAccessible() {
+    let app = XCUIApplication()
+    app.launchArguments = ["--ui-testing", "--reset-test-state"]
+    app.launch()
+
+    let progress = app.staticTexts["pageProgress"]
+    XCTAssertTrue(progress.waitForExistence(timeout: 15))
+    let initialProgress = progress.label
+    let next = app.buttons["next"]
+    let previous = app.buttons["previous"]
+    XCTAssertTrue(next.waitForExistence(timeout: 5))
+    XCTAssertTrue(previous.waitForExistence(timeout: 5))
+    XCTAssertEqual(next.label, "Next page")
+    XCTAssertEqual(previous.label, "Previous page")
+    XCTAssertTrue(next.isHittable)
+
+    next.tap()
+    let advanced = XCTNSPredicateExpectation(
+      predicate: NSPredicate(format: "label != %@", initialProgress), object: progress)
+    XCTAssertEqual(XCTWaiter.wait(for: [advanced], timeout: 8), .completed)
+    XCTAssertTrue(previous.isHittable)
+    previous.tap()
+    let restored = XCTNSPredicateExpectation(
+      predicate: NSPredicate(format: "label == %@", initialProgress), object: progress)
+    XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 8), .completed)
+  }
+
   @MainActor func testTurnSaveResizeAndRestore() {
     let app = XCUIApplication()
     app.launchArguments = ["--ui-testing", "--reset-test-state"]

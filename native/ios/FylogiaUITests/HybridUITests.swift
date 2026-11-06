@@ -62,6 +62,18 @@ final class HybridUITests: XCTestCase {
     return app
   }
   @MainActor private func navigate(_ name: String, app: XCUIApplication) {
+    let sidebar = app.otherElements.matching(
+      NSPredicate(format: "label BEGINSWITH %@", "Main navigation")
+    ).firstMatch
+    let sidebarRoute = sidebar.buttons[name].firstMatch
+
+    // Wide iPad layouts keep the route list visible. Compact iPhone layouts
+    // expose the same routes after opening the navigation menu.
+    if sidebar.exists && sidebarRoute.exists && sidebarRoute.isHittable {
+      sidebarRoute.tap()
+      return
+    }
+
     let open = app.buttons["Open navigation"]
     let close = app.buttons["Close navigation"]
     if !close.exists || !close.isHittable {
@@ -72,12 +84,10 @@ final class HybridUITests: XCTestCase {
         predicate: NSPredicate(format: "exists == true AND hittable == true"), object: close)
       XCTAssertEqual(XCTWaiter.wait(for: [drawerOpened], timeout: 5), .completed)
     }
-    let drawer = app.otherElements.matching(
-      NSPredicate(format: "label BEGINSWITH %@", "Main navigation")
-    ).firstMatch
-    XCTAssertTrue(drawer.waitForExistence(timeout: 5), "Main navigation drawer is missing")
-    let button = drawer.buttons[name].firstMatch
+    XCTAssertTrue(sidebar.waitForExistence(timeout: 5), "Main navigation is missing")
+    let button = sidebar.buttons[name].firstMatch
     XCTAssertTrue(button.waitForExistence(timeout: 5))
+    XCTAssertTrue(button.isHittable, "Navigation route \(name) must be reachable")
     button.tap()
   }
   @MainActor private func capture(_ name: String, app: XCUIApplication) {
@@ -275,6 +285,7 @@ final class HybridUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["Appearance"].waitForExistence(timeout: 5))
     let light = app.switches.matching(NSPredicate(format: "label == %@", "Light")).firstMatch
     XCTAssertTrue(light.waitForExistence(timeout: 5))
+    XCTAssertTrue(light.isHittable, "Settings Appearance choice must be reachable")
     light.tap()
     XCTAssertTrue(light.exists)
     app.switches.matching(NSPredicate(format: "label == %@", "Editorial Green")).firstMatch.tap()
@@ -287,17 +298,6 @@ final class HybridUITests: XCTestCase {
     XCTAssertTrue(
       app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Science ")).firstMatch
         .waitForExistence(timeout: 5))
-    if app.keyboards.firstMatch.exists {
-      app.buttons["Open navigation"].tap()
-      let closeNavigation = app.buttons["Close navigation"]
-      let drawerOpened = XCTNSPredicateExpectation(
-        predicate: NSPredicate(format: "exists == true AND hittable == true"),
-        object: closeNavigation)
-      XCTAssertEqual(XCTWaiter.wait(for: [drawerOpened], timeout: 5), .completed)
-      let keyboardDismissed = XCTNSPredicateExpectation(
-        predicate: NSPredicate(format: "exists == false"), object: app.keyboards.firstMatch)
-      XCTAssertEqual(XCTWaiter.wait(for: [keyboardDismissed], timeout: 5), .completed)
-    }
     navigate("My Sources", app: app)
     XCTAssertTrue(
       app.textFields.firstMatch.waitForExistence(timeout: 5) || app.searchFields.firstMatch.exists)
@@ -311,5 +311,19 @@ final class HybridUITests: XCTestCase {
     capture("native-landscape", app: app)
     XCTAssertTrue(app.buttons["Fylogia — Go to homepage"].firstMatch.exists)
     XCUIDevice.shared.orientation = .portrait
+
+    let story = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS %@", "A new perspective on our changing world")
+    ).firstMatch
+    XCTAssertTrue(story.waitForExistence(timeout: 8), "The feed story must be accessible")
+    story.tap()
+    let article = app.staticTexts.matching(
+      NSPredicate(format: "label BEGINSWITH %@", "Scroll reading")
+    ).firstMatch
+    XCTAssertTrue(article.waitForExistence(timeout: 8), "The article reading mode must be exposed")
+    let back = app.buttons["Back to previous section"]
+    XCTAssertTrue(back.waitForExistence(timeout: 5))
+    XCTAssertTrue(back.isHittable, "Article navigation must expose a reachable return control")
   }
+
 }
