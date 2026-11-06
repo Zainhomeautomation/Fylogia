@@ -14,58 +14,63 @@ try {
   const page = await context.newPage();
   await page.goto(process.env.FYLOGIA_TEST_URL || "http://127.0.0.1:4174");
   await page.getByRole("region", { name: "Scrolling news feed" }).waitFor();
-
+  const preserved = await page.evaluate(() => ({
+    preferences: localStorage.getItem("folio.v1.preferences"),
+    nativeMode: localStorage.getItem("fylogia.native.readingMode"),
+  }));
   await page.setViewportSize({ width: 1210, height: 782 });
-  await page.locator('.news-feed-surface[data-paper-spread="2"]').waitFor();
+  await page
+    .locator(".native-horizontal-feed .native-scroll-spread")
+    .first()
+    .waitFor();
+  if (
+    (await page
+      .locator(".native-horizontal-feed .native-scroll-spread")
+      .first()
+      .locator("[data-story-id]")
+      .count()) !== 2
+  )
+    throw Error("Landscape must retain two facing stories");
+  if (
+    (await page.evaluate(
+      () => document.documentElement.dataset.nativeReadingMode,
+    )) !== "scroll"
+  )
+    throw Error("Native reading mode must disable page curls");
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page
     .getByRole("button", { name: "Settings", exact: true })
     .first()
     .click();
-  const scrolling = page.getByRole("checkbox", {
-    name: "Prefer vertical scrolling in wide layouts",
-  });
-  await scrolling.waitFor();
-  await scrolling.check();
-  if (
-    (await page.evaluate(() =>
-      localStorage.getItem("fylogia.native.readingMode"),
-    )) !== "scroll"
-  )
-    throw Error("Scrolling preference was not saved");
-
-  await page.goto(process.env.FYLOGIA_TEST_URL || "http://127.0.0.1:4174");
-  await page.getByRole("region", { name: /Scrolling news feed/ }).waitFor();
-  await page.locator(".news-feed-surface[data-paper-spread='2']").waitFor({
-    state: "detached",
-  });
-  await page.locator(".native-story-list .story-open").first().click();
+  await page
+    .getByText(
+      "In wide layouts, browse two facing stories with horizontal scrolling.",
+    )
+    .waitFor();
+  await page
+    .getByRole("button", { name: /For You/ })
+    .first()
+    .click();
+  await page
+    .locator(".native-horizontal-feed .native-scroll-spread")
+    .first()
+    .waitFor();
+  await page.locator(".native-horizontal-feed .story-open").first().click();
   await page.locator('.reader-viewport.scrolling[data-spread="1"]').waitFor();
-  const content = page.locator(".reader-content");
-  if (
-    (await content.evaluate(
-      (element) => getComputedStyle(element).columnCount,
-    )) !== "1"
-  )
-    throw Error(
-      "Wide article must remain a single vertical column when scrolling is selected",
-    );
   await page.setViewportSize({ width: 834, height: 1158 });
   await page.locator(".reader-viewport.scrolling").waitFor();
   await page.setViewportSize({ width: 1210, height: 782 });
   await page.locator(".reader-viewport.scrolling").waitFor();
-  await page.goto(process.env.FYLOGIA_TEST_URL || "http://127.0.0.1:4174");
-  await page.getByRole("region", { name: /Scrolling news feed/ }).waitFor();
-  await page.setViewportSize({ width: 1210, height: 782 });
-  await page.locator(".native-story-list").waitFor();
-  if (
-    (await page.evaluate(() =>
-      localStorage.getItem("fylogia.native.readingMode"),
-    )) !== "scroll"
-  )
-    throw Error("Reading preference did not survive app restart");
+  const after = await page.evaluate(() => ({
+    preferences: localStorage.getItem("folio.v1.preferences"),
+    nativeMode: localStorage.getItem("fylogia.native.readingMode"),
+  }));
+  if (JSON.stringify(after) !== JSON.stringify(preserved))
+    throw Error(
+      "Switching to stable scrolling changed stored reader preferences",
+    );
   console.log(
-    "PASS default landscape curling, Settings scrolling override, feed/article consistency, rotation and persisted preference",
+    "PASS portrait vertical feed, landscape two-story horizontal scrolling, scroll-only article rotation and unchanged stored preferences",
   );
 } finally {
   await browser.close();

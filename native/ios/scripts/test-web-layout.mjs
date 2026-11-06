@@ -21,28 +21,34 @@ for (const [width, height, scale, expected] of [
     readFileSync(resolve(ios, "web/parity-fixture.js"), "utf8"),
   );
   await p.goto(process.env.FYLOGIA_TEST_URL || "http://127.0.0.1:4174");
-  await p.locator(".news-feed-surface, .native-story-list").waitFor();
+  await p.locator(".native-horizontal-feed, .native-scroll-feed").waitFor();
   await p.evaluate((s) => {
     document.documentElement.dataset.nativeTextScale = s;
     dispatchEvent(new Event("resize"));
   }, String(scale));
   await p.waitForTimeout(250);
   const result = await p
-    .locator(".news-feed-surface, .native-story-list")
-    .evaluate((e) => ({
-      spread: +(e.dataset.paperSpread || 0),
-      width: e.clientWidth,
-      headlines: [
-        ...e.querySelectorAll(
-          ":scope > .feed-spread h2, :scope > .feed-sheet h2",
-        ),
-      ].map((h) => ({
-        width: h.clientWidth,
-        scrollWidth: h.scrollWidth,
-        height: h.clientHeight,
-        scrollHeight: h.scrollHeight,
-      })),
-    }));
+    .locator(".native-horizontal-feed, .native-scroll-feed")
+    .evaluate((section) => {
+      const e = section.querySelector(
+        ".native-spread-strip, .native-story-list",
+      );
+      const wide = section.classList.contains("native-horizontal-feed");
+      return {
+        spread: wide ? 2 : 0,
+        width: e.clientWidth,
+        headlines: [
+          ...section.querySelectorAll(
+            wide ? ".native-scroll-spread h2" : ".native-story-list h2",
+          ),
+        ].map((h) => ({
+          width: h.clientWidth,
+          scrollWidth: h.scrollWidth,
+          height: h.clientHeight,
+          scrollHeight: h.scrollHeight,
+        })),
+      };
+    });
   if (
     result.spread !== expected ||
     result.headlines.some(
@@ -51,7 +57,7 @@ for (const [width, height, scale, expected] of [
   )
     throw Error(JSON.stringify({ width, scale, result }));
   const book = await p
-    .locator(".news-feed-surface, .native-story-list")
+    .locator(".native-horizontal-feed, .native-scroll-feed")
     .boundingBox();
   if (book.y > 140) throw Error("Magazine is pushed below stacked controls");
   await p

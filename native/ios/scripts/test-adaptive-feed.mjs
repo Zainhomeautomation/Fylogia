@@ -22,7 +22,7 @@ try {
   await page.mouse.move(420, 420);
   await page.mouse.wheel(0, 1100);
   await page.waitForTimeout(300);
-  const id = await page
+  let id = await page
     .locator(".native-story-list")
     .getAttribute("data-native-anchor");
   if (!id || id === (await cards.nth(0).getAttribute("data-story-id")))
@@ -36,22 +36,52 @@ try {
     await page.evaluate(() => window.scrollY),
   );
   await page.setViewportSize({ width: 1210, height: 782 });
-  await page.locator('.news-feed-surface[data-paper-spread="2"]').waitFor();
+  await page.locator(".native-horizontal-feed .native-spread-strip").waitFor();
   await page.waitForTimeout(350);
-  const visible = page.locator(
-    ".news-feed-surface > .feed-spread [data-story-id]",
+  const strip = page.locator(".native-spread-strip");
+  const activeSpreadIndex = await strip.evaluate((e) =>
+    Math.round(e.scrollLeft / e.clientWidth),
   );
-  const restoredIds = await visible.evaluateAll((es) =>
-    es.map((e) => e.dataset.storyId),
-  );
+  const visible = strip.locator(".native-scroll-spread").nth(activeSpreadIndex);
+  const restoredIds = await visible
+    .locator("[data-story-id]")
+    .evaluateAll((es) => es.map((e) => e.dataset.storyId));
   console.log(
     "Wide anchor after resize",
-    await page.locator(".news-feed-surface").getAttribute("data-native-anchor"),
+    await strip.getAttribute("data-native-anchor"),
   );
   if (!restoredIds.includes(id))
     throw Error(
       `Rotation lost story anchor ${id}; visible=${restoredIds.join(",")}; viewport=${await page.evaluate(() => `${innerWidth}x${innerHeight}`)}`,
     );
+  if ((await visible.locator("[data-story-id]").count()) !== 2)
+    throw Error(
+      "Wide landscape must retain two facing stories per horizontal spread",
+    );
+  const priorLabel = await page
+    .locator(".native-horizontal-feed .feed-pagination")
+    .textContent();
+  const priorLeft = await strip.evaluate((e) => e.scrollLeft);
+  await strip.evaluate((e) =>
+    e.scrollTo({ left: e.scrollLeft + e.clientWidth, behavior: "instant" }),
+  );
+  await page.waitForFunction(
+    (old) =>
+      document.querySelector(".native-horizontal-feed .feed-pagination")
+        ?.textContent !== old,
+    priorLabel,
+  );
+  if ((await strip.evaluate((e) => e.scrollLeft)) <= priorLeft)
+    throw Error("Horizontal scrolling did not reveal the next facing spread");
+  id = await strip.getAttribute("data-native-anchor");
+  if (!id)
+    throw Error("Horizontal spread navigation did not preserve a story anchor");
+  if (
+    await page
+      .locator(".news-feed-surface, .nativeGoldenCurl, .paper-fold.turn-leaf")
+      .count()
+  )
+    throw Error("Landscape scroll mode must not mount a curl surface");
   await page.setViewportSize({ width: 834, height: 1158 });
   await page.getByRole("region", { name: "Scrolling news feed" }).waitFor();
   await page.waitForTimeout(350);
@@ -74,12 +104,17 @@ try {
     await page.waitForTimeout(350);
     const wide = width >= 680 && width >= height * 0.9;
     if (wide)
-      await page.locator('.news-feed-surface[data-paper-spread="2"]').waitFor();
+      await page
+        .locator(".native-horizontal-feed .native-scroll-spread")
+        .first()
+        .waitFor();
     else
       await page.getByRole("region", { name: "Scrolling news feed" }).waitFor();
     const clipped = await page
       .locator(
-        wide ? ".news-feed-surface > .feed-spread h2" : ".native-story-list h2",
+        wide
+          ? ".native-horizontal-feed .feed-sheet h2"
+          : ".native-story-list h2",
       )
       .evaluateAll((es) =>
         es.some(
@@ -96,7 +131,7 @@ try {
       "PASS",
       name,
       `${width}x${height}`,
-      wide ? "facing pages" : "vertical feed",
+      wide ? "two facing stories with horizontal scrolling" : "vertical feed",
     );
   }
   if (

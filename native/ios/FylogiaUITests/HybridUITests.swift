@@ -128,85 +128,36 @@ final class HybridUITests: XCTestCase {
     }
     return nil
   }
-  @MainActor func testAdaptiveFeedAndBoundDrag() throws {
+  @MainActor func testLandscapeFeedUsesHorizontalScrollingWithoutCurl() throws {
     XCUIDevice.shared.orientation = .landscapeLeft
     let app = try launch()
     let progress = app.staticTexts["Story 1–2 of 8"]
-    XCTAssertTrue(progress.waitForExistence(timeout: 10))
-    sleep(3)
-    let controls = app.buttons["Edition controls"]
-    XCTAssertTrue(controls.exists)
-    controls.tap()
-    XCTAssertTrue(app.buttons["Resume reading"].waitForExistence(timeout: 8))
-    app.buttons["Resume reading"].tap()
-    sleep(2)
-    capture("bound-portrait-before", app: app)
-    let group = app.descendants(matching: .any)[
-      "News pages. Swipe horizontally or use the page buttons."
-    ].firstMatch
-    XCTAssertTrue(group.exists)
-    print("BOUND group frame \(group.frame)")
-    XCTAssertLessThan(group.frame.minY, 150)
-    XCTAssertLessThanOrEqual(group.frame.maxY, app.frame.maxY - 10)
-    let nativeBook = app.otherElements["Native bound magazine"]
-    XCTAssertTrue(
-      nativeBook.waitForExistence(timeout: 8), "Must exercise native UIKit, not web fallback")
-    XCTAssertEqual(nativeBook.value as? String, "spread=2;spine=mid")
-    app.buttons["Open navigation"].tap()
-    let closeNavigation = app.buttons["Close navigation"]
-    let overlayReady = XCTNSPredicateExpectation(
-      predicate: NSPredicate(format: "exists == true AND hittable == true"),
-      object: closeNavigation)
-    XCTAssertEqual(
-      XCTWaiter.wait(for: [overlayReady], timeout: 8), .completed,
-      "Overlay navigation must remain reachable above the dimmed native pages")
-    closeNavigation.tap()
-    let bookRestored = XCTNSPredicateExpectation(
-      predicate: NSPredicate(format: "exists == true AND hittable == true"), object: nativeBook)
-    XCTAssertEqual(
-      XCTWaiter.wait(for: [bookRestored], timeout: 8), .completed,
-      "Closing navigation must restore the interactive native magazine")
+    XCTAssertTrue(progress.waitForExistence(timeout: 12))
+    capture("landscape-horizontal-spread-before", app: app)
+    XCTAssertFalse(app.otherElements["Native bound magazine"].exists)
+    XCTAssertTrue(app.buttons["Edition controls"].exists)
 
-    let right = group.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.65))
-    let left = group.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.65))
-    let partial = group.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.65))
-    right.press(
-      forDuration: 0.1, thenDragTo: partial, withVelocity: .slow, thenHoldForDuration: 0.2)
-    sleep(2)
-    XCTAssertTrue(progress.exists, "Short drag must cancel without advancing")
-    right.press(forDuration: 0.15, thenDragTo: left, withVelocity: .slow, thenHoldForDuration: 0.2)
-    XCTAssertTrue(app.staticTexts["Story 3–4 of 8"].waitForExistence(timeout: 8))
-    sleep(2)
-    capture("bound-portrait-after", app: app)
-    left.press(forDuration: 0.1, thenDragTo: right, withVelocity: .fast, thenHoldForDuration: 0)
-    XCTAssertTrue(progress.waitForExistence(timeout: 8))
-    sleep(2)
-    let outside = app.coordinate(withNormalizedOffset: .zero).withOffset(
-      CGVector(dx: 2, dy: group.frame.minY + group.frame.height * 0.65))
-    right.press(
-      forDuration: 0.1, thenDragTo: outside, withVelocity: .slow, thenHoldForDuration: 0.3)
-    sleep(2)
-    // This drag crosses the entire book before leaving it. UIKit may settle at
-    // its completion threshold: exactly one spread must advance, never two.
-    let settled = app.staticTexts["Story 3–4 of 8"]
-    XCTAssertTrue(settled.exists, "Full-width over-drag must settle exactly one spread")
-    capture("bound-extreme-drag-settled", app: app)
-    XCUIDevice.shared.orientation = .portrait
-    sleep(3)
-    XCTAssertTrue(
-      app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 8))
-    XCTAssertFalse(nativeBook.exists)
-    let portraitPosition = app.otherElements.matching(
-      NSPredicate(format: "label CONTAINS %@", "Scrolling news feed. Story")
+    let nextSpreadLead = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS %@", "The art of slowing down to read")
     ).firstMatch
-    XCTAssertTrue(portraitPosition.waitForExistence(timeout: 5))
-    XCTAssertTrue(portraitPosition.label.contains("Scrolling news feed. Story 3 of 8"))
-    capture("scrolling-portrait", app: app)
-    XCUIDevice.shared.orientation = .landscapeLeft
-    sleep(3)
-    XCTAssertTrue(settled.exists)
-    capture("bound-landscape", app: app)
+    app.webViews.firstMatch.swipeLeft()
+    XCTAssertTrue(
+      nextSpreadLead.waitForExistence(timeout: 8),
+      "A horizontal scroll must reveal the next two-story spread")
+    capture("landscape-horizontal-spread-after", app: app)
+
+    let firstSpreadLead = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS %@", "A new perspective on our changing world")
+    ).firstMatch
+    app.webViews.firstMatch.swipeRight()
+    XCTAssertTrue(
+      firstSpreadLead.waitForExistence(timeout: 8),
+      "Reverse scrolling must restore the first spread")
+
     XCUIDevice.shared.orientation = .portrait
+    XCTAssertTrue(
+      app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 10))
+    XCTAssertFalse(app.otherElements["Native bound magazine"].exists)
   }
   @MainActor func testOfflinePDFContinuousScrolling() throws {
     XCUIDevice.shared.orientation = .portrait
@@ -257,16 +208,11 @@ final class HybridUITests: XCTestCase {
       if pass == 0 { capture("consistent-portrait-article", app: app) }
       app.webViews.firstMatch.swipeUp()
       XCUIDevice.shared.orientation = .landscapeLeft
-      let spread = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Spread "))
-        .firstMatch
-      XCTAssertTrue(spread.waitForExistence(timeout: 10))
-      let bound = app.otherElements["Native bound magazine"]
-      XCTAssertTrue(bound.waitForExistence(timeout: 8))
-      XCTAssertEqual(bound.value as? String, "spread=2;spine=mid")
+      XCTAssertTrue(scrolling.waitForExistence(timeout: 10))
+      XCTAssertFalse(app.otherElements["Native bound magazine"].exists)
       if pass == 0 { capture("consistent-landscape-article", app: app) }
       XCUIDevice.shared.orientation = .portrait
       XCTAssertTrue(scrolling.waitForExistence(timeout: 10))
-      XCTAssertFalse(bound.exists)
       if pass == 0 {
         XCUIDevice.shared.press(.home)
         app.activate()

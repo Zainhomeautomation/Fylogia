@@ -12,11 +12,10 @@
   const paper = () =>
     (document.documentElement.dataset.nativePaper =
       localStorage.getItem("fylogia.native.paper") || "cream");
+  // Keep the existing preference value intact, but use the validated native
+  // scroll-only reader until curl animation receives visual acceptance.
   const nativeReadingMode = () =>
-    (document.documentElement.dataset.nativeReadingMode =
-      localStorage.getItem("fylogia.native.readingMode") === "scroll"
-        ? "scroll"
-        : "adaptive");
+    (document.documentElement.dataset.nativeReadingMode = "scroll");
   const nativeViewport = () =>
     document.documentElement.style.setProperty(
       "--fylogia-native-viewport-height",
@@ -133,22 +132,10 @@
     const readingHeading = document.createElement("h2");
     readingHeading.textContent = "Reading mode";
     readingMode.append(readingHeading);
-    const scrollingRow = document.createElement("label");
-    const scrolling = document.createElement("input");
-    scrolling.type = "checkbox";
-    scrolling.checked =
-      localStorage.getItem("fylogia.native.readingMode") === "scroll";
-    scrollingRow.append(
-      scrolling,
-      document.createTextNode(" Prefer vertical scrolling in wide layouts"),
-    );
-    scrolling.addEventListener("change", () => {
-      const mode = scrolling.checked ? "scroll" : "adaptive";
-      localStorage.setItem("fylogia.native.readingMode", mode);
-      document.documentElement.dataset.nativeReadingMode = mode;
-      dispatchEvent(new Event("resize"));
-    });
-    readingMode.append(scrollingRow);
+    const readingDescription = document.createElement("p");
+    readingDescription.textContent =
+      "Scroll vertically in portrait. In wide layouts, browse two facing stories with horizontal scrolling. Articles and PDFs use continuous scrolling.";
+    readingMode.append(readingDescription);
     settings.append(readingMode);
     const notifications = document.createElement("section");
     notifications.className = "native-notifications";

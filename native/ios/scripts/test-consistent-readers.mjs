@@ -49,10 +49,12 @@ try {
         path: resolve(screenshots, "portrait-article.png"),
       });
     await p.setViewportSize({ width: 1210, height: 782 });
-    await p.locator('.reader-viewport.paginated[data-spread="2"]').waitFor();
+    await p.locator('.reader-viewport.scrolling[data-spread="1"]').waitFor();
     await p.waitForTimeout(400);
     if ((await body.textContent()) !== text)
       throw Error("Article content changed on rotation");
+    if ((await body.evaluate((e) => getComputedStyle(e).columnCount)) !== "1")
+      throw Error("Landscape article must remain in continuous scroll mode");
     if (i === 0)
       await p.screenshot({
         path: resolve(screenshots, "landscape-article.png"),
@@ -130,9 +132,7 @@ try {
     .evaluate((e) => e.scrollIntoView({ block: "start" }));
   await p.waitForTimeout(500);
   await p.setViewportSize({ width: 1210, height: 782 });
-  await p
-    .locator('.pdf-spread:not(.native-pdf-flow)[data-spread="2"]')
-    .waitFor();
+  await p.locator(".pdf-spread.native-pdf-flow").waitFor();
   await p.waitForTimeout(400);
   if (!(await p.locator('canvas[aria-label="Magazine page 4"]').count()))
     throw Error("PDF page lost on rotation");
@@ -162,13 +162,11 @@ try {
   await p
     .getByRole("button", { name: "Back to previous section", exact: true })
     .click();
-  await p
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "Malformed native fixture.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.7 invalid fixture"),
-    });
+  await p.locator("input[type=file]").setInputFiles({
+    name: "Malformed native fixture.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.7 invalid fixture"),
+  });
   await p.getByRole("button", { name: /Malformed native fixture/ }).click();
   await p
     .getByRole("alert")
@@ -178,7 +176,7 @@ try {
     .getByRole("button", { name: "Back to previous section", exact: true })
     .click();
   results.push(
-    "PASS article scrolling/facing pages, unchanged text, repeated open/back, approximate progress, PDF continuous/lazy/offline pages and rotation",
+    "PASS scroll-only articles and PDFs, unchanged text, repeated open/back, approximate progress, lazy/offline pages and rotation",
   );
   writeFileSync(resolve(screenshots, "results.json"), JSON.stringify(results));
   console.log(results.join("\n"));

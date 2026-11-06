@@ -45,12 +45,12 @@ export function readingSpace(code, id) {
   return code;
 }
 
-/** Keep the same feed, story identities and library; adapt presentation only. */
+/** Keep the same feed, story identities and library; use scrolling at every size. */
 export function adaptiveFeed(code, id) {
   if (!id.endsWith("/src/NewsFeed.tsx")) return code;
   const replace = (from, to) => {
     if (!code.includes(from))
-      throw Error("Adaptive feed anchor missing: " + from);
+      throw new Error("Adaptive feed anchor missing: " + from);
     code = code.replace(from, to);
   };
   replace('import { magazineSpread } from "./magazine-layout";', "");
@@ -61,42 +61,33 @@ export function adaptiveFeed(code, id) {
   replace(
     "const [spread, setSpread] = useState(1);",
     `const [spread, setSpread] = useState(1);
-  const [flow, setFlow] = useState(() => document.documentElement.dataset.nativeReadingMode === "scroll" || window.innerWidth < 680 || window.innerWidth < window.innerHeight * 0.9);`,
+  const [flow, setFlow] = useState(true);`,
   );
   replace(
-    '  const [flow, setFlow] = useState(() => document.documentElement.dataset.nativeReadingMode === "scroll" || window.innerWidth < 680 || window.innerWidth < window.innerHeight * 0.9);',
-    `  const [flow, setFlow] = useState(() => document.documentElement.dataset.nativeReadingMode === "scroll" || window.innerWidth < 680 || window.innerWidth < window.innerHeight * 0.9);
+    "  const [flow, setFlow] = useState(true);",
+    `  const [flow, setFlow] = useState(true);
   const restoring = useRef(false);
   const awaitingScroll = useRef(false);`,
   );
   replace(
     "setSpread(magazineSpread(width, window.innerWidth, window.innerHeight));",
     `const scale = Math.max(1, Number(document.documentElement.dataset.nativeTextScale || 1));
-      const wide = document.documentElement.dataset.nativeReadingMode !== "scroll" && width >= 680 * scale && window.innerWidth >= window.innerHeight * 0.9;
-      const nextFlow = !wide;
-      if (!flow && nextFlow) {
-        // A rotation-induced scroll must not replace the story being restored.
-        awaitingScroll.current = true;
-        restoring.current = true;
-      }
-      if (flow && !nextFlow) awaitingScroll.current = false;
+      const wide = width >= 680 * scale && window.innerWidth >= window.innerHeight * 0.9;
       setSpread(wide ? 2 : 1);
-      setFlow(nextFlow);`,
+      setFlow(true);`,
   );
   replace(
     "}, []);",
-    `}, [flow]);
+    `}, []);
   useLayoutEffect(() => {
     const node = surface.current;
     if (!node) return;
-    // Story identity stays in React state across presentation changes. No library migration.
+    // Restore the same story after orientation or usable-width changes.
     restoring.current = true;
     let restoreTimer: ReturnType<typeof setTimeout> | undefined;
     const frame = requestAnimationFrame(() => {
-      if (flow) {
-        const target = [...node.querySelectorAll<HTMLElement>('[data-story-id]')].find(e => e.dataset.storyId === anchor);
-        if (target && anchor !== articles[0]?.id) target.scrollIntoView({block:'start', behavior:'instant'});
-      } else window.scrollTo({top:0, behavior:'instant'});
+      const target = [...node.querySelectorAll<HTMLElement>('[data-story-id]')].find(e => e.dataset.storyId === anchor);
+      if (target) target.scrollIntoView({block:'start', inline:'start', behavior:'instant'});
       if (!awaitingScroll.current)
         restoreTimer = setTimeout(() => { restoring.current = false; }, 180);
     });
@@ -106,15 +97,21 @@ export function adaptiveFeed(code, id) {
       restoring.current = false;
     };
     const remember = () => {
-      if (!flow || restoring.current || scrollFrame) return;
+      if (restoring.current || scrollFrame) return;
       scrollFrame = requestAnimationFrame(() => {
-      scrollFrame = 0;
-      const line = Math.min(140, window.innerHeight / 3);
-      const visible = [...node.querySelectorAll<HTMLElement>('[data-story-id]')]
-        .map(e => ({e, rect:e.getBoundingClientRect()}))
-        .filter(({rect}) => rect.bottom > line && rect.top < window.innerHeight)
-        .sort((a,b) => Math.abs(a.rect.top-line) - Math.abs(b.rect.top-line))[0]?.e;
-      if (visible?.dataset.storyId) setAnchor(visible.dataset.storyId);
+        scrollFrame = 0;
+        if (spread === 2 && node.clientWidth > 0) {
+          const spreadIndex = Math.max(0, Math.round(node.scrollLeft / node.clientWidth));
+          const story = articles[Math.min(articles.length - 1, spreadIndex * 2)];
+          if (story?.id) setAnchor(story.id);
+          return;
+        }
+        const line = Math.min(140, window.innerHeight / 3);
+        const visible = [...node.querySelectorAll<HTMLElement>('[data-story-id]')]
+          .map(e => ({e, rect:e.getBoundingClientRect()}))
+          .filter(({rect}) => rect.bottom > line && rect.top < window.innerHeight)
+          .sort((a,b) => Math.abs(a.rect.top-line) - Math.abs(b.rect.top-line))[0]?.e;
+        if (visible?.dataset.storyId) setAnchor(visible.dataset.storyId);
       });
     };
     window.addEventListener('scroll', remember, {passive:true});
@@ -125,12 +122,28 @@ export function adaptiveFeed(code, id) {
     window.addEventListener('pointerdown', allowScrollUpdates, {passive:true});
     window.addEventListener('wheel', allowScrollUpdates, {passive:true});
     return () => { cancelAnimationFrame(frame); cancelAnimationFrame(scrollFrame); if (restoreTimer) clearTimeout(restoreTimer); anchorObserver.disconnect(); window.removeEventListener('scroll', remember); document.removeEventListener('scroll', remember, true); window.removeEventListener('touchstart', allowScrollUpdates); window.removeEventListener('pointerdown', allowScrollUpdates); window.removeEventListener('wheel', allowScrollUpdates); };
-  }, [flow]);`,
+  }, [flow, spread]);`,
   );
   replace("    start,\n    true,", "    start,\n    !flow,");
   replace(
     "  return (\n    <section",
-    `  if (flow) return (
+    `  if (flow && spread === 2) return (
+    <section className="news-book native-horizontal-feed" aria-label={\`Horizontally scrolling news feed. Story \${index + 1} of \${articles.length}\`}>
+      <p className="feed-guidance">Stories — swipe horizontally to browse each facing spread</p>
+      <div ref={surface} className="native-spread-strip" data-native-anchor={anchor}>
+        {Array.from({ length: Math.ceil(articles.length / 2) }, (_, spreadIndex) => {
+          const at = spreadIndex * 2;
+          return <div className="feed-spread native-scroll-spread" key={spreadIndex}>
+            {articles.slice(at, at + 2).map(a => <div className="feed-sheet" key={a.id} data-story-id={a.id}
+              onClickCapture={() => setAnchor(a.id)}>{renderStory(a, true)}</div>)}
+            {at + 1 >= articles.length && <div className="feed-sheet feed-end"><p>You’re all caught up.</p></div>}
+          </div>;
+        })}
+      </div>
+      <div className="feed-pagination"><span aria-live="polite" aria-atomic="true">Story {Math.floor(index / 2) * 2 + 1}–{Math.min(articles.length, Math.floor(index / 2) * 2 + 2)} of {articles.length}</span></div>
+    </section>
+  );
+  if (flow) return (
     <section className="news-book native-scroll-feed" aria-label={\`Scrolling news feed. Story \${index + 1} of \${articles.length}\`}>
       <p className="feed-guidance">Stories — swipe vertically to browse</p>
       <div ref={surface} className="native-story-list" data-native-anchor={anchor}>
