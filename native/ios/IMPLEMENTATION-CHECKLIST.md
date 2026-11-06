@@ -253,6 +253,15 @@ Resource observations on the 8 GB Mac: before the final capture pass, memory was
 
 **Focused result:** Settings/navigation **PASS** after correcting the test's compact-versus-persistent navigation assumption; focused accessibility **PASS**; curl visual review **BLOCKED / INCONCLUSIVE** pending a transition recording that clearly captures extreme dragging. Full VoiceOver, remaining device matrix, measured runtime FPS, and physical-device behavior remain open; overall physical-device acceptance remains **NO-GO**.
 
+### iPad Pro 13-inch focused validation attempt (6 November 2026)
+
+- Targeted only the existing iPad Pro 13-inch (M5), UUID `F1E081C3-0EF2-45E8-92A1-96518A73DDED`, using the installed iOS 27.2 runtime. No simulator was created or erased. The existing compiled test products were available, but no Fylogia build/install/launch or XCTest was started because CoreSimulator reported `Data Migration Failed` at 7 seconds during the single boot attempt. The screenshot remained on the Apple logo. Stable Home Screen readiness was not reached.
+- **BLOCKED** adaptive feed, rotation, navigation, bookmarks, offline PDF and Settings tests: not run, because simulator data migration failed before app readiness. Page-curl transition capture/review was also not possible. This is a simulator infrastructure blocker, not an application test failure.
+- Evidence: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPadPro13-Validation-20261106/` (`boot-blocker.txt`, `screen-after-migration-failure.png`, `devices-after-boot.json`, and resource samples). The terminal boot report supplied no migration reason. The simulator was shut down gracefully; no simulators remain booted.
+- Resources before boot: 70% free memory, 4.53 GB swap used, 26 GB internal free. Immediately before shutdown: 41% free memory, 4.53 GB swap, 26 GB internal free. The 20 GB minimum was maintained; no critical-memory condition was observed.
+
+**iPad Pro 13 result:** boot/Home Screen **BLOCKED** at Data Migration Failed; app installation/startup **NOT RUN**; all requested app tests **BLOCKED / NOT RUN**. No application changes were made. Do not infer a Fylogia defect or mark Pro 13 acceptance passed. Overall simulator/physical-device gate remains **NO-GO**.
+
 ### Native startup OSLog diagnostics (5 November 2026)
 
 - Added privacy-filtered Apple OSLog startup events for app launch, HybridController/WebView creation, local server readiness, WebKit navigation/process lifecycle, JavaScript bootstrap, IndexedDB read and transaction stages, local-library readiness, app render, first frame, feed DOM readiness, and startup recovery activation. Elapsed time is logged relative to native process start and JavaScript bootstrap; IndexedDB operations also include their bounded operation duration. The WebKit API has no dedicated callback for content-process creation, so navigation start is recorded as the earliest native process-start proxy, followed by document commit/finish and explicit process termination callbacks.
