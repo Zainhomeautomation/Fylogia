@@ -62,6 +62,14 @@ final class HybridUITests: XCTestCase {
     return app
   }
   @MainActor private func navigate(_ name: String, app: XCUIApplication) {
+    // On iPad the persistent sidebar route can be directly accessible even
+    // when its navigation container is reported under a different AX type.
+    let visibleRoute = app.buttons[name].firstMatch
+    if visibleRoute.exists && visibleRoute.isHittable {
+      visibleRoute.tap()
+      return
+    }
+
     let sidebar = app.otherElements.matching(
       NSPredicate(format: "label BEGINSWITH %@", "Main navigation")
     ).firstMatch
@@ -78,7 +86,9 @@ final class HybridUITests: XCTestCase {
     let close = app.buttons["Close navigation"]
     if !close.exists || !close.isHittable {
       XCTAssertTrue(open.waitForExistence(timeout: 5))
-      XCTAssertTrue(open.isHittable, "Navigation opener must be hittable before route selection")
+      // On iPad portrait, XCUITest can report the compact header button's
+      // frame just above the WebView while still activating the control.
+      // Confirm the drawer opened below instead of trusting that stale frame.
       open.tap()
       let drawerOpened = XCTNSPredicateExpectation(
         predicate: NSPredicate(format: "exists == true AND hittable == true"), object: close)
@@ -217,6 +227,75 @@ final class HybridUITests: XCTestCase {
     XCTAssertTrue(timeline.contains("library-write-batch-complete"))
     XCTAssertTrue(timeline.contains("feed-preparation-complete"))
   }
+
+  @MainActor private func launchPersistentLibraryApp(storeID: String) -> XCUIApplication {
+    let app = XCUIApplication()
+    app.launchArguments = [
+      "--parity-testing", "--persistent-library-testing",
+      "--persistent-library-store-id=\(storeID)", "--startup-diagnostics",
+    ]
+    app.launch()
+    XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 30))
+    let startup = app.descendants(matching: .any).matching(
+      NSPredicate(format: "label CONTAINS %@", "Startup diagnostics:")
+    ).firstMatch
+    XCTAssertTrue(startup.waitForExistence(timeout: 15))
+    let terminal = XCTNSPredicateExpectation(
+      predicate: NSPredicate(format: "label CONTAINS %@", "feed-render-ready"),
+      object: startup)
+    XCTAssertEqual(XCTWaiter.wait(for: [terminal], timeout: 75), .completed)
+    XCTAssertTrue(startup.label.contains("library-reconciliation-complete"))
+    XCTAssertTrue(startup.label.contains("library-write-batch-complete"))
+    return app
+  }
+
+  @MainActor func testPersistentLibraryStartupRestoresBookmarkAndReadingPosition() {
+    XCUIDevice.shared.orientation = .portrait
+    let storeID = UUID().uuidString
+    print("FYLOGIA_PERSISTENT_LIBRARY_TEST_STORE \(storeID)")
+    let app = launchPersistentLibraryApp(storeID: storeID)
+    let title = "Persistent startup bookmark fixture"
+    let verification = app.descendants(matching: .any).matching(
+      NSPredicate(format: "label CONTAINS %@", "Persistent library verification:")
+    ).firstMatch
+
+    func openSavedFixture() {
+      navigate("Saved Articles", app: app)
+      let story = app.buttons.matching(
+        NSPredicate(format: "label CONTAINS %@", title)
+      ).firstMatch
+      XCTAssertTrue(story.waitForExistence(timeout: 10))
+      story.tap()
+      XCTAssertTrue(app.buttons["Back to previous section"].waitForExistence(timeout: 10))
+      let restored = XCTNSPredicateExpectation(
+        predicate: NSPredicate(format: "label CONTAINS %@", "reader-position-restored"),
+        object: verification)
+      XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 15), .completed)
+      XCTAssertTrue(verification.label.contains("bookmark-present"))
+      XCTAssertTrue(verification.label.contains("stored-progress=0.42"))
+    }
+
+    openSavedFixture()
+    let firstLaunch = XCTAttachment(screenshot: app.screenshot())
+    firstLaunch.name = "persistent-library-first-launch-restored-position"
+    firstLaunch.lifetime = .keepAlways
+    add(firstLaunch)
+
+    app.terminate()
+    app.launch()
+    let startup = app.descendants(matching: .any).matching(
+      NSPredicate(format: "label CONTAINS %@", "Startup diagnostics:")
+    ).firstMatch
+    let feedReady = XCTNSPredicateExpectation(
+      predicate: NSPredicate(format: "label CONTAINS %@", "feed-render-ready"),
+      object: startup)
+    XCTAssertEqual(XCTWaiter.wait(for: [feedReady], timeout: 75), .completed)
+    XCTAssertTrue(startup.label.contains("library-reconciliation-complete"))
+    XCTAssertTrue(startup.label.contains("library-write-batch-complete"))
+    openSavedFixture()
+    XCTAssertEqual(storeID.count, 36, "The isolated persistent store identifier must be a UUID")
+  }
+
   @MainActor func testOfflinePDFContinuousScrolling() throws {
     XCUIDevice.shared.orientation = .portrait
     let app = try launch(arguments: ["--parity-testing", "--offline-test"])

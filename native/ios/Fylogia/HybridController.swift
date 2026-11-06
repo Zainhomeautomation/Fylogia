@@ -44,7 +44,16 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
     view.backgroundColor = UIColor(red: 10 / 255, green: 16 / 255, blue: 24 / 255, alpha: 1)
     let config = WKWebViewConfiguration()
     config.userContentController.add(WeakScriptHandler(self), name: "fylogia")
-    let testing = ProcessInfo.processInfo.arguments.contains("--parity-testing")
+    let arguments = ProcessInfo.processInfo.arguments
+    let persistentLibraryTesting = arguments.contains("--persistent-library-testing")
+    let persistentStoreID = arguments.first(where: {
+      $0.hasPrefix("--persistent-library-store-id=")
+    }).flatMap { UUID(uuidString: String($0.dropFirst("--persistent-library-store-id=".count))) }
+    if persistentLibraryTesting && persistentStoreID == nil {
+      fail("Persistent library testing requires a valid isolated store identifier.")
+      return
+    }
+    let testing = arguments.contains("--parity-testing") || persistentLibraryTesting
     if ProcessInfo.processInfo.arguments.contains("--startup-diagnostics") {
       let source = #"""
         (function(){
@@ -92,13 +101,96 @@ final class HybridController: UIViewController, WKNavigationDelegate, WKUIDelega
         WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
     }
     if testing {
-      // Isolated test store; never resets or replaces the reviewer's real library.
-      config.websiteDataStore = .nonPersistent()
+      // The named store is isolated from the app's default library and persists
+      // across test relaunches. Other parity tests stay nonpersistent.
+      if let persistentStoreID {
+        config.websiteDataStore = WKWebsiteDataStore(forIdentifier: persistentStoreID)
+      } else {
+        config.websiteDataStore = .nonPersistent()
+      }
       if let url = Bundle.main.url(forResource: "parity-fixture", withExtension: "js"),
         let script = try? String(contentsOf: url, encoding: .utf8)
       {
         config.userContentController.addUserScript(
           WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+      }
+      if persistentLibraryTesting {
+        let source = #"""
+          (() => {
+            const prefix = "folio.v1.";
+            const article = {
+              id: "native-persistent-library-fixture",
+              sourceId: "nasa",
+              source: "Fylogia persistent-library fixture",
+              title: "Persistent startup bookmark fixture",
+              url: "https://fylogia.com/",
+              published: "2026-11-02T09:00:00Z",
+              categories: ["Science"],
+              region: "Worldwide",
+              excerpt: "An isolated fixture for persistent bookmark and reading-position validation.",
+              content: Array.from({ length: 64 }, (_, index) =>
+                "<p>Persistent reading checkpoint " + (index + 1) +
+                ". This isolated article verifies that Fylogia restores a saved story and its reading position after the application is relaunched.</p>"
+              ).join(""),
+              full: true,
+              contentOrigin: "publisher-feed",
+              offlineImagesAllowed: true
+            };
+            const savedKey = prefix + "saved";
+            const progressKey = prefix + "progress";
+            const firstLaunch = localStorage.getItem(savedKey) === null;
+            if (firstLaunch) {
+              const preferences = JSON.parse(localStorage.getItem(prefix + "preferences") || "{}");
+              preferences.reading = "scroll";
+              localStorage.setItem(prefix + "preferences", JSON.stringify(preferences));
+            }
+            if (localStorage.getItem(savedKey) === null)
+              localStorage.setItem(savedKey, JSON.stringify([article]));
+            const progress = JSON.parse(localStorage.getItem(progressKey) || "{}");
+            if (progress[article.id] === undefined) {
+              progress[article.id] = 0.42;
+              localStorage.setItem(progressKey, JSON.stringify(progress));
+            }
+            const update = () => {
+              if (!document.body) return;
+              let probe = document.getElementById("fylogia-persistent-library-test");
+              if (!probe) {
+                probe = document.createElement("div");
+                probe.id = "fylogia-persistent-library-test";
+                probe.setAttribute("role", "status");
+                probe.setAttribute("aria-label", "Persistent library verification");
+                probe.style.cssText = "position:fixed;left:0;bottom:4px;max-width:2px;max-height:2px;overflow:hidden;opacity:.02;z-index:2147483647";
+                document.body.appendChild(probe);
+              }
+              const storedSaved = JSON.parse(localStorage.getItem(savedKey) || "[]");
+              const storedProgress = JSON.parse(localStorage.getItem(progressKey) || "{}");
+              const isSaved = storedSaved.some(item => item.id === article.id);
+              const ratio = storedProgress[article.id];
+              let state = "bookmark-" + (isSaved ? "present" : "missing") +
+                "; stored-progress=" + (Number.isFinite(ratio) ? ratio.toFixed(2) : "missing");
+              const viewport = document.querySelector(".reader-viewport.scrolling");
+              if (viewport && Number.isFinite(ratio)) {
+                const maximum = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
+                const current = maximum ? viewport.scrollTop / maximum : 0;
+                state += "; reader-position-" + (maximum > 0 && Math.abs(current - ratio) < 0.08 ? "restored" : "pending");
+              }
+              if (probe.textContent !== "Persistent library verification: " + state)
+                probe.textContent = "Persistent library verification: " + state;
+            };
+            if (document.readyState === "loading")
+              document.addEventListener("DOMContentLoaded", update, { once: true });
+            else update();
+            const observer = new MutationObserver(update);
+            const observe = () => { if (document.body) observer.observe(document.body, { childList: true, subtree: true }); };
+            if (document.body) observe();
+            else document.addEventListener("DOMContentLoaded", observe, { once: true });
+            document.addEventListener("scroll", update, true);
+            const timer = setInterval(update, 250);
+            window.addEventListener("pagehide", () => { clearInterval(timer); observer.disconnect(); }, { once: true });
+          })();
+          """#
+        config.userContentController.addUserScript(
+          WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
       }
     }
     registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
