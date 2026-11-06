@@ -1,13 +1,13 @@
 # Fylogia Development Status
 
-Last refreshed: 5 November 2026 (Asia/Muscat). This shared status points to the separate Web and Native SSD checkouts; they remain separate Git repositories and are not merged.
+Last refreshed: 6 November 2026 (Asia/Muscat). This shared status points to the separate Web and Native SSD checkouts; they remain separate Git repositories and are not merged.
 
 ## Workspace map
 
 | Area | SSD checkout | Development branch | Latest source checkpoint | State |
 | --- | --- | --- | --- | --- |
 | Website | `/Volumes/Developments/Projects/Fylogia/Web` | `web-maintenance-after-golden-v1` | `ef6eb2695d1535efc3ecfd02f1b7f2e43b5e01f3` | Accessible, clean; remote branch matches. Website production remains on its separate `main` deployment path. |
-| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` | `7db2644` (source; unchanged) | Accessible; Fresh iPad Pro 11 boot, direct launch/feed and focused adaptive XCTest passed on 5 November. Startup-stage OSLog markers and Pro 11 data-container byte-level preservation remain unverified; Pro 13/full matrix remain open. Latest validation details are below and in the Native checklist. Native changes are not deployed to the website. |
+| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` | `7db2644` (app source; unchanged) | Accessible; Pro 11 focused Settings/accessibility tests passed 6 November. One authorized clean-clone Pro 13 experiment booted and installed Fylogia, but feed readiness timed out before adaptive gestures; original Pro 13 profile remains preserved. Pro 13 and full matrix remain open. Native changes are not deployed to the website. |
 
 The Codex sidebar already has a **Fylogia — Developments SSD** section containing separate local **Web** and **Native** projects, each linked to the path above. Registered project IDs and section IDs are in `/Volumes/Developments/Workspace-Configuration/projects.json`.
 
@@ -140,3 +140,11 @@ The navigation UI test now handles both compact collapsible navigation and the i
 #### iPad Pro 13-inch focused validation attempt (6 November 2026)
 
 The single boot attempt on the existing iPad Pro 13 UUID `F1E081C3-0EF2-45E8-92A1-96518A73DDED` ended with CoreSimulator `Data Migration Failed` after 7 seconds. A screenshot remained on the Apple logo; the Home Screen and Fylogia readiness were not reached. App install/launch and adaptive feed, rotation, navigation, bookmarks, offline PDF and Settings tests are **BLOCKED / NOT RUN**. No test suite or app defect was implicated. The device was gracefully shut down without erase; no other simulator is booted. Memory before boot: 70% free, 4.53 GB swap; before shutdown: 41% free, 4.53 GB swap; internal free space stayed 26 GB. Evidence is saved under `/Volumes/Developments/Xcode/TestResults/Fylogia-iPadPro13-Validation-20261106/`. Overall simulator/physical-device acceptance remains **NO-GO**.
+
+#### iPad Pro 13-inch authorized clean-clone experiment (6 November 2026)
+
+Cloned the existing Pro 13 profile once. New disposable clone UUID `BCD99352-0264-4E32-9993-8DE7EA1D9C3F` was verified before erasing; only that clone was erased. The original `F1E081C3-0EF2-45E8-92A1-96518A73DDED` remains registered, shut down, and its name, device type, data path and log path match the pre-experiment record. The clone completed iOS 27.2 first-boot migration and reached a visible Home Screen. Existing SSD build installation succeeded in 25.3 seconds; `simctl launch` returned Fylogia PID 4811. A direct screenshot after 25 seconds showed a blank app surface. WebKit content/GPU processes initialized and the IndexedDB container was opened, but the feed was not visibly ready.
+
+One serial `test-without-building` run of `HybridUITests.testAdaptiveFeedAndBoundDrag` started and failed after 140.146 seconds at the startup readiness gate: `Fylogia feed content did not become accessible within 60 seconds.` It did not reach the adaptive curl/gesture assertions. **Result: FAIL for feed readiness on the clean clone; curl test NOT REACHED.** This does not establish whether the cause is Fylogia, WebKit, or simulator runtime behavior. No retry or app-source change was made. Result bundle and run log: `/Volumes/Developments/Xcode/TestResults/Fylogia-iPadPro13-CleanClone-20261106/AdaptiveCurl.xcresult` and `adaptive-xcodebuild.log`; boot, install, launch logs, screenshots, resource samples and simulator inventory are in the same folder. XCTest attachment export reported no matching attachments; the direct app screenshot and post-test Home Screen capture are retained.
+
+Internal free space was 26 GB before cloning, reached a low sampled 20.315 GB during the XCTest, and recovered to 23 GB after shutdown. Memory was 68% free / 4.49 GB swap before cloning, 26–31% free and up to 8.37 GB swap during XCTest, and 68% free / 4.87 GB swap after shutdown. The 20 GB floor remained above its decimal threshold. The clone was shut down and remains registered; no simulator remains booted. Overall Pro 13 acceptance and physical-device readiness remain **NO-GO**.
