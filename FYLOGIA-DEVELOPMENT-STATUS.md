@@ -1,13 +1,13 @@
 # Fylogia Development Status
 
-Last refreshed: 6 November 2026 (Asia/Muscat). This shared status points to the separate Web and Native SSD checkouts; they remain separate Git repositories and are not merged.
+Last refreshed: 7 November 2026 (Asia/Muscat). This shared status points to the separate Web and Native SSD checkouts; they remain separate Git repositories and are not merged.
 
 ## Workspace map
 
 | Area | SSD checkout | Development branch | Latest source checkpoint | State |
 | --- | --- | --- | --- | --- |
 | Website | `/Volumes/Developments/Projects/Fylogia/Web` | `web-maintenance-after-golden-v1` | `ef6eb2695d1535efc3ecfd02f1b7f2e43b5e01f3` | Accessible, clean; remote branch matches. Website production remains on its separate `main` deployment path. |
-| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` (includes stable-scrolling and startup-diagnostics history) | `5719252` focused Fresh iPad Pro 11 validation | Focused scroll-only checks pass on iPhone 18 Pro Max, iPad mini and Fresh iPad Pro 11; iPhone 17 rotation/layout checks pass on the stable-scrolling checkpoint. Four Duo-shaped WebKit viewports pass as emulation only. Pro 13, real Duo folding, full VoiceOver, sustained performance and physical-device acceptance remain open. No production changes. |
+| Native iOS | `/Volumes/Developments/Projects/Fylogia/Native` | `native-ios-foundation` (includes stable-scrolling and startup-diagnostics history) | `64f751f` extended reading-position XCTest and acceptance checklist | iPhone 17 longer position-preservation session passes; automated screen audit reported findings. Pro 11 screenshot readiness blocked this pass; Pro 13 remains blocked/no registered target. Duo evidence remains viewport-only. VoiceOver interaction, FPS, and physical-device acceptance remain open. No production changes. |
 
 The Codex sidebar already has a **Fylogia — Developments SSD** section containing separate local **Web** and **Native** projects, each linked to the path above. Registered project IDs and section IDs are in `/Volumes/Developments/Workspace-Configuration/projects.json`.
 
@@ -28,6 +28,7 @@ The Codex sidebar already has a **Fylogia — Developments SSD** section contain
 - The XCTest pagination microbenchmark averaged 2.27 ms across ten samples. It does not measure scrolling/curl frame rate, memory, battery, or sustained reading. Static screenshots show the cream spread and central binding; active-transition page tearing has not had frame-by-frame visual review.
 - iCloud end-to-end sync, remote breaking alerts, installed widget/notification delivery, Siri invocation, accessibility audit, sustained performance, and App Store privacy/rights/screenshots/signing gates remain open. Physical-device signing and trust are not configured.
 - **Next Native milestone:** resolve or formally defer Pro 13 startup, complete a full VoiceOver audit and sustained performance checks, and validate real Duo folding on hardware. The focused Fresh Pro 11 persistent-store test verifies saved-article and 42% reading-position restoration across relaunch. Simulator feature evidence is broader after the 6 November acceptance continuation, but Pro 13/real Duo and release gates remain open; physical-device acceptance is still **NO-GO**.
+- **7 November final simulator gaps:** `HybridUITests.testExtendedReadingSessionPreservesPositionAcrossRotations` passed twice on iPhone 17, covering six portrait/landscape cycles and saved-position markers through progress 1.00. The Apple accessibility screen audit on iPhone 17 failed with 11 findings (10 small hit-area flags and one missing description); actual VoiceOver was not exercised. Pro 11 booted but `simctl io screenshot` hung without a visible Home Screen, so this pass ran no Pro 11 app test. The current simulator inventory has no Pro 13 target; earlier data-migration and clean-clone feed-readiness evidence is preserved. `xctrace` Allocations plus `footprint` measured 22 MB app / 206 MB app+WebKit current footprint on an idle feed sample; Animation Hitches is unsupported for Simulator and no FPS is claimed. Navigation timing included XCTest accessibility waits and is inconclusive. Internal free space stayed above 20 GiB; all simulators are shut down. Details and evidence paths are in the implementation checklist and `/Volumes/Developments/Xcode/TestResults/Fylogia-FinalGaps-20261107/`. Full simulator and physical-device acceptance remain **NO-GO**.
 - Source detail and current test evidence: [`native/ios/IMPLEMENTATION-CHECKLIST.md`](native/ios/IMPLEMENTATION-CHECKLIST.md) and [`APP_STORE_CHECKLIST.md`](APP_STORE_CHECKLIST.md).
 
 ## Codex conversation placement
