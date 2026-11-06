@@ -119,7 +119,7 @@ try {
   );
   const oldPage = await existing.newPage();
   await oldPage.goto(url);
-  await oldPage.locator(".news-feed-surface").waitFor();
+  await oldPage.locator(".native-horizontal-feed, .native-story-list").waitFor();
   assert.equal(await oldPage.locator(".native-reading-tips").count(), 0);
   const retained = await oldPage.evaluate(() => ({
     preferences: JSON.parse(localStorage.getItem("folio.v1.preferences")),
