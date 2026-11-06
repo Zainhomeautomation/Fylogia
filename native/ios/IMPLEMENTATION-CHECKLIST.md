@@ -2,6 +2,14 @@
 
 Updated 5 November 2026, Asia/Muscat. This supersedes the historical phase statuses in the root progress ledger. Development remains on `native-ios-foundation`; the golden website and production are protected.
 
+### iPhone 17 readiness procedure (6 November 2026)
+
+- On the existing iPhone 17 UUID `5CA14F93-75FD-4C20-ADCD-75250B0C9772`, wait for the explicit backboardd BootUI event `Dismissing overlay: shell launched` before capturing or automating the UI. `simctl bootstatus` alone is not readiness evidence. In this run BootUI dismissed at 10:29:07 after the 10:26:32 boot command (about 155 seconds); the subsequent screenshot showed the Home Screen, and one XcodeBuildMCP accessibility snapshot connected successfully. Do not repeat automation after a successful connection.
+- With the visible Home Screen confirmed, one serial `test-without-building` focused run of `HybridUITests.testArticleModesAndNavigationSurviveRotation` passed 1/1 (61.980 seconds; test session 96.902 seconds), using the existing iOS 27.2 build-for-testing products and the isolated parity-test store. This validates only this focused iPhone 17 path, not the complete matrix.
+- Resources: internal free storage was 26.58 GB before work, 23 GB after Home Screen readiness, sampled low 21.85 GB during XCTest and 21.88 GB at test completion; final `df` reported 22 GiB available. System memory free percentage was 58% before boot, 28% after readiness, sampled low 26% during XCTest, 35% at test completion and 46% after graceful shutdown. Swap rose from 2.408 GB before boot to 6.322 GB after readiness, peaked at 6.926 GB during the test and was 3.142 GB after shutdown. The device was shut down and `simctl list devices booted` was empty.
+- Evidence (including the post-BootUI Home Screen screenshot, logs, resource samples and `.xcresult`): `/Volumes/Developments/Xcode/TestResults/Fylogia-iPhone17-Readiness-20261106/`. A malformed preliminary `xcodebuild` invocation was preserved separately and executed zero tests; the passing run used the valid existing `.xctestrun` workflow.
+- Overall simulator and physical-device acceptance remains **NO-GO**: Pro Max/iPad coverage, accessibility and curl transition review, sustained performance, and actual Duo behavior remain outstanding.
+
 ## Current milestone
 
 - [x] Resume the existing SSD checkout after identity/branch/remote checks.
