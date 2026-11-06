@@ -12,6 +12,45 @@ dist
 dist-ssr
 *.local
 
+# Private local environment files. Commit only explicit examples.
+.env
+.env.*
+!.env.example
+!.env.*.example
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+
+# Signing credentials and private key material.
+*.p12
+*.pfx
+*.p8
+*.mobileprovision
+*.provisionprofile
+*.key
+*.pem
+
+# Xcode distribution products and generated coverage output.
+*.xcarchive/
+*.ipa
+*.pkg
+*.dmg
+*.dSYM/
+*.dSYM.zip
+*.bcsymbolmap
+*.xccrashpoint/
+*.xcresult/
+*.xccovreport
+*.xccovarchive
+*.profdata
+*.gcda
+*.gcno
+*.lcov
+coverage/
+coverage-*/
+lcov-report/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
