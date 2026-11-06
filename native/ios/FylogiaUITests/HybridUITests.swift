@@ -108,6 +108,7 @@ final class HybridUITests: XCTestCase {
     add(a)
     print("PARITY viewport \(name) \(web.frame.width)x\(web.frame.height)")
   }
+
   @MainActor private func scrollToVisiblePDFPage(
     _ number: Int, app: XCUIApplication, maxGestures: Int = 10
   ) -> XCUIElement? {
@@ -360,6 +361,53 @@ final class HybridUITests: XCTestCase {
         app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 8))
     }
   }
+
+  @MainActor func testExtendedReadingSessionPreservesPositionAcrossRotations() {
+    XCUIDevice.shared.orientation = .portrait
+    let storeID = UUID().uuidString
+    print("FYLOGIA_EXTENDED_READING_TEST_STORE \(storeID)")
+    let app = launchPersistentLibraryApp(storeID: storeID)
+    let title = "Persistent startup bookmark fixture"
+    let verification = app.descendants(matching: .any).matching(
+      NSPredicate(format: "label CONTAINS %@", "Persistent library verification:")
+    ).firstMatch
+    navigate("Saved Articles", app: app)
+    let story = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
+    XCTAssertTrue(story.waitForExistence(timeout: 10))
+    story.tap()
+    let article = app.webViews.firstMatch
+    XCTAssertTrue(app.buttons["Back to previous section"].waitForExistence(timeout: 10))
+
+    for cycle in 1...6 {
+      article.swipeUp(velocity: .slow)
+      let portraitPosition = XCTNSPredicateExpectation(
+        predicate: NSPredicate(format: "label CONTAINS %@", "reader-position-restored"),
+        object: verification)
+      XCTAssertEqual(
+        XCTWaiter.wait(for: [portraitPosition], timeout: 8), .completed,
+        "Reading position should remain synchronized after portrait scroll cycle \(cycle)")
+
+      XCUIDevice.shared.orientation = .landscapeLeft
+      XCTAssertTrue(app.buttons["Back to previous section"].waitForExistence(timeout: 10))
+      article.swipeUp(velocity: .slow)
+      let landscapePosition = XCTNSPredicateExpectation(
+        predicate: NSPredicate(format: "label CONTAINS %@", "reader-position-restored"),
+        object: verification)
+      XCTAssertEqual(
+        XCTWaiter.wait(for: [landscapePosition], timeout: 8), .completed,
+        "Reading position should remain synchronized after landscape scroll cycle \(cycle)")
+      print("FYLOGIA_EXTENDED_READING_CYCLE \(cycle) position=\(verification.label)")
+
+      XCUIDevice.shared.orientation = .portrait
+      XCTAssertTrue(app.buttons["Back to previous section"].waitForExistence(timeout: 10))
+    }
+    let finalEvidence = XCTAttachment(screenshot: app.screenshot())
+    finalEvidence.name = "extended-reading-session-final-position"
+    finalEvidence.lifetime = .keepAlways
+    add(finalEvidence)
+    XCTAssertTrue(verification.label.contains("bookmark-present"))
+  }
+
   @MainActor func testGoldenNavigationSettingsAndScreenshots() throws {
     XCUIDevice.shared.orientation = .portrait
     let app = try launch()
