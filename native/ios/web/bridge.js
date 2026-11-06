@@ -312,6 +312,28 @@
     document.documentElement,
     { childList: true, subtree: true },
   );
+  const describeStoryArtwork = () => {
+    document.querySelectorAll(".story-open img").forEach((image) => {
+      if (
+        image.hasAttribute("alt") &&
+        image.getAttribute("alt").trim() &&
+        !image.hasAttribute("data-native-story-description")
+      )
+        return;
+      const title = image
+        .closest(".story-open")
+        ?.querySelector("h2")
+        ?.textContent?.trim();
+      if (!title) return;
+      image.setAttribute("alt", `Story image accompanying: ${title}`);
+      image.setAttribute("data-native-story-description", "true");
+    });
+  };
+  describeStoryArtwork();
+  new MutationObserver(describeStoryArtwork).observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
   send({
     action: "preferences",
     haptics: localStorage.getItem("fylogia.native.haptics") === "true",

@@ -31,6 +31,20 @@ html .reader {
   height: var(--fylogia-native-viewport-height, 100dvh);
   max-height: var(--fylogia-native-viewport-height, 100dvh);
 }
+/* Keep the compact offline strip while making its action a 44 px hit target. */
+html .reader-download-strip > .text-button {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px 8px;
+}
+html .reader-actions > .icon-button,
+html .settings .segmented > button,
+html .mobile-header > .icon-button,
+html .magazine-header > .icon-button {
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+}
 .native-options {
   margin: 16px 0;
 }
@@ -47,9 +61,9 @@ html .reader {
     overflow-y: auto;
   }
   html .sidebar nav .nav-item {
-    min-height: 32px;
+    min-height: 44px;
     margin-bottom: 2px;
-    padding-block: 5px;
+    padding-block: 9px;
   }
   html .sidebar nav .nav-item:last-child {
     margin-top: 4px;

@@ -109,6 +109,69 @@ final class HybridUITests: XCTestCase {
     print("PARITY viewport \(name) \(web.frame.width)x\(web.frame.height)")
   }
 
+  @MainActor private func assertAccessibleHitTarget(
+    _ element: XCUIElement, name: String, minimum: CGFloat = 44
+  ) {
+    XCTAssertTrue(element.waitForExistence(timeout: 8), "Missing accessible control: \(name)")
+    XCTAssertGreaterThanOrEqual(
+      element.frame.width, minimum, "\(name) is narrower than its 44 point hit target")
+    XCTAssertGreaterThanOrEqual(
+      element.frame.height, minimum, "\(name) is shorter than its 44 point hit target")
+    XCTAssertTrue(element.isHittable, "\(name) must be reachable")
+  }
+
+  @MainActor func testFocusedAccessibilityTargetsAndStoryDescription() throws {
+    XCUIDevice.shared.orientation = .portrait
+    let app = try launch()
+    let title = "A new perspective on our changing world"
+    let saveStory = app.buttons.matching(
+      NSPredicate(format: "label BEGINSWITH %@", "Save \(title)")
+    ).firstMatch
+    let downloadStory = app.buttons.matching(
+      NSPredicate(format: "label BEGINSWITH %@", "Download offline \(title)")
+    ).firstMatch
+    assertAccessibleHitTarget(saveStory, name: "Feed bookmark")
+    assertAccessibleHitTarget(downloadStory, name: "Feed offline download")
+
+    saveStory.tap()
+    let savedStory = app.buttons.matching(
+      NSPredicate(format: "label BEGINSWITH %@", "Unsave \(title)")
+    ).firstMatch
+    XCTAssertTrue(savedStory.waitForExistence(timeout: 5), "Bookmark action must still toggle")
+    navigate("Saved Articles", app: app)
+    XCTAssertTrue(
+      app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
+        .waitForExistence(timeout: 8),
+      "Saved story must remain available in the Saved Articles route")
+    navigate("For You", app: app)
+
+    let artwork = app.descendants(matching: .any).matching(
+      NSPredicate(format: "label CONTAINS %@", "Story image accompanying: \(title)")
+    ).firstMatch
+    XCTAssertTrue(artwork.waitForExistence(timeout: 8), "Story artwork needs contextual alt text")
+
+    let story = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
+    XCTAssertTrue(story.exists)
+    story.tap()
+    let saveArticle = app.buttons["Save article"]
+    let downloadArticle = app.buttons["Download current article"]
+    assertAccessibleHitTarget(saveArticle, name: "Article bookmark")
+    assertAccessibleHitTarget(downloadArticle, name: "Article offline download")
+    app.buttons["Back to previous section"].tap()
+
+    assertAccessibleHitTarget(app.buttons["Open navigation"], name: "Open navigation")
+    navigate("Settings", app: app)
+    let appearance = app.buttons["Light"].firstMatch
+    let readingMode = app.buttons["Magazine pages"].firstMatch
+    assertAccessibleHitTarget(appearance, name: "Settings appearance choice")
+    assertAccessibleHitTarget(readingMode, name: "Settings reading mode choice")
+
+    let screenshot = XCTAttachment(screenshot: app.screenshot())
+    screenshot.name = "accessibility-targets-settings"
+    screenshot.lifetime = .keepAlways
+    add(screenshot)
+  }
+
   @MainActor private func scrollToVisiblePDFPage(
     _ number: Int, app: XCUIApplication, maxGestures: Int = 10
   ) -> XCUIElement? {
@@ -170,6 +233,7 @@ final class HybridUITests: XCTestCase {
       app.staticTexts["Stories — swipe vertically to browse"].waitForExistence(timeout: 10))
     XCTAssertFalse(app.otherElements["Native bound magazine"].exists)
   }
+
   @MainActor func testLandscapeStartupDiagnosticsAndHorizontalFeedReadiness() {
     XCUIDevice.shared.orientation = .landscapeLeft
     let app = XCUIApplication()
