@@ -21,8 +21,18 @@ if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.spli
 fi
 
 golden_tag="fylogia-web-golden-v1"
+golden_commit="26fd37f27bd70cd7495f33209b823796770d9c22"
 if ! git -C "$repository_path" rev-parse --verify "refs/tags/$golden_tag^{commit}" >/dev/null 2>&1; then
-  echo "Required immutable golden web tag is absent from this checkout: $golden_tag" >&2
+  echo "Golden web tag is not present in this checkout; fetching only $golden_tag from origin."
+  if ! git -C "$repository_path" fetch --no-tags origin "refs/tags/$golden_tag:refs/tags/$golden_tag"; then
+    echo "Unable to fetch required golden web tag from origin: $golden_tag" >&2
+    exit 1
+  fi
+fi
+
+resolved_golden_commit=$(git -C "$repository_path" rev-parse --verify "refs/tags/$golden_tag^{commit}")
+if [ "$resolved_golden_commit" != "$golden_commit" ]; then
+  echo "Golden web tag resolved to unexpected commit $resolved_golden_commit; expected $golden_commit." >&2
   exit 1
 fi
 
