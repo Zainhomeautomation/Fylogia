@@ -1,6 +1,6 @@
 # Fylogia Xcode Cloud and TestFlight readiness
 
-Updated 7 November 2026. This is a repository-side readiness record. The Zain Abdulahad Apple Developer team (`WS32P56Z42`), explicit app/widget IDs, and App Store Connect app record are verified. Automatic signing was verified by a local App Store Connect export for both app and widget. The team Cloud page is accessible but still prompts to get started in Xcode; no Xcode Cloud workflow or Cloud build has been started.
+Updated 7 November 2026. This is a repository-side readiness record. The Zain Abdulahad Apple Developer team (`WS32P56Z42`), explicit app/widget IDs, and App Store Connect app record are verified. Automatic signing was verified by a local App Store Connect export for both app and widget. Xcode Cloud source access is connected and a manual-only workflow has been saved; the first Cloud run is pending.
 
 ## Verified repository configuration
 
@@ -10,18 +10,20 @@ Updated 7 November 2026. This is a repository-side readiness record. The Zain Ab
 - **PASS current clean-checkout build (4bea937):** a detached clean Git worktree ran the post-clone script and generated `native/ios/Fylogia/WebAssets/index.html`; the `Fylogia` app and embedded widget then built for generic iOS Simulator with Xcode 27.2, code signing disabled, one build job, and DerivedData on Developments SSD. No simulator boot, XCTest or signing operation occurred. Build warnings include an existing Swift 6 actor-isolation warning in `HybridController.swift`; the build succeeded. Earlier clean-clone `build-for-testing` evidence is recorded in the implementation checklist; this current check was deliberately build-only.
 - App Store Connect contains Fylogia (iOS, English (U.S.), SKU `FYLOGIA-IOS-001`, Apple ID `6831956558`) with bundle ID `com.fylogia.native`; Developer portal identifiers `com.fylogia.native` and `com.fylogia.native.widget` are explicit and under Team `WS32P56Z42`.
 - A Release archive succeeded but used the local Apple Development identity. The separate local `app-store-connect` export succeeded; `DistributionSummary.plist` confirms Cloud Managed Apple Distribution signing, Team `WS32P56Z42`, explicit store profiles for app and widget, and `get-task-allow=false` for both. This is distribution-signing verification only; the IPA was not uploaded.
-- The App Store Connect Xcode Cloud page is available but remains at its initial “Get started in Xcode” state. Account-specific workflow setup has not been completed. The iPhone Duo was not connected or installed to.
+- The iPhone Duo was not connected or installed to. No TestFlight upload or distribution has been performed.
+- Xcode Cloud has the workflow `Fylogia Focused Simulator Tests`. Its only start condition is Manual Start restricted to `native-ios-foundation`; Pull Request and Tag starts are off, and no Branch Changes trigger is configured. The workflow has Build for Any iOS Simulator and Test using `Fylogia-Focused-Cloud` on one iPhone 17 / iOS 27.2 destination. There are no post-actions, archive action, or TestFlight delivery action.
+- Xcode generated `native/ios/Fylogia.xcodeproj/xcshareddata/xcodecloud/manifest.json` to map the Cloud workflow to the app target. The file is configuration metadata, not a credential. It must be committed to the development branch for the Cloud checkout to resolve the product. The first run has not started, so Cloud build, test, and resource usage are not yet verified.
 
-## One economical workflow to configure later
+## Configured focused workflow
 
-Configure a single workflow in Xcode Cloud after owner account setup:
+The saved workflow uses the existing shared scheme and focused test plan:
 
 | Setting | Recommendation |
 | --- | --- |
 | Product / scheme | Fylogia app / shared `Fylogia` scheme |
 | Source branch | `native-ios-foundation`; select it when manually starting a run |
-| Start condition | Manual only; no push, pull-request, schedule, archive or distribution trigger |
-| Action | Test, using `Fylogia-Focused-Cloud` |
+| Start condition | Manual Start only; restricted to `native-ios-foundation`; no push, pull-request, schedule, archive or distribution trigger |
+| Actions | Build for Any iOS Simulator, then Test using `Fylogia-Focused-Cloud` |
 | Test scope | All `FylogiaTests` plus three UI cases: landscape horizontal spread without curl, article/rotation continuity, and essential navigation/Settings |
 | Destination | One iPhone simulator supported by the authenticated Cloud environment; owner must choose from its current destination list |
 | Cost controls | One destination, no matrix, no archive/TestFlight post-action, and parallel test execution off if exposed by the workflow settings |
@@ -30,13 +32,13 @@ This plan excludes both inactive curl experiments. Manual-only triggering preven
 
 The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and referenced as non-default by the shared scheme. Its JSON parses, `xcodebuild -showTestPlans` lists it, and prior local serial `build-for-testing` validated its test products. The current clean-checkout check also verifies the app/widget build and generated WebAssets, but did not execute tests.
 
-## Exact owner actions and gates
+## Remaining setup and first-run gates
 
-1. In Xcode, open Product > Xcode Cloud > Create Workflow for the shared `Fylogia` scheme. Confirm Xcode presents the expected Team `WS32P56Z42`, repository, branch `native-ios-foundation`, and available Cloud Xcode/simulator destinations before saving. The live team page currently shows the initial setup prompt, so eligibility through workflow creation has not yet been fully proven.
-2. Configure one manual-only Test action using `Fylogia-Focused-Cloud`, one offered iPhone simulator, and no archive/distribution post-action. Keep parallel testing disabled if the workflow UI exposes that setting. Do not enable push, PR, scheduled, website, or news-refresh triggers.
-3. Start a Cloud run only after owner approval. No paid capacity was purchased. [Apple setup requirements](https://developer.apple.com/documentation/xcode/Setting-up-your-project-to-use-Xcode-Cloud) and [Cloud plans](https://developer.apple.com/xcode-cloud/get-started/)
+1. Commit and push the generated Xcode Cloud manifest and this readiness update to `native-ios-foundation` before the first run. GitHub Actions quality/deploy triggers are limited to `main`; the scheduled news refresh remains on `main`.
+2. Start one manual run from the Xcode Cloud Reports navigator on `native-ios-foundation`. Verify the run shows Build and Test actions and one iPhone 17 destination. This first-run diagnostic must resolve the editor's warning that the shared scheme may exist only locally; the scheme and test plan are already tracked on the development branch.
+3. Review the Cloud build/test result and usage after completion. No additional compute was purchased. [Apple setup requirements](https://developer.apple.com/documentation/xcode/Setting-up-your-project-to-use-Xcode-Cloud) and [Cloud plans](https://developer.apple.com/xcode-cloud/get-started/)
 4. For TestFlight, confirm final version/build metadata, privacy disclosures, content and image rights, app metadata, and internal tester group before a separately authorized upload. No upload or tester invitation is authorized or performed in this task.
 
 ## Readiness decision
 
-**Repository and distribution signing: READY for a later owner-authorized upload.** Clean-checkout bootstrap, generated WebAssets, app/widget builds, explicit IDs, App Store Connect record, shared scheme, focused plan, and exported IPA signing are verified. **Xcode Cloud: NOT CONFIGURED.** Owner must complete workflow setup in Xcode and confirm the offered Cloud Xcode/simulator destination, then authorize any Cloud run. **TestFlight: NOT UPLOADED.** No services were purchased, Cloud jobs started, or app distribution activated.
+**Repository and distribution signing: READY for a later owner-authorized upload.** Clean-checkout bootstrap, generated WebAssets, app/widget builds, explicit IDs, App Store Connect record, shared scheme, focused plan, exported IPA signing, and Xcode Cloud workflow configuration are verified. **First Cloud run: PENDING.** Commit/push the workflow manifest, then validate one manual run on `native-ios-foundation`; actual Cloud build/test results and resource use remain unverified. **TestFlight: NOT UPLOADED.** No services were purchased or app distribution activated.
