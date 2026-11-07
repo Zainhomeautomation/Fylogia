@@ -1,6 +1,13 @@
 # Fylogia App Store preparation checklist
 
-Status: **preparation ledger only; no native binary, TestFlight upload or submission**. Phase 15 follows implementation and quality validation. Final App Store submission requires explicit owner approval.
+Status: **preparation ledger only; no release archive, TestFlight upload or submission**. Phase 15 follows implementation and quality validation. Final App Store submission requires explicit owner approval.
+
+### TestFlight readiness audit (7 November 2026)
+
+- Xcode/App Store Connect access is confirmed for Zain Abdulahad, Admin, Team ID `WS32P56Z42`. The App Store Connect Apps page is empty; no `com.fylogia.native` app record exists. No record was created.
+- The Developer portal currently lists no explicit Fylogia App IDs, no provisioning profiles, and only a Development certificate. The local keychain also has no Apple Distribution identity. The previous signed Debug build is not an App Store/TestFlight distribution build.
+- **BLOCKED before archive/export:** an Admin must register the explicit app identifier `com.fylogia.native` (and `com.fylogia.native.widget` for the embedded extension), then create the App Store Connect app record with the existing app bundle ID. The owner must choose the primary language and a unique SKU; Apple does not allow changing the SKU after record creation. Check for an existing team distribution certificate before allowing Xcode Automatic signing to create/manage App Store profiles.
+- No archive, distribution signing asset, app record, upload, TestFlight processing or invitation was created. After the owner creates the identifiers and record, resume with a Release archive and verify App Store Connect signing for both app and widget. Internal TestFlight uses App Store Connect users assigned to the app; it does not require device UDID registration. Tester assignment and distribution remain behind owner approval.
 
 ## Owner product requirements
 
@@ -13,7 +20,7 @@ Status: **preparation ledger only; no native binary, TestFlight upload or submis
 
 - [ ] Universal native application builds and launches in a usable Apple environment.
 - [ ] Architecture and supported OS versions selected from evidence.
-- [x] App/widget bundle identifiers, Fylogia Team ID `WS32P56Z42`, Automatic signing and signed generic-device build verified with owner authorization. App Store Connect record and any future capabilities still require owner review.
+- [x] App/widget bundle identifiers, Fylogia Team ID `WS32P56Z42`, Automatic development signing and signed generic-device Debug build verified. App Store distribution signing, app record and any future capabilities remain unverified.
 - [x] Apple Developer enrollment and Admin team access confirmed in Xcode. Legal agreements and any payment obligations remain owner-managed.
 - [ ] Native icons/required device screenshots captured from the real application.
 - [ ] App description, keywords, release notes and support contact approved.
