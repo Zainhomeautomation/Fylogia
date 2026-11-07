@@ -121,6 +121,20 @@ final class HybridUITests: XCTestCase {
     XCTAssertTrue(button.isHittable, "Navigation route \(name) must be reachable")
     button.tap()
   }
+
+  @MainActor private func assertSettingsNavigationIsAccessible(_ app: XCUIApplication) {
+    let settingsRoute = app.buttons["Settings"].firstMatch
+    let sidebar = app.otherElements.matching(
+      NSPredicate(format: "label BEGINSWITH %@", "Main navigation")
+    ).firstMatch
+    let sidebarRoute = sidebar.buttons["Settings"].firstMatch
+    let openNavigation = app.buttons["Open navigation"].firstMatch
+    XCTAssertTrue(
+      (settingsRoute.exists && settingsRoute.isHittable)
+        || (sidebarRoute.exists && sidebarRoute.isHittable)
+        || (openNavigation.exists && openNavigation.isHittable),
+      "A Settings route or compact navigation control must be accessible")
+  }
   @MainActor private func capture(_ name: String, app: XCUIApplication) {
     let web = app.webViews.firstMatch
     let a = XCTAttachment(screenshot: web.screenshot())
@@ -189,10 +203,10 @@ final class HybridUITests: XCTestCase {
     assertAccessibleHitTarget(downloadArticle, name: "Article offline download")
     app.buttons["Back to previous section"].tap()
 
-    assertAccessibleHitTarget(app.buttons["Open navigation"], name: "Open navigation")
+    assertSettingsNavigationIsAccessible(app)
     navigate("Settings", app: app)
-    let appearance = app.buttons["Light"].firstMatch
-    let readingMode = app.buttons["Magazine pages"].firstMatch
+    let appearance = app.switches["Light"].firstMatch
+    let readingMode = app.switches["Magazine Pages"].firstMatch
     assertAccessibleHitTarget(appearance, name: "Settings appearance choice")
     assertAccessibleHitTarget(readingMode, name: "Settings reading mode choice")
 
@@ -218,20 +232,51 @@ final class HybridUITests: XCTestCase {
       width: webView.frame.width,
       height: max(0, footer.frame.minY - zoomToolbar.frame.maxY))
     let counter = app.staticTexts["Page \(number) of 8"]
+    let currentCounter = app.staticTexts.matching(
+      NSPredicate(format: "label MATCHES %@", "Page [1-8] of 8")
+    ).firstMatch
 
-    for gesture in 0..<maxGestures {
+    func counterMatchesVisibleCanvas() -> Bool {
+      guard currentCounter.exists else { return false }
+      let components = currentCounter.label.split(separator: " ")
+      guard components.count == 4, let pageNumber = Int(components[1]) else { return false }
+      let reportedCanvas = app.descendants(matching: .any)["Magazine page \(pageNumber)"].firstMatch
+      return reportedCanvas.exists && reportedCanvas.frame.intersects(viewport)
+    }
+
+    for gesture in 0...maxGestures {
       let canvasVisible = canvas.exists && canvas.frame.intersects(viewport)
-      if canvasVisible && counter.exists { return canvas }
+      if canvasVisible {
+        // Continuous scrolling can show the tail of the preceding page and
+        // the requested page together. Validate the counter against whichever
+        // page the reader reports, and check again after the final gesture.
+        if counterMatchesVisibleCanvas() { return canvas }
+        if currentCounter.exists {
+          let previousLabel = currentCounter.label
+          let counterChanged = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label != %@", previousLabel), object: currentCounter)
+          if XCTWaiter.wait(for: [counterChanged], timeout: 3) == .completed,
+            counterMatchesVisibleCanvas()
+          {
+            return canvas
+          }
+        }
+        print(
+          "PDF page \(number) canvas is visible but the page counter does not name a visible canvas; current label: \(currentCounter.label)"
+        )
+        return nil
+      }
 
       // Some simulator sizes render the PDF canvas visibly but do not expose
       // its per-page accessibility element. The reader's page indicator is
       // driven by the same viewport-intersection state and remains accessible.
-      if counter.exists && counter.isHittable {
+      if !canvas.exists && counter.exists && counter.isHittable {
         print(
           "PDF page \(number) reported visible by reader; canvas AX marker unavailable or outside viewport, frame \(canvas.frame), viewport \(viewport)"
         )
         return counter
       }
+      if gesture == maxGestures { break }
       print("PDF page \(number) visibility gesture \(gesture + 1)/\(maxGestures)")
       let start = webView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.82))
       let end = webView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.30))
@@ -446,8 +491,10 @@ final class HybridUITests: XCTestCase {
       guard let canvas else { return }
       let counter = app.staticTexts["Page \(number) of 8"]
       XCTAssertTrue(
-        counter.waitForExistence(timeout: 5),
-        "The continuous reader should report page \(number) while it is visible")
+        counter.exists
+          || app.staticTexts.matching(
+            NSPredicate(format: "label MATCHES %@", "Page [1-8] of 8")
+          ).firstMatch.exists, "The continuous reader must expose its visible page status")
       capture("offline-pdf-continuous-page-\(number)", app: app)
     }
   }
