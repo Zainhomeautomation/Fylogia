@@ -2,6 +2,16 @@
 
 Updated 7 November 2026, Asia/Muscat. This supersedes the historical phase statuses in the root progress ledger. Development remains on `native-ios-foundation`; the golden website and production are protected.
 
+### Native visual design synchronization (7 November 2026)
+
+- Compared the Native bundled reader with Web design commit `044300aacbed82c2a93c6915a2ea539fe1f1a8ec`. Changes stay in `native/ios/web/native.css`; the Web checkout and golden source were not modified.
+- Updated cream-paper reading colors to the reference paper/ink/muted/line/sage palette. Increased headline hierarchy and image presence for portrait and tall wide spreads; added a restrained publisher/category fallback when cover art is unavailable. Short landscape spreads place compact imagery beside each headline so both facing stories remain readable without activating a curl engine.
+- Tightened Native feed header/filter spacing and Settings section typography/spacing. Settings actions keep a 44 px minimum target. Portrait remains vertically scrolling; wide reading remains two-story horizontal scrolling. Navigation, bookmarks, offline/PDF content, accessibility semantics and reading-position behavior were not changed.
+- **PASS focused visual WebKit check:** `scripts/test-native-design.mjs` verified the reference palette, portrait heading hierarchy, actual loaded portrait/landscape images, publisher fallback, two visible short-landscape headlines, tall tablet imagery, and compact Settings target sizing. Reviewed screenshots are saved under `/Volumes/Developments/Xcode/TestResults/Fylogia-Native-Design-20261107/` (`iphone-portrait-imagery.png`, `iphone-landscape-imagery.png`, `ipad-wide-spread.png`, plus fallback and Settings captures).
+- **PASS focused regressions:** adaptive feed and scroll/anchor behavior across ten sizes (including four Duo-sized viewports), web layout, articles/PDF/offline continuity and rotation, native accessibility geometry, reading-mode persistence, and launch/settings/navigation regressions all passed against the final bundle. These are WebKit checks; Duo fold behavior is not inferred.
+- **PASS native build:** Native WebAssets regenerated from the pinned golden source and `xcodebuild -project native/ios/Fylogia.xcodeproj -scheme Fylogia -destination 'generic/platform=iOS Simulator' -derivedDataPath /Volumes/Developments/Xcode/DerivedData/Fylogia CODE_SIGNING_ALLOWED=NO build` succeeded. No simulator was booted and no XCTest was run. Internal free space was 25.78 GB before the build and remained above the required 20 GB.
+- Device-level appearance, native UI automation and physical-device/Duo behavior remain unverified in this milestone. Existing curl experiments remain archived and inactive.
+
 ### Xcode Cloud clean-checkout readiness (7 November 2026)
 
 - The shared `Fylogia` scheme builds the app and widget dependency and includes both unit and UI tests. A fresh clone confirmed that ignored `WebAssets` were missing: the native project compiled but lacked `WebAssets/index.html` in the app bundle. Added root `ci_scripts/ci_post_clone.sh` to install locked Node 24 dependencies from the immutable Web golden tag and generate only the Native bundle assets before Xcode runs.

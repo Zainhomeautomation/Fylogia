@@ -1,12 +1,12 @@
-/* Approved exception: identical to UIKit UIColor(0.97, 0.95, 0.89). */
+/* Native reading surfaces follow the approved premium Web paper palette. */
 html[data-native-paper="cream"] :is(.news-book, .reader) {
-  --paper: color(srgb 0.97 0.95 0.89);
-  --ink: #17241f;
-  --muted: #4c5d52;
-  --wash: #e9e7d8;
-  --line: #c9cdbc;
-  --accent: #38664d;
-  --green: #38664d;
+  --paper: #f7f2e3;
+  --ink: #20251f;
+  --muted: #59645b;
+  --wash: #e8e5d6;
+  --line: #d8d1bd;
+  --accent: #496b59;
+  --green: #496b59;
 }
 html[data-native-paper="cream"] :is(.feed-sheet, .reader-content) {
   color: var(--ink);
@@ -73,10 +73,11 @@ html .magazine-header > .icon-button {
     padding-bottom: 10px;
   }
 }
+
 .native-notifications {
   margin-top: 18px;
   padding-top: 12px;
-  border-top: 1px solid #c9cdbc;
+  border-top: 1px solid #d8d1bd;
 }
 .native-notifications fieldset {
   display: flex;
@@ -98,10 +99,10 @@ html .magazine-header > .icon-button {
   max-height: calc(100dvh - 96px);
   overflow-y: auto;
   padding: 20px;
-  border: 1px solid #c9cdbc;
+  border: 1px solid #d8d1bd;
   border-radius: 12px;
-  background: color(srgb 0.97 0.95 0.89);
-  color: #17241f;
+  background: #f7f2e3;
+  color: #20251f;
   box-shadow: 0 8px 32px #0003;
 }
 .native-reading-tips h2 {
@@ -110,7 +111,7 @@ html .magazine-header > .icon-button {
   font-size: 22px;
 }
 .native-reading-tips .quiet {
-  color: #4c5d52;
+  color: #59645b;
 }
 .native-tip-actions {
   display: flex;
@@ -119,9 +120,9 @@ html .magazine-header > .icon-button {
 }
 .native-tip-actions button {
   min-height: 44px;
-  background: #e9e7d8;
-  color: #17241f;
-  border: 1px solid #84917f;
+  background: #e8e5d6;
+  color: #20251f;
+  border: 1px solid #a6ad9f;
 }
 
 /* Reading-first native shell: all golden controls remain mounted and usable. */
@@ -218,34 +219,52 @@ body:has(.news-pages-mode) .bottom-nav {
   height: clamp(110px, calc(100dvh - 570px), 440px);
 }
 
-/* Short landscape windows need a viewport-sized spread for UIKit snapshots. */
+/* Keep legacy snapshot-sheet sizing out of the active scroll-only spread. */
 @media (orientation: landscape) and (max-height: 600px) {
   .news-pages-mode.native-tools-closed .news-feed-surface {
     height: calc(100dvh - 156px);
     min-height: 0;
   }
-  .news-pages-mode.native-tools-closed .feed-spread {
+  .news-pages-mode.native-tools-closed .news-feed-surface .feed-spread {
     height: 100%;
     min-height: 0;
   }
-  .news-pages-mode.native-tools-closed .feed-sheet {
+  .news-pages-mode.native-tools-closed .news-feed-surface .feed-sheet {
     min-height: 0;
     overflow: hidden;
     padding: 10px 40px;
   }
-  .news-pages-mode.native-tools-closed .feed-sheet .story,
-  .news-pages-mode.native-tools-closed .feed-sheet .story .story-open {
+  .news-pages-mode.native-tools-closed .news-feed-surface .feed-sheet .story,
+  .news-pages-mode.native-tools-closed
+    .news-feed-surface
+    .feed-sheet
+    .story
+    .story-open {
     min-height: 0;
     height: 100%;
     overflow: hidden;
   }
-  .news-pages-mode.native-tools-closed .feed-sheet .story .story-open img,
-  .news-pages-mode.native-tools-closed .feed-sheet .story .type-art {
+  .news-pages-mode.native-tools-closed
+    .news-feed-surface
+    .feed-sheet
+    .story
+    .story-open
+    img,
+  .news-pages-mode.native-tools-closed
+    .news-feed-surface
+    .feed-sheet
+    .story
+    .type-art {
     height: clamp(48px, 14dvh, 84px);
     min-height: 0;
     margin-bottom: 6px;
   }
-  .news-pages-mode.native-tools-closed .feed-sheet .story .story-open h2 {
+  .news-pages-mode.native-tools-closed
+    .news-feed-surface
+    .feed-sheet
+    .story
+    .story-open
+    h2 {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
@@ -254,23 +273,40 @@ body:has(.news-pages-mode) .bottom-nav {
     line-height: 1.1;
     margin: 4px 0;
   }
-  .news-pages-mode.native-tools-closed .feed-sheet .story .story-open p,
-  .news-pages-mode.native-tools-closed .feed-sheet .story .feed-read,
-  .news-pages-mode.native-tools-closed .feed-sheet .news-period {
+  .news-pages-mode.native-tools-closed
+    .news-feed-surface
+    .feed-sheet
+    .story
+    .story-open
+    p,
+  .news-pages-mode.native-tools-closed
+    .news-feed-surface
+    .feed-sheet
+    .story
+    .feed-read,
+  .news-pages-mode.native-tools-closed
+    .news-feed-surface
+    .feed-sheet
+    .news-period {
     display: none;
   }
-  .news-pages-mode.native-tools-closed .feed-sheet .story-meta {
+  .news-pages-mode.native-tools-closed
+    .news-feed-surface
+    .feed-sheet
+    .story-meta {
     padding-top: 2px;
   }
 }
 
 /* Narrow/portrait feed shares the magazine's paper, cards and controls. */
 html[data-native-paper="cream"] .native-scroll-feed {
-  --paper: color(srgb 0.97 0.95 0.89);
-  --ink: #17241f;
-  --muted: #4c5d52;
-  --line: #c9cdbc;
-  --accent: #38664d;
+  --paper: #f7f2e3;
+  --ink: #20251f;
+  --muted: #59645b;
+  --wash: #e8e5d6;
+  --line: #d8d1bd;
+  --accent: #496b59;
+  --green: #496b59;
 }
 .native-story-list {
   display: grid;
@@ -382,7 +418,7 @@ html[data-native-paper="cream"] .native-scroll-feed {
 }
 .native-horizontal-feed .story-open img {
   width: 100%;
-  height: clamp(72px, 19dvh, 190px);
+  height: clamp(150px, 28dvh, 300px);
   object-fit: cover;
 }
 .native-horizontal-feed .story-open h2 {
@@ -392,6 +428,201 @@ html[data-native-paper="cream"] .native-scroll-feed {
 }
 .native-horizontal-feed .story-open p {
   overflow: visible;
+}
+
+/* Match the premium editorial hierarchy inside both native feed modes. */
+.main.news-pages-mode .edition-bar {
+  padding-block: 2px 6px;
+}
+.main.news-pages-mode .page-heading {
+  padding-block: 8px 10px;
+}
+.main.news-pages-mode .page-heading h1 {
+  font-size: clamp(27px, 3vw, 42px);
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+}
+.main.news-pages-mode .daily-edition {
+  gap: 4px 12px;
+  margin-block: 4px 8px;
+  padding: 6px 12px;
+}
+.main.news-pages-mode .filter-tabs {
+  gap: clamp(14px, 2vw, 22px);
+  padding-bottom: 4px;
+}
+.main.news-pages-mode .filter-tabs button {
+  min-height: 44px;
+  padding-block: 5px 8px;
+}
+.main.news-pages-mode .search-field {
+  margin-block: 5px 9px;
+}
+.main.news-pages-mode .feed-guidance {
+  margin-block: 4px 6px;
+}
+.native-story-list > .feed-sheet {
+  border-bottom: 1px solid var(--line);
+}
+.native-story-list .story-category {
+  margin-block: 10px 4px;
+}
+.native-story-list .story h2 {
+  margin-block: 6px 9px;
+  font-size: clamp(23px, 5.7vw, 34px);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+.native-story-list .story.lead h2 {
+  font-size: clamp(30px, 7.2vw, 42px);
+  line-height: 1.07;
+}
+.native-story-list .story-open p {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.48;
+}
+.native-story-list .story-open > img {
+  height: auto;
+  max-height: 420px;
+  aspect-ratio: 1.6;
+}
+.native-horizontal-feed .story-category {
+  margin-block: 7px 3px;
+}
+.native-horizontal-feed .story h2 {
+  margin-block: 5px 7px;
+  font-size: clamp(19px, 2.25vw, 29px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+.main.news-pages-mode.native-tools-closed
+  .native-horizontal-feed
+  .feed-sheet
+  .story
+  .story-open
+  h2 {
+  font-size: clamp(20px, 2.5vw, 24px);
+}
+.main.news-pages-mode.native-tools-closed
+  .native-horizontal-feed
+  .feed-sheet
+  .story
+  .story-open
+  :is(img, .type-art) {
+  height: clamp(150px, 28dvh, 300px);
+  min-height: 88px;
+}
+.native-horizontal-feed .story-open p {
+  color: var(--muted);
+  font-size: clamp(13px, 1.25vw, 16px);
+  line-height: 1.42;
+}
+.native-horizontal-feed .story-open img {
+  height: clamp(150px, 28dvh, 300px);
+  aspect-ratio: 1.65;
+}
+/* Publisher fallback stays editorial and quiet when a photo is unavailable. */
+.native-story-list .story-open > .type-art {
+  min-height: 148px;
+  aspect-ratio: 1.6;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(115deg, #eeebdd, var(--wash));
+  color: var(--ink);
+}
+.native-story-list .type-art span,
+.native-horizontal-feed .type-art span {
+  color: var(--green);
+  font:
+    600 10px/1.3 -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  letter-spacing: 1.35px;
+  text-transform: uppercase;
+}
+.native-story-list .type-art strong {
+  max-width: 24ch;
+  margin: 0;
+  color: var(--muted);
+  font: 500 clamp(19px, 5vw, 27px)/1.2 var(--serif);
+  overflow-wrap: anywhere;
+}
+.native-horizontal-feed .story-open > .type-art {
+  min-height: 88px;
+  height: clamp(150px, 28dvh, 300px);
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-block: 1px solid var(--line);
+  background: linear-gradient(110deg, #eeebdd, var(--wash));
+  color: var(--ink);
+}
+.native-horizontal-feed .type-art strong {
+  max-width: 60%;
+  margin: 0;
+  color: var(--muted);
+  font:
+    500 clamp(14px, 1.35vw, 18px)/1.3 -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.native-story-list .type-art svg,
+.native-horizontal-feed .type-art svg {
+  display: none;
+}
+/* Compact Settings while retaining the native 44 px action target floor. */
+.main .settings {
+  max-width: 820px;
+}
+.main .settings section {
+  padding-block: 8px 20px;
+  margin-bottom: 12px;
+}
+.main .settings h2 {
+  margin-block: 8px 4px;
+  font-size: 25px;
+  line-height: 1.12;
+}
+.main .settings p {
+  margin-block: 4px 9px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.main .settings h3 {
+  margin-block: 15px 7px;
+}
+.main .settings .field {
+  gap: 7px;
+  margin-block: 12px;
+}
+.main .settings .segmented {
+  gap: 3px;
+  padding: 3px;
+}
+.main .settings .segmented > button {
+  min-height: 44px;
+  padding: 8px 11px;
+}
+
+@media (max-width: 760px) {
+  .main.news-pages-mode .page-heading {
+    padding-block: 5px 8px;
+  }
+  .main.news-pages-mode .page-heading h1 {
+    font-size: clamp(29px, 7vw, 38px);
+  }
+  .native-story-list .story-open > img {
+    max-height: 340px;
+  }
 }
 
 /* The same adaptive policy applies to articles, saved/offline entries and PDFs. */
@@ -477,5 +708,83 @@ html .pdf-spread.native-pdf-flow {
   html :is(.story-grid, .editorial-grid) {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .native-horizontal-feed .native-scroll-spread > .feed-sheet {
+    padding: 6px 14px;
+  }
+  .native-horizontal-feed .story .news-period,
+  .native-horizontal-feed .story-open .content-label,
+  .native-horizontal-feed .story-open .editorial-label,
+  .native-horizontal-feed .story-open p,
+  .native-horizontal-feed .story-open .feed-read {
+    display: none;
+  }
+  .main .native-horizontal-feed .story .story-open > .story-category {
+    grid-column: 2;
+    grid-row: 1;
+    margin-block: 4px 2px;
+  }
+  .main .native-horizontal-feed .story .story-open {
+    display: grid;
+    grid-template-columns: minmax(92px, 32%) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: start;
+    column-gap: 10px;
+  }
+  .main.news-pages-mode.native-tools-closed
+    .native-horizontal-feed
+    .feed-sheet
+    .story
+    .story-open
+    :is(img, .type-art) {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 100%;
+    height: 88px;
+    min-height: 88px;
+    margin: 0;
+    aspect-ratio: 1;
+  }
+  .main.news-pages-mode.native-tools-closed
+    .native-horizontal-feed
+    .feed-sheet
+    .story
+    .story-open
+    h2 {
+    grid-column: 2;
+    grid-row: 2;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: clamp(20px, 2.5vw, 24px);
+    line-height: 1.08;
+    margin: 3px 0;
+  }
+  .native-horizontal-feed .story-meta {
+    gap: 4px;
+    margin-top: 2px;
+    font-size: 10px;
+  }
+  .native-horizontal-feed .story-meta > span {
+    display: none;
+  }
+  .main .native-horizontal-feed .story .story-open > .type-art {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px;
+  }
+  .main .native-horizontal-feed .story .story-open > .type-art strong {
+    max-width: 100%;
+    font:
+      500 13px/1.2 Georgia,
+      "Times New Roman",
+      serif;
+    text-align: left;
   }
 }
