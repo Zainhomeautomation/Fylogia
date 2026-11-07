@@ -7,7 +7,9 @@ Updated 7 November 2026, Asia/Muscat. This supersedes the historical phase statu
 - Build 4 failed in the `Ensure Bundled WebAssets` phase after the pinned golden Web tag was fetched and verified and `npm ci` completed. The local-only Developments mount guard rejected the Cloud checkout. No unit or UI tests ran.
 - Added a Cloud-aware workspace preflight using Apple's documented Xcode Cloud environment variables. It fails closed unless the Cloud/CI markers, repository checkout, workspace ancestry, Fylogia Xcode project path/name, and build action agree. Local generation still invokes the unchanged SSD UUID/APFS/ownership/storage guard.
 - **PASS:** focused policy tests cover local missing SSD blocked, approved SSD allowed, verified Cloud allowed, and fake/mismatched Cloud blocked. Shell/Node syntax checks pass. `build-web.mjs` generates 59 assets and the generic app/widget build succeeds; the app bundle contains all 59 WebAssets files.
-- No simulator or local XCTest was run. One manual Cloud Build + Test verification remains pending; the Cloud workflow is unchanged and manual-only.
+- **PASS Cloud asset/build verification:** Build 5 on pushed commit `67ad977f919baa65dd6987dbc5393184a08b2481` completed the app/widget build and launched Fylogia on one iPhone 17. All 18 unit tests passed; two of three UI tests passed.
+- **PARTIAL Cloud tests:** `testLandscapeFeedUsesHorizontalScrollingWithoutCurl` failed in the shared startup helper at `HybridUITests.swift:54`, because its `Story 1–2 of 8` landscape accessibility query did not appear within 60 seconds. The gesture checks did not run; saved Build 5 artifacts are in Xcode Cloud. The run lasted 6m47s with a 14s queue and eight warnings. No rerun, simulator reset, or source change followed.
+- Cloud packaging/build is now verified, but focused test acceptance remains partial. The workflow is unchanged and manual-only.
 
 ### Fylogia Apple development signing (7 November 2026)
 
