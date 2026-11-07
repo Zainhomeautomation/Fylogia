@@ -4164,3 +4164,296 @@ html[data-theme="light"] .brand-mark-light {
     transition: none;
   }
 }
+
+/* Premium editorial polish: shorten the path to stories and keep the
+   existing navigation and reading controls fully available. */
+.main .edition-bar {
+  padding-block: 2px 6px;
+}
+.main .page-heading {
+  padding-block: 5px 8px;
+}
+.main .page-heading h1 {
+  font-size: clamp(28px, 3.4vw, 44px);
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+}
+.main .download-toolbar {
+  margin-block: 5px 8px;
+  gap: 8px 16px;
+}
+.main .daily-edition {
+  margin-block: 4px 8px;
+  padding: 8px 14px;
+}
+.main .daily-edition .edition-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.main .daily-edition .edition-intro > :is(.eyebrow, small) {
+  display: none;
+}
+.main .daily-edition .edition-intro p {
+  flex: 0 1 auto;
+  font-size: 18px;
+  line-height: 1.15;
+  margin: 0;
+}
+.main .daily-edition .edition-intro .text-button,
+.main .daily-edition > .text-button {
+  min-height: 40px;
+  padding-block: 6px;
+}
+.main .reading-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 12px;
+}
+.main .reading-controls > .story-tools {
+  order: 0;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.main .reading-controls > .search-field {
+  order: 1;
+  flex: 1 1 200px;
+  min-width: 140px;
+  max-width: none;
+  margin: 0;
+}
+.main .reading-controls > .news-organization {
+  order: 2;
+  margin: 0;
+  min-height: 44px;
+  gap: 4px 12px;
+}
+.main .reading-controls > .readable-filter {
+  order: 3;
+  margin: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.main .reading-controls > .feed-view-switch {
+  order: 4;
+  margin: 0 0 0 auto;
+  gap: 12px;
+}
+.main
+  .reading-controls
+  > :is(.apple-navigation, .sports-navigation, .publication-selection) {
+  order: 5;
+  flex-basis: 100%;
+  min-width: 0;
+}
+.main .reading-controls .filter-tabs {
+  padding-bottom: 4px;
+}
+.main .reading-controls .filter-tabs button {
+  padding-block: 5px 8px;
+}
+.main .search-field {
+  margin-block: 5px 9px;
+}
+.main .story-category {
+  margin-block: 10px 4px;
+}
+.main .story h2 {
+  font-size: clamp(21px, 1.85vw, 27px);
+  line-height: 1.13;
+  letter-spacing: -0.02em;
+  margin-block: 6px 9px;
+}
+.main .story.lead h2 {
+  font-size: clamp(29px, 3vw, 43px);
+  line-height: 1.06;
+}
+.main .story-open p {
+  font-size: 16px;
+  line-height: 1.45;
+}
+.main .lead .story-open > img,
+.main .lead .story-open > .type-art {
+  height: clamp(280px, 31vw, 430px);
+}
+.main .lead .story-open > .story-placeholder {
+  align-self: start;
+  padding: 16px 20px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.main .lead .story-placeholder strong {
+  max-width: 55%;
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.main .lead .story-placeholder svg {
+  display: none;
+}
+.main .story:not(.lead) .story-placeholder {
+  padding: 14px 18px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-block: 1px solid var(--line);
+  background:
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--wash) 82%, transparent),
+      var(--wash)
+    ),
+    var(--wash);
+}
+.main .story:not(.lead) .story-placeholder span {
+  color: var(--green);
+  font-size: 9px;
+  letter-spacing: 1.3px;
+}
+.main .story:not(.lead) .story-placeholder strong {
+  max-width: 60%;
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.main .story:not(.lead) .story-placeholder svg {
+  display: none;
+}
+.main .story-grid {
+  gap: 22px 24px;
+}
+.main .section-heading {
+  margin-block: 20px 15px;
+  padding-bottom: 8px;
+}
+.main .section-heading h2 {
+  font-size: 25px;
+}
+.settings {
+  max-width: 820px;
+}
+.settings section {
+  padding-block: 8px 20px;
+  margin-bottom: 12px;
+}
+.settings h2 {
+  font-size: 25px;
+  line-height: 1.12;
+  margin-block: 8px 4px;
+}
+.settings p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-block: 4px 9px;
+}
+.settings h3 {
+  margin-block: 15px 7px;
+}
+.settings .field {
+  gap: 7px;
+  margin-block: 12px;
+}
+.settings .segmented {
+  gap: 3px;
+  padding: 3px;
+}
+.settings .segmented button {
+  min-height: 40px;
+  padding: 8px 11px;
+}
+.settings .advanced-settings[open] summary {
+  margin-bottom: 12px;
+}
+.news-book .feed-sheet .story .story-placeholder {
+  margin-bottom: 8px;
+}
+.news-book .feed-sheet .story .story-placeholder strong {
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .main .page-heading {
+    padding-block: 4px 7px;
+  }
+  .main .page-heading h1 {
+    font-size: clamp(29px, 7vw, 38px);
+  }
+  .main .lead .story-open > img,
+  .main .lead .story-open > .type-art {
+    height: auto;
+    aspect-ratio: 1.6;
+  }
+  .main .lead .story-open > .story-placeholder {
+    padding: 10px 14px;
+  }
+  .main .settings section {
+    padding-block: 6px 16px;
+  }
+  .main .settings .segmented {
+    max-width: 100%;
+  }
+  .main .settings .segmented button {
+    min-height: 44px;
+  }
+}
+@media (max-width: 440px) {
+  .main .edition-bar {
+    display: none;
+  }
+  .main .daily-edition {
+    gap: 4px 8px;
+    margin-block: 4px 6px;
+    padding: 4px 8px;
+  }
+  .main .daily-edition .edition-intro {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .main .daily-edition .edition-intro > :is(.eyebrow, p, small) {
+    display: none;
+  }
+  .main .daily-edition .edition-intro .text-button,
+  .main .daily-edition > .text-button {
+    min-height: 36px;
+    padding-block: 4px;
+  }
+  .main .reading-controls .feed-view-switch {
+    gap: 8px;
+    margin-block: 2px;
+  }
+  .main .reading-controls .feed-view-switch .text-button {
+    min-height: 36px;
+    padding-block: 4px;
+  }
+  .main .section-heading {
+    margin-block: 10px 8px;
+  }
+  .main .story:not(.lead) .story-placeholder {
+    padding: 9px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+  }
+  .main .story:not(.lead) .story-placeholder strong {
+    width: 100%;
+    max-width: 100%;
+    font-size: 9px;
+    line-height: 1.25;
+    text-align: left;
+  }
+}
