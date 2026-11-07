@@ -30,15 +30,23 @@ The saved workflow uses the existing shared scheme and focused test plan:
 
 This plan excludes both inactive curl experiments. Manual-only triggering prevents routine Web `main` pushes and scheduled news-data refreshes from consuming Cloud runs. The Cloud workflow is configured in Xcode/App Store Connect, not in GitHub Actions; the existing GitHub workflow is separate and triggers its CI only for Web `main` pushes/PRs or manual dispatch, with its scheduled job limited to refreshing Web news data.
 
-The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and referenced as non-default by the shared scheme. Its JSON parses, `xcodebuild -showTestPlans` lists it, and prior local serial `build-for-testing` validated its test products. The current clean-checkout check also verifies the app/widget build and generated WebAssets, but did not execute tests.
+The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and referenced as non-default by the shared scheme. Its JSON parses, `xcodebuild -showTestPlans` lists it, and prior local serial `build-for-testing` validated its test products. The Xcode Cloud clean-checkout run built successfully with the app, widget and generated WebKit assets.
+
+## First Xcode Cloud run
+
+- Commit: `e661c968c731839214d588640593fbc7195069e1` on `native-ios-foundation`.
+- Xcode Cloud Build action: **PASS**, Xcode 27.2 (27B52), iOS Simulator destination. Xcode reported 7 build issues/warnings; the build action itself completed successfully.
+- Unit tests: **16/17 PASS**. `testStartupDiagnosticsValidateMissingDelayedAndFailedStages` failed because the test observed an `indexeddb-read-failed` startup event (elapsed 4 ms) where it expected no event.
+- UI tests: **0/3 PASS**. `testArticleModesAndNavigationSurviveRotation`, `testGoldenNavigationSettingsAndScreenshots`, and `testLandscapeFeedUsesHorizontalScrollingWithoutCurl` each timed out after the feed did not become accessible within 60 seconds. XCTest runner launch diagnostics were written successfully. This establishes Cloud UI failures, but the available report does not establish whether the feed issue is an app startup defect or a Cloud simulator/runtime condition.
+- Cloud run elapsed time: **6 minutes** (9-second queue reported). The Xcode report showed no compute-credit, memory, or detailed resource-consumption breakdown, so those values remain unverified.
+- Cloud uploaded its logs, crash-log bundle and `.xcresult` artifact. No second run was started.
 
 ## Remaining setup and first-run gates
 
-1. Commit and push the generated Xcode Cloud manifest and this readiness update to `native-ios-foundation` before the first run. GitHub Actions quality/deploy triggers are limited to `main`; the scheduled news refresh remains on `main`.
-2. Start one manual run from the Xcode Cloud Reports navigator on `native-ios-foundation`. Verify the run shows Build and Test actions and one iPhone 17 destination. This first-run diagnostic must resolve the editor's warning that the shared scheme may exist only locally; the scheme and test plan are already tracked on the development branch.
-3. Review the Cloud build/test result and usage after completion. No additional compute was purchased. [Apple setup requirements](https://developer.apple.com/documentation/xcode/Setting-up-your-project-to-use-Xcode-Cloud) and [Cloud plans](https://developer.apple.com/xcode-cloud/get-started/)
-4. For TestFlight, confirm final version/build metadata, privacy disclosures, content and image rights, app metadata, and internal tester group before a separately authorized upload. No upload or tester invitation is authorized or performed in this task.
+1. Investigate the shared 60-second feed readiness timeout and the failing IndexedDB startup-diagnostics assertion before authorizing another Cloud run. Preserve the current result bundle as the baseline.
+2. Check Xcode Cloud account usage separately; this run's report shows wall-clock duration only, not compute credits or resource totals. No additional compute was purchased.
+3. For TestFlight, confirm final version/build metadata, privacy disclosures, content and image rights, app metadata, and internal tester group before a separately authorized upload. No upload or tester invitation is authorized or performed in this task.
 
 ## Readiness decision
 
-**Repository and distribution signing: READY for a later owner-authorized upload.** Clean-checkout bootstrap, generated WebAssets, app/widget builds, explicit IDs, App Store Connect record, shared scheme, focused plan, exported IPA signing, and Xcode Cloud workflow configuration are verified. **First Cloud run: PENDING.** Commit/push the workflow manifest, then validate one manual run on `native-ios-foundation`; actual Cloud build/test results and resource use remain unverified. **TestFlight: NOT UPLOADED.** No services were purchased or app distribution activated.
+**Repository and distribution signing: READY for a later owner-authorized upload.** Clean-checkout bootstrap, generated WebAssets, app/widget builds, explicit IDs, App Store Connect record, shared scheme, focused plan, exported IPA signing, and Xcode Cloud workflow configuration are verified. **Xcode Cloud: CONFIGURED; first run completed with a successful build and failing tests.** Investigate the recorded startup failures before treating Cloud testing as a release gate. Detailed resource consumption is not exposed in the reviewed report. **TestFlight: NOT UPLOADED.** No services were purchased or app distribution activated.
