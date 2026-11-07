@@ -2,6 +2,13 @@
 
 Updated 7 November 2026, Asia/Muscat. This supersedes the historical phase statuses in the root progress ledger. Development remains on `native-ios-foundation`; the golden website and production are protected.
 
+### Xcode Cloud build-workspace correction (7 November 2026)
+
+- Build 4 failed in the `Ensure Bundled WebAssets` phase after the pinned golden Web tag was fetched and verified and `npm ci` completed. The local-only Developments mount guard rejected the Cloud checkout. No unit or UI tests ran.
+- Added a Cloud-aware workspace preflight using Apple's documented Xcode Cloud environment variables. It fails closed unless the Cloud/CI markers, repository checkout, workspace ancestry, Fylogia Xcode project path/name, and build action agree. Local generation still invokes the unchanged SSD UUID/APFS/ownership/storage guard.
+- **PASS:** focused policy tests cover local missing SSD blocked, approved SSD allowed, verified Cloud allowed, and fake/mismatched Cloud blocked. Shell/Node syntax checks pass. `build-web.mjs` generates 59 assets and the generic app/widget build succeeds; the app bundle contains all 59 WebAssets files.
+- No simulator or local XCTest was run. One manual Cloud Build + Test verification remains pending; the Cloud workflow is unchanged and manual-only.
+
 ### Fylogia Apple development signing (7 November 2026)
 
 - **PASS team identification and target configuration:** Xcode Accounts lists **Zain Abdulahad** with **Admin** role. Selecting that team in the Xcode Signing & Capabilities panes revealed Team ID `WS32P56Z42`. Automatic signing now uses that team in Debug and Release for only the `Fylogia` app and `FylogiaWidgetExtension`; the original bundle IDs remain `com.fylogia.native` and `com.fylogia.native.widget`. Unit/UI test targets have no team override. No AIHomeOS project or signing configuration was changed.

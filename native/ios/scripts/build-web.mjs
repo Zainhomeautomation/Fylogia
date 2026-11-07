@@ -508,7 +508,7 @@ if ("serviceWorker"`,
 }
 const ios = resolve(dirname(fileURLToPath(import.meta.url)), ".."),
   repo = resolve(ios, "../..");
-execFileSync("sh", [resolve(ios, "scripts/check-development-volume.sh")], {
+execFileSync("sh", [resolve(ios, "scripts/check-build-workspace.sh")], {
   stdio: "inherit",
 });
 const stage = resolve(ios, ".build/golden-source");
