@@ -1,4 +1,4 @@
-import { test, mockEdition } from "./edition-fixture";
+import { test } from "./edition-fixture";
 import { expect, type Page } from "@playwright/test";
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -29,23 +29,29 @@ const headlines = [
 
 async function seed(page: Page) {
   const edition = await (await page.request.get("data/edition.json")).json();
-  await mockEdition(page, {
-    ...edition,
-    articles: headlines.map((title, i) => ({
-      id: `premium-design-${i}`,
-      title,
-      sourceId: "nasa",
-      source: "A Thoughtfully Named Independent Publisher",
-      url: `https://example.test/premium-design/${i}`,
-      categories: ["Technology"],
-      region: "Worldwide",
-      published: new Date(Date.now() - i * 60_000).toISOString(),
-      excerpt: "A short publisher preview with useful context for readers.",
-      content: "<p>Design regression fixture.</p>",
-      full: false,
-      ...(i === 0 ? { image: "https://images.example.test/cover.png" } : {}),
-    })),
-  });
+  await page.route("**/data/edition.json*", (route) =>
+    route.fulfill({
+      json: {
+        ...edition,
+        articles: headlines.map((title, i) => ({
+          id: `premium-design-${i}`,
+          title,
+          sourceId: "nasa",
+          source: "A Thoughtfully Named Independent Publisher",
+          url: `https://example.test/premium-design/${i}`,
+          categories: ["Technology"],
+          region: "Worldwide",
+          published: new Date(Date.now() - i * 60_000).toISOString(),
+          excerpt: "A short publisher preview with useful context for readers.",
+          content: "<p>Design regression fixture.</p>",
+          full: false,
+          ...(i === 0
+            ? { image: "https://images.example.test/cover.png" }
+            : {}),
+        })),
+      },
+    }),
+  );
   await page.addInitScript(
     (prefs) => {
       localStorage.setItem("folio.v1.preferences", JSON.stringify(prefs));
@@ -92,6 +98,8 @@ test("homepage keeps editorial hierarchy, permitted imagery and compact publishe
         ".editorial-grid .story:not(.lead) .story-placeholder",
       )!;
       const fallbackName = fallback.querySelector("strong")!;
+      const fallbackRect = fallback.getBoundingClientRect();
+      const fallbackNameRect = fallbackName.getBoundingClientRect();
       return {
         viewportWidth: document.documentElement.clientWidth,
         documentWidth: document.documentElement.scrollWidth,
@@ -101,11 +109,14 @@ test("homepage keeps editorial hierarchy, permitted imagery and compact publishe
         headlineHeight: title.getBoundingClientRect().height,
         headlineScrollHeight: title.scrollHeight,
         fallbackHeight: fallback.getBoundingClientRect().height,
-        fallbackRatio:
-          fallback.getBoundingClientRect().width /
-          fallback.getBoundingClientRect().height,
+        fallbackRatio: fallbackRect.width / fallbackRect.height,
         fallbackNameFont: parseFloat(getComputedStyle(fallbackName).fontSize),
         fallbackNameLines: fallbackName.getBoundingClientRect().height,
+        fallbackNameFits:
+          fallbackNameRect.left >= fallbackRect.left - 1 &&
+          fallbackNameRect.right <= fallbackRect.right + 1 &&
+          fallbackNameRect.top >= fallbackRect.top - 1 &&
+          fallbackNameRect.bottom <= fallbackRect.bottom + 1,
         storyText: main.innerText.includes("A clear view of the day"),
       };
     });
@@ -124,7 +135,8 @@ test("homepage keeps editorial hierarchy, permitted imagery and compact publishe
       width <= 440 ? 0.8 : 1.4,
     );
     expect(layout.fallbackNameFont, name).toBeLessThanOrEqual(14);
-    expect(layout.fallbackNameLines, name).toBeLessThan(42);
+    expect(layout.fallbackNameLines, name).toBeLessThan(50);
+    expect(layout.fallbackNameFits, name).toBe(true);
     expect(layout.storyText, name).toBe(true);
     if (
       process.env.FYLOGIA_SCREENSHOTS &&
