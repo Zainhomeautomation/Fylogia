@@ -14,15 +14,10 @@ Updated 7 November 2026, Asia/Muscat. This supersedes the historical phase statu
 
 ### Xcode Cloud clean-checkout readiness (7 November 2026)
 
-- The shared `Fylogia` scheme builds the app and widget dependency and includes both unit and UI tests. A fresh clone confirmed that ignored `WebAssets` were missing: the native project compiled but lacked `WebAssets/index.html` in the app bundle. Added root `ci_scripts/ci_post_clone.sh` to install locked Node 24 dependencies from the immutable Web golden tag and generate only the Native bundle assets before Xcode runs.
-- **PASS clean-checkout validation:** post-clone asset generation, app/widget simulator build, and `build-for-testing` for both test targets succeeded from the fresh clone. The resulting `.app` contains `WebAssets/index.html`; no simulator was booted and no test was executed. Detailed Xcode Cloud version/account/workflow findings and owner steps are in `native/ios/XCODE-CLOUD-READINESS.md`.
-- **Owner gate:** Xcode Cloud’s exact Xcode 27.2 availability, Cloud simulator destination list, Apple team, and any App Store Connect record must be confirmed in the authenticated Xcode/ASC setup. No Cloud workflow was created or started and no signing configuration or subscription was changed.
-
-### Focused manual Xcode Cloud plan (7 November 2026)
-
-- Added the shared, non-default `Fylogia-Focused-Cloud` plan: all native unit tests plus three essential UI navigation checks for landscape horizontal spread scrolling without curl, article navigation/rotation, and Settings/navigation. The normal shared scheme test action remains the default; both preserved curl experiments remain excluded from the active plan.
-- The plan parses through `xcodebuild -showTestPlans`, and its app/widget/test-runner products compile through serial `build-for-testing` on the Developments SSD. No simulator was booted and no XCTest or Cloud job was run.
-- Intended account-side workflow is manual-only and branch-scoped to `native-ios-foundation`; no workflow, signing, team, or Cloud account configuration was changed. Apple Developer enrollment/team confirmation remains an owner prerequisite before configuration or a Cloud run.
+- **PASS current clean-checkout build at 4bea937:** a detached clean Git worktree ran `ci_scripts/ci_post_clone.sh`, generated ignored Native `WebAssets/index.html`, and built the app plus embedded widget for generic iOS Simulator using Xcode 27.2, code signing disabled and one build job. No simulator or XCTest was run. Prior clean-clone `build-for-testing` evidence remains recorded; this current pass was build-only.
+- The shared `Fylogia` scheme contains the app and both test targets; the non-default `native/ios/Fylogia-Focused-Cloud.xctestplan` runs all native unit tests plus three essential UI navigation cases and excludes curl experiments. `xcodebuild -list` and `-showTestPlans` recognize the scheme and plan. Local configuration checks confirmed the app/widget bundle IDs, automatic signing, and that `DEVELOPMENT_TEAM` is unset.
+- **Recommended single workflow:** owner-configured in Xcode Cloud, manual start only, branch `native-ios-foundation`, shared `Fylogia` scheme, focused plan, one supported iPhone simulator, no archive/TestFlight action or automatic push/PR/schedule trigger. This prevents Web `main` and routine news refresh changes from starting native Cloud runs.
+- **Owner gate:** Apple Developer Program/team membership, exact Team ID, App Store Connect app record and account-specific supported Xcode/destination list must be confirmed before account-side setup. No Cloud workflow/job, account connection, signing change, subscription, archive or TestFlight upload was made. Full owner steps and Apple references are in `native/ios/XCODE-CLOUD-READINESS.md`.
 
 ### First-launch reading guidance correction (7 November 2026)
 
