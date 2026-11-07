@@ -1,13 +1,14 @@
 # Fylogia App Store preparation checklist
 
-Status: **preparation ledger only; no release archive, TestFlight upload or submission**. Phase 15 follows implementation and quality validation. Final App Store submission requires explicit owner approval.
+Status: **preparation ledger only; a local App Store signed export was verified, but nothing was uploaded or submitted**. Phase 15 follows implementation and quality validation. Final App Store submission requires explicit owner approval.
 
 ### TestFlight readiness audit (7 November 2026)
 
-- Xcode/App Store Connect access is confirmed for Zain Abdulahad, Admin, Team ID `WS32P56Z42`. The App Store Connect Apps page is empty; no `com.fylogia.native` app record exists. No record was created.
-- The Developer portal currently lists no explicit Fylogia App IDs, no provisioning profiles, and only a Development certificate. The local keychain also has no Apple Distribution identity. The previous signed Debug build is not an App Store/TestFlight distribution build.
-- **BLOCKED before archive/export:** an Admin must register the explicit app identifier `com.fylogia.native` (and `com.fylogia.native.widget` for the embedded extension), then create the App Store Connect app record with the existing app bundle ID. The owner must choose the primary language and a unique SKU; Apple does not allow changing the SKU after record creation. Check for an existing team distribution certificate before allowing Xcode Automatic signing to create/manage App Store profiles.
-- No archive, distribution signing asset, app record, upload, TestFlight processing or invitation was created. After the owner creates the identifiers and record, resume with a Release archive and verify App Store Connect signing for both app and widget. Internal TestFlight uses App Store Connect users assigned to the app; it does not require device UDID registration. Tester assignment and distribution remain behind owner approval.
+- **PASS registration:** Apple Developer team `WS32P56Z42` now has explicit App IDs `com.fylogia.native` (Fylogia) and `com.fylogia.native.widget` (Fylogia Widget). Both were registered without enabling extra capabilities.
+- **PASS App Store Connect record:** Fylogia is present with platform iOS, primary language English (U.S.), bundle ID `com.fylogia.native`, SKU `FYLOGIA-IOS-001`, Apple ID `6831956558`, and status Prepare for Submission. No version was submitted.
+- **PASS Release distribution signing:** the Release archive built successfully. The archive itself used the local Apple Development identity, so it was not treated as the distribution artifact. A local `app-store-connect` export then succeeded and Xcode's DistributionSummary verified Cloud Managed Apple Distribution signing for both app and embedded widget, Team ID `WS32P56Z42`, explicit store provisioning profiles, and `get-task-allow=false`. The exported IPA is `/Volumes/Developments/Xcode/Archives/Fylogia-Registration-Export/Fylogia.ipa`. This verification did not upload it.
+- **Xcode Cloud:** the team Cloud page is accessible but still displays its Get started in Xcode setup state. No workflow or Cloud build was created. Proposed first workflow: manual-only on `native-ios-foundation`, shared `Fylogia` scheme, `Fylogia-Focused-Cloud` plan, one available iPhone simulator, serial tests, no archive or distribution post-action. See `native/ios/XCODE-CLOUD-READINESS.md`.
+- No build was uploaded, no testers were invited, and no app was published. TestFlight processing, device installation, final metadata/privacy/rights review, and owner submission approval remain outstanding. Internal testing does not require UDID registration.
 
 ## Owner product requirements
 
@@ -20,7 +21,8 @@ Status: **preparation ledger only; no release archive, TestFlight upload or subm
 
 - [ ] Universal native application builds and launches in a usable Apple environment.
 - [ ] Architecture and supported OS versions selected from evidence.
-- [x] App/widget bundle identifiers, Fylogia Team ID `WS32P56Z42`, Automatic development signing and signed generic-device Debug build verified. App Store distribution signing, app record and any future capabilities remain unverified.
+- [x] Explicit app/widget App IDs, App Store Connect record, bundle identifiers and Team ID `WS32P56Z42` verified.
+- [x] Automatic signing verified for app and widget; local App Store Connect export verified Cloud Managed Apple Distribution certificates, explicit store profiles and non-debuggable entitlements. Archive itself is development-signed; use the verified exported IPA for any later authorized upload.
 - [x] Apple Developer enrollment and Admin team access confirmed in Xcode. Legal agreements and any payment obligations remain owner-managed.
 - [ ] Native icons/required device screenshots captured from the real application.
 - [ ] App description, keywords, release notes and support contact approved.
@@ -33,4 +35,4 @@ Status: **preparation ledger only; no release archive, TestFlight upload or subm
 - [ ] TestFlight signing/upload and external-testing requirements satisfied with authorized Apple access.
 - [ ] Known release blockers resolved and final owner submission approval recorded.
 
-The signed build used Xcode-managed wildcard provisioning profiles; no App Store Connect app record, explicit App ID/capability configuration, container, native upload, monetization activation, Apple agreement acceptance, purchase or Store submission was verified or performed by this task. No secrets/certificates/private signing keys belong in this repository. App name availability and App Store approval are unverified.
+The App Store Connect record and explicit identifiers are now registered. No capabilities or CloudKit containers were enabled. No upload, TestFlight distribution, monetization activation, purchase or Store submission was performed. Xcode Cloud remains unconfigured. No secrets/certificates/private signing keys belong in this repository. App name availability beyond the created record and App Store approval are unverified.
