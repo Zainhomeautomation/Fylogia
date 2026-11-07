@@ -1,6 +1,6 @@
 # Fylogia Xcode Cloud and TestFlight readiness
 
-Updated 7 November 2026. This is a repository-side readiness record. The Zain Abdulahad Apple Developer team (`WS32P56Z42`), explicit app/widget IDs, and App Store Connect app record are verified. Automatic signing was verified by a local App Store Connect export for both app and widget. Xcode Cloud source access is connected and a manual-only workflow has been saved; the first Cloud run is pending.
+Updated 7 November 2026. This is a repository-side readiness record. The Zain Abdulahad Apple Developer team (`WS32P56Z42`), explicit app/widget IDs, and App Store Connect app record are verified. Automatic signing was verified by a local App Store Connect export for both app and widget. Xcode Cloud source access is connected and a manual-only workflow has been saved. The first Cloud run completed with an app-bundle resource failure; its correction is being verified in one authorized follow-up run.
 
 ## Verified repository configuration
 
@@ -36,14 +36,18 @@ The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and 
 
 - Commit: `e661c968c731839214d588640593fbc7195069e1` on `native-ios-foundation`.
 - Xcode Cloud Build action: **PASS**, Xcode 27.2 (27B52), iOS Simulator destination. Xcode reported 7 build issues/warnings; the build action itself completed successfully.
-- Unit tests: **16/17 PASS**. `testStartupDiagnosticsValidateMissingDelayedAndFailedStages` failed because the test observed an `indexeddb-read-failed` startup event (elapsed 4 ms) where it expected no event.
-- UI tests: **0/3 PASS**. `testArticleModesAndNavigationSurviveRotation`, `testGoldenNavigationSettingsAndScreenshots`, and `testLandscapeFeedUsesHorizontalScrollingWithoutCurl` each timed out after the feed did not become accessible within 60 seconds. XCTest runner launch diagnostics were written successfully. This establishes Cloud UI failures, but the available report does not establish whether the feed issue is an app startup defect or a Cloud simulator/runtime condition.
+- Unit tests: **16/17 PASS**. The failing assertion was a test-fixture mismatch: the test deliberately passed a valid `indexeddb-read-failed` stage with a disallowed private error name, then incorrectly expected the whole event to be rejected. The parser correctly kept the allowlisted stage and stripped the private `errorName`. No real IndexedDB runtime failure was recorded by this assertion.
+- UI tests: **0/3 PASS**. All three tests stopped at the shared feed-readiness gate after 60 seconds. The captured screenshot and accessibility hierarchy show Fylogia's native recovery message, “Bundled golden interface is missing. Run build-web.mjs before building the app.” The app log recorded `web-assets-missing` 414 ms after startup, before local server, IndexedDB, library, or feed readiness. WebKit's content process did launch; the feed was never loaded. The test runner and accessibility query were operating; the feed was absent because the generated `WebAssets` folder was not present in the app bundle. This is an Xcode resource packaging defect, not a timeout or selector mismatch.
+- Local comparison: previous iPhone 17 and Fresh iPad Pro 11 focused UI runs reached the feed with the same startup/readiness checks. The Cloud run differs at the app-bundle boundary: its build log had no `WebAssets` resource-copy operation, and its failure attachments show the native missing-assets recovery screen. No IndexedDB read or feed-preparation stage was reached in Cloud.
 - Cloud run elapsed time: **6 minutes** (9-second queue reported). The Xcode report showed no compute-credit, memory, or detailed resource-consumption breakdown, so those values remain unverified.
-- Cloud uploaded its logs, crash-log bundle and `.xcresult` artifact. No second run was started.
+- The `indexeddb-read-failed` event is only the unit test's input fixture; it was not an unexpected app diagnostic. The parser test now asserts that the valid event survives while private error text is removed.
+- The project now has a bounded `Ensure Bundled WebAssets` build phase after resource copying. It verifies the generated source entry point, copies the WebAssets folder into the app bundle when Xcode's synchronized-folder resource pass has not done so, and fails the build with a direct message if the post-clone assets are absent. A unit test guards `Bundle.main/WebAssets/index.html`.
+- Local validation: `ci_scripts/ci_post_clone.sh` passed and regenerated ignored Native WebAssets; serial `build-for-testing` succeeded and the resulting app bundle contains `WebAssets/index.html`; focused unit tests **2/2 PASS** (startup event/privacy validation and bundled interface presence); isolated WebKit startup regressions **4/4 PASS** (success 714 ms, delayed IndexedDB transaction 5,414 ms, failed read/retry, failed write fallback). Native UI tests were not rerun locally because the internal disk headroom reached its 20 GiB safety floor after simulator startup and focused unit tests.
+- Cloud uploaded its logs, crash-log bundle and `.xcresult` artifact. One follow-up manual Cloud run is authorized after the validated correction is pushed; no repeat run will be started.
 
 ## Remaining setup and first-run gates
 
-1. Investigate the shared 60-second feed readiness timeout and the failing IndexedDB startup-diagnostics assertion before authorizing another Cloud run. Preserve the current result bundle as the baseline.
+1. Complete the single authorized manual Cloud verification for the bundled-WebAssets correction. Stop after that run and record its results; do not repeat it automatically.
 2. Check Xcode Cloud account usage separately; this run's report shows wall-clock duration only, not compute credits or resource totals. No additional compute was purchased.
 3. For TestFlight, confirm final version/build metadata, privacy disclosures, content and image rights, app metadata, and internal tester group before a separately authorized upload. No upload or tester invitation is authorized or performed in this task.
 

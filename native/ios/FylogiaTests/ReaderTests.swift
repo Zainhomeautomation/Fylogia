@@ -72,9 +72,18 @@ import XCTest
     XCTAssertNil(NativeStartupStageEvent(message: ["stage": "startup-failed", "elapsedMs": -1]))
     XCTAssertNil(
       NativeStartupStageEvent(message: ["stage": "startup-failed", "elapsedMs": 600_001]))
-    XCTAssertNil(
-      NativeStartupStageEvent(
-        message: ["stage": "indexeddb-read-failed", "elapsedMs": 4, "errorName": "PrivateMessage"]))
+    let sanitizedReadFailure = NativeStartupStageEvent(
+      message: ["stage": "indexeddb-read-failed", "elapsedMs": 4, "errorName": "PrivateMessage"])
+    XCTAssertNotNil(sanitizedReadFailure)
+    XCTAssertNil(sanitizedReadFailure?.errorName)
+  }
+  func testBundledGoldenInterfaceIsPresentInApplicationBundle() {
+    let interface = Bundle.main.url(forResource: "WebAssets", withExtension: nil)
+    XCTAssertNotNil(interface, "The app must bundle its generated native WebKit interface")
+    let entryPoint = interface?.appendingPathComponent("index.html")
+    XCTAssertTrue(
+      entryPoint.map { FileManager.default.fileExists(atPath: $0.path) } ?? false,
+      "The bundled WebAssets folder must contain index.html")
   }
   func testWidgetDeepLinkValidatesAndEncodesStoryRoute() {
     let url = URL(string: "fylogia://story?id=story-123")!
