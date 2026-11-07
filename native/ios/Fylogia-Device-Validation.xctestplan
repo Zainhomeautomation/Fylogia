@@ -1,0 +1,31 @@
+{
+  "configurations" : [
+    {
+      "id" : "153EEB24-FA73-429B-B7B9-9B5DE7A3F06F",
+      "name" : "Device Acceptance",
+      "options" : { }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "selectedTests" : [
+        "HybridUITests/testLandscapeFeedUsesHorizontalScrollingWithoutCurl",
+        "HybridUITests/testArticleModesAndNavigationSurviveRotation",
+        "HybridUITests/testExtendedReadingSessionPreservesPositionAcrossRotations",
+        "HybridUITests/testOfflinePDFContinuousScrolling",
+        "HybridUITests/testFocusedAccessibilityTargetsAndStoryDescription",
+        "HybridUITests/testGoldenNavigationSettingsAndScreenshots"
+      ],
+      "target" : {
+        "containerPath" : "container:Fylogia.xcodeproj",
+        "identifier" : "8E82A1B3F4CE713E9A205275",
+        "name" : "FylogiaUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
