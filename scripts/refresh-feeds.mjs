@@ -6,7 +6,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { sources } from "../src/catalog.ts";
 import {
   latestPublication,
-  feedFreshness,
+  feedStatusFreshness,
   deduplicateArticles,
 } from "../src/source-utils.ts";
 import { feedArticle } from "./feed-content.mjs";
@@ -92,7 +92,7 @@ async function refresh(source) {
           lastSuccess: now,
           consecutiveFailures: 0,
           notModified: true,
-          freshness: feedFreshness(old.latestPublished || ""),
+          freshness: feedStatusFreshness(true, old.latestPublished || ""),
         },
       };
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -122,7 +122,7 @@ async function refresh(source) {
         checked: now,
         lastSuccess: now,
         latestPublished: latest,
-        freshness: feedFreshness(latest),
+        freshness: feedStatusFreshness(true, latest),
         consecutiveFailures: 0,
         etag: response.headers.get("etag") || undefined,
         lastModified: response.headers.get("last-modified") || undefined,
@@ -141,7 +141,7 @@ async function refresh(source) {
         checked: now,
         lastSuccess: old?.lastSuccess || (old?.ok ? old.checked : undefined),
         latestPublished: old?.latestPublished || "",
-        freshness: feedFreshness(old?.latestPublished || ""),
+        freshness: feedStatusFreshness(false, old?.latestPublished || ""),
         consecutiveFailures: (old?.consecutiveFailures || 0) + 1,
         error: error.message,
       },

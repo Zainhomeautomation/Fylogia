@@ -390,9 +390,9 @@ const catalogSources: Source[] = [
   },
   {
     id: "cars",
-    name: "Autoblog",
-    url: "https://www.autoblog.com/rss.xml",
-    site: "https://www.autoblog.com",
+    name: "Carscoops",
+    url: "https://www.carscoops.com/feed/",
+    site: "https://www.carscoops.com/",
     categories: ["Cars"],
     region: "Worldwide",
   },

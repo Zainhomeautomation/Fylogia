@@ -240,8 +240,8 @@ export const expandedSources: Source[] = [
   },
   {
     id: "esa-space-news",
-    name: "ESA Space News",
-    url: "https://www.esa.int/rssfeed/Our_Activities/Space_News",
+    name: "ESA · Top News",
+    url: "https://www.esa.int/rssfeed/TopNews",
     site: "https://www.esa.int/",
     categories: ["Space", "Science"],
     region: "Worldwide",
