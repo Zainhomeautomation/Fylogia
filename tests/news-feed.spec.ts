@@ -326,7 +326,19 @@ test("rapid turns remain ordered and an abandoned mouse edge drag returns natura
   const spread = Number(await surface.getAttribute("data-paper-spread"));
   const next = page.getByRole("button", { name: "Next stories", exact: true });
   await next.click();
+  await expect(surface).toHaveAttribute("data-page-turn", /.+/);
   await next.click();
+  // A variable-height destination can resize the paper while the released
+  // first turn is committing. The queued second turn must survive that reflow.
+  const heightBeforeReflow = await surface.evaluate(
+    (node) => node.clientHeight,
+  );
+  await surface.evaluate((node) => {
+    node.style.setProperty("--feed-page-height", `${node.clientHeight + 24}px`);
+  });
+  await expect
+    .poll(() => surface.evaluate((node) => node.clientHeight))
+    .toBeGreaterThan(heightBeforeReflow);
   await expect(active(page).locator("h2").first()).toContainText(
     `News page ${spread * 2 + 1}:`,
   );

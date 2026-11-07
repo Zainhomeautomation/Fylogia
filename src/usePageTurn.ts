@@ -125,11 +125,11 @@ function createEngine(
       if (q) navigate(q.forward, q.turn, q.axis);
     }
   }
-  function clear() {
+  function clear(runQueue = false) {
     if (gesture.current?.dragging) suppressClickUntil = performance.now() + 500;
     const s = current.current;
-    queued.current = null;
-    if (s) dispose(s);
+    if (s) dispose(s, runQueue);
+    else queued.current = null;
     gesture.current = null;
   }
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -393,6 +393,9 @@ function createEngine(
     const observer = new ResizeObserver(() => {
       if (width !== surface.clientWidth || height !== surface.clientHeight) {
         const s = current.current;
+        const completedTurn = Boolean(
+          s?.committing && (s.applied || width === surface.clientWidth),
+        );
         // Font/image reflow must not discard a turn the user already released.
         // A width change invalidates sheet geometry and retains the old anchor;
         // an unfinished/canceled drag never becomes navigation on either path.
@@ -400,7 +403,10 @@ function createEngine(
           applyOnce(s);
         width = surface.clientWidth;
         height = surface.clientHeight;
-        clear();
+        // A committed page can resize when its destination content is mounted.
+        // Finish that turn and then run queued navigation against the new
+        // layout; canceled gestures and uncommitted width changes still clear.
+        clear(completedTurn);
       }
     });
     observer.observe(surface);
