@@ -117,7 +117,10 @@
           sound: localStorage.getItem("fylogia.native.sound") === "true",
         });
       });
-      row.append(input, document.createTextNode(label));
+      const indicator = document.createElement("span");
+      indicator.className = "native-checkbox-indicator";
+      indicator.setAttribute("aria-hidden", "true");
+      row.append(input, indicator, document.createTextNode(label));
       options.append(row);
     }
     const tips = document.createElement("button");

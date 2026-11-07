@@ -142,6 +142,19 @@ final class HybridUITests: XCTestCase {
     XCTAssertTrue(element.isHittable, "\(name) must be reachable")
   }
 
+  @MainActor private func scrollSettingsElementIntoView(
+    _ element: XCUIElement, app: XCUIApplication, name: String
+  ) {
+    let webView = app.webViews.firstMatch
+    XCTAssertTrue(webView.waitForExistence(timeout: 8), "Settings WebView must be available")
+    for _ in 0..<10 {
+      if element.exists && element.isHittable { return }
+      webView.swipeUp()
+    }
+    XCTAssertTrue(element.exists, "\(name) must be exposed in Settings")
+    XCTAssertTrue(element.isHittable, "\(name) must be scrolled into view")
+  }
+
   @MainActor func testFocusedAccessibilityTargetsAndStoryDescription() throws {
     XCUIDevice.shared.orientation = .portrait
     let app = try launch()
@@ -193,14 +206,26 @@ final class HybridUITests: XCTestCase {
     navigate("Settings", app: app)
     let appearance = app.switches["Warm cream paper"].firstMatch
     let readingMode = app.staticTexts["Reading mode"].firstMatch
+    scrollSettingsElementIntoView(appearance, app: app, name: "Settings appearance choice")
     assertAccessibleHitTarget(appearance, name: "Settings appearance choice")
-    XCTAssertTrue(readingMode.waitForExistence(timeout: 8), "Reading mode must be discoverable")
+    scrollSettingsElementIntoView(readingMode, app: app, name: "Reading mode")
     XCTAssertTrue(readingMode.isHittable, "Reading mode must be visible to assistive technology")
     XCTAssertTrue(
       app.staticTexts.matching(
         NSPredicate(format: "label CONTAINS %@", "Scroll vertically in portrait")
       ).firstMatch.exists,
       "Settings must explain the active scroll-only reading modes")
+
+    let compactWidth = app.webViews.firstMatch.frame.width
+    XCUIDevice.shared.orientation = .landscapeRight
+    let wideWebView = app.webViews.firstMatch
+    XCTAssertGreaterThan(
+      wideWebView.frame.width, compactWidth, "Landscape Settings must use the wider layout")
+    scrollSettingsElementIntoView(appearance, app: app, name: "Wide Settings appearance choice")
+    assertAccessibleHitTarget(appearance, name: "Wide Settings appearance choice")
+    scrollSettingsElementIntoView(readingMode, app: app, name: "Wide Settings reading mode")
+    XCTAssertTrue(readingMode.isHittable, "Wide Settings reading mode must be visible")
+    XCUIDevice.shared.orientation = .portrait
 
     let screenshot = XCTAttachment(screenshot: app.screenshot())
     screenshot.name = "accessibility-targets-settings"
