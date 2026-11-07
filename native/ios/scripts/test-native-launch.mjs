@@ -43,6 +43,12 @@ try {
   await page
     .getByRole("complementary", { name: "Reading tips", exact: true })
     .waitFor();
+  const readingTip = await page
+    .getByRole("complementary", { name: "Reading tips", exact: true })
+    .textContent();
+  assert.match(readingTip, /swipe sideways through two facing stories/i);
+  assert.match(readingTip, /Previous and Next spread buttons/i);
+  assert.doesNotMatch(readingTip, /curl|turn the magazine/i);
   const preferences = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("folio.v1.preferences")),
   );
@@ -57,6 +63,11 @@ try {
     await page.getByRole("button", { name: "Next tip", exact: true }).click();
     await page.getByRole("heading", { name: title, exact: true }).waitFor();
   }
+  const discoveryTip = await page
+    .getByRole("complementary", { name: "Reading tips", exact: true })
+    .textContent();
+  assert.match(discoveryTip, /Explore to browse categories/i);
+  assert.match(discoveryTip, /My Sources to follow publications/i);
   await page
     .getByRole("button", { name: "Start reading", exact: true })
     .click();

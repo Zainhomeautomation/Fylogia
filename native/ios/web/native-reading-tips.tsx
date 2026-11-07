@@ -6,7 +6,7 @@ const tutorialKey = "fylogia.native.reading-tips.v1";
 const tips = [
   [
     "Make yourself comfortable",
-    "Scroll vertically in narrow windows. In a wide window, drag a page from its outer edge to turn the magazine. Page buttons work too.",
+    "Scroll vertically in narrow windows. In a wide window, swipe sideways through two facing stories or use the Previous and Next spread buttons.",
   ],
   [
     "Keep a good story",
@@ -18,7 +18,7 @@ const tips = [
   ],
   [
     "Choose your sources",
-    "Open My Sources from the navigation menu to follow publications. For You learns from your reading and saved stories on this device.",
+    "Open Explore to browse categories or My Sources to follow publications. For You learns from your reading and saved stories on this device.",
   ],
 ] as const;
 

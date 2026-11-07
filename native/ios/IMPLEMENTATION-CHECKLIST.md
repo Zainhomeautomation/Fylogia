@@ -2,6 +2,12 @@
 
 Updated 7 November 2026, Asia/Muscat. This supersedes the historical phase statuses in the root progress ledger. Development remains on `native-ios-foundation`; the golden website and production are protected.
 
+### First-launch reading guidance correction (7 November 2026)
+
+- Replaced the stale first-tip instruction to curl pages with the active behavior: narrow windows scroll vertically, while wide layouts swipe horizontally through facing stories or use Previous/Next spread controls. The discovery tip now points readers to Explore for categories and My Sources for publications. Existing bookmark/offline and Settings tips remain available.
+- **PASS focused WebKit launch regression:** `scripts/test-native-launch.mjs` now asserts the actual scroll-only instructions and category navigation guidance. The same test confirms the first launch shows general news without a setup gate, tips can be completed/skipped/replayed, returning and partially configured libraries retain preferences/progress, saved stories persist across restart, and no web-account pairing or JavaScript errors occur.
+- **PASS native build:** Native WebAssets rebuilt; serial Debug simulator-target `xcodebuild` succeeded with DerivedData on Developments SSD. No simulator was booted, so native UI XCTest was not run in this milestone.
+
 ### Native landscape spread navigation (7 November 2026)
 
 - **PASS WebKit:** Added labeled Previous/Next spread controls to wide landscape reading. Buttons navigate one facing spread, disable at the first/last spread, retain the active story anchor, and use instant movement when Reduce Motion is enabled. They remain inside the existing cream-paper reader, with 44 px minimum targets and visible keyboard focus; swipe scrolling remains available. Portrait, articles, PDFs, bookmarks, offline behavior, and the inactive UIKit/WebKit curl engines were not changed.
