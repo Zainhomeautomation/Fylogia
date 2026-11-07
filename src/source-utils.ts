@@ -55,6 +55,13 @@ export function feedFreshness(
   const days = Math.max(0, (now - date) / 86400000);
   return days <= 30 ? "fresh" : days <= 90 ? "aging" : "stale";
 }
+export function feedStatusFreshness(
+  successful: boolean,
+  latest: string,
+  now = Date.now(),
+): "fresh" | "aging" | "stale" | "unknown" {
+  return successful ? feedFreshness(latest, now) : "stale";
+}
 export function canonicalStoryUrl(value: string) {
   try {
     const u = new URL(value);

@@ -5,6 +5,7 @@ import { sources, categories, regions } from "../src/catalog.ts";
 import {
   publicUrl,
   feedFreshness,
+  feedStatusFreshness,
   latestPublication,
   canonicalStoryUrl,
   deduplicateArticles,
@@ -89,6 +90,15 @@ test("freshness rejects implausible future dates and identifies aging sources", 
   assert.equal(feedFreshness("2026-09-01", now), "aging");
   assert.equal(feedFreshness("2026-01-01", now), "stale");
   assert.equal(feedFreshness("", now), "unknown");
+});
+test("failed feed attempts are never reported as fresh", () => {
+  const now = Date.parse("2026-10-29T12:00:00Z");
+  assert.equal(feedStatusFreshness(false, "2026-10-29", now), "stale");
+  assert.equal(feedStatusFreshness(false, "", now), "stale");
+  assert.equal(feedStatusFreshness(true, "2026-10-28", now), "fresh");
+  assert.equal(feedStatusFreshness(true, "2026-09-01", now), "aging");
+  assert.equal(feedStatusFreshness(true, "2026-01-01", now), "stale");
+  assert.equal(feedStatusFreshness(true, "", now), "unknown");
 });
 const article = (sourceId, url, full = false) => ({
   id: url,
