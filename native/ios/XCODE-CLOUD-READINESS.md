@@ -1,6 +1,6 @@
 # Fylogia Xcode Cloud and TestFlight readiness
 
-Updated 7 November 2026. This is a repository-side readiness record. The Zain Abdulahad Apple Developer team (`WS32P56Z42`), explicit app/widget IDs, and App Store Connect app record are verified. Automatic signing was verified by a local App Store Connect export for both app and widget. Xcode Cloud source access is connected and a manual-only workflow has been saved. The first Cloud run completed with an app-bundle resource failure; its correction is being verified in one authorized follow-up run.
+Updated 7 November 2026. This is a repository-side readiness record. The Zain Abdulahad Apple Developer team (`WS32P56Z42`), explicit app/widget IDs, and App Store Connect app record are verified. Automatic signing was verified by a local App Store Connect export for both app and widget. Xcode Cloud source access is connected and a manual-only workflow has been saved. The first run found missing bundled resources at app startup. The one authorized follow-up run failed in the new asset-check build phase before tests began; Cloud validation remains blocked.
 
 ## Verified repository configuration
 
@@ -45,10 +45,18 @@ The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and 
 - Local validation: `ci_scripts/ci_post_clone.sh` passed and regenerated ignored Native WebAssets; serial `build-for-testing` succeeded and the resulting app bundle contains `WebAssets/index.html`; focused unit tests **2/2 PASS** (startup event/privacy validation and bundled interface presence); isolated WebKit startup regressions **4/4 PASS** (success 714 ms, delayed IndexedDB transaction 5,414 ms, failed read/retry, failed write fallback). Native UI tests were not rerun locally because the internal disk headroom reached its 20 GiB safety floor after simulator startup and focused unit tests.
 - Cloud uploaded its logs, crash-log bundle and `.xcresult` artifact. One follow-up manual Cloud run is authorized after the validated correction is pushed; no repeat run will be started.
 
+## Follow-up Cloud verification (7 November 2026)
+
+- Commit `75ee796` was pushed to `native-ios-foundation` before starting the one authorized follow-up run (Build 2, Xcode 27.2 build 27B52).
+- The run queued for 11 seconds and ran for 55 seconds before failing in `Ensure Bundled WebAssets`; `xcodebuild build` exited 65. The UI reports one error and six warnings. The build action did not complete, so the test action never started: Cloud unit tests and UI tests are **NOT RUN** in this verification.
+- Confirmed failure stage: the newly added shell build phase failed. Local serial build-for-testing proves the phase works when the post-clone script has generated `native/ios/Fylogia/WebAssets/index.html`. The Cloud UI did not expose the script's stdout/stderr in the available summary, so whether post-clone generation was skipped or the Cloud build phase resolved a different source path is **not established**. Do not change the code speculatively.
+- This is not evidence of an IndexedDB, WebKit feed readiness, or XCTest accessibility failure: no Cloud test runner was launched in Build 2. The prior Build 1 results remain as documented above.
+- No second verification was started. The next diagnostic should be a read-only review of Build 2's complete Cloud build log and post-clone action log; only after identifying why the generated source is absent should another run be considered.
+
 ## Remaining setup and first-run gates
 
-1. Complete the single authorized manual Cloud verification for the bundled-WebAssets correction. Stop after that run and record its results; do not repeat it automatically.
-2. Check Xcode Cloud account usage separately; this run's report shows wall-clock duration only, not compute credits or resource totals. No additional compute was purchased.
+1. Diagnose why Cloud's `Ensure Bundled WebAssets` phase could not find its generated input, using the full Build 2 build and post-clone logs. The single authorized verification is complete; no further Cloud run is authorized by this task.
+2. Check Xcode Cloud account usage separately; Build 2's report showed wall-clock duration only, not compute credits or resource totals. No additional compute was purchased.
 3. For TestFlight, confirm final version/build metadata, privacy disclosures, content and image rights, app metadata, and internal tester group before a separately authorized upload. No upload or tester invitation is authorized or performed in this task.
 
 ## Readiness decision
