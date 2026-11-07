@@ -8,6 +8,12 @@ Updated 7 November 2026, Asia/Muscat. This supersedes the historical phase statu
 - **PASS clean-checkout validation:** post-clone asset generation, app/widget simulator build, and `build-for-testing` for both test targets succeeded from the fresh clone. The resulting `.app` contains `WebAssets/index.html`; no simulator was booted and no test was executed. Detailed Xcode Cloud version/account/workflow findings and owner steps are in `native/ios/XCODE-CLOUD-READINESS.md`.
 - **Owner gate:** Xcode Cloud’s exact Xcode 27.2 availability, Cloud simulator destination list, Apple team, and any App Store Connect record must be confirmed in the authenticated Xcode/ASC setup. No Cloud workflow was created or started and no signing configuration or subscription was changed.
 
+### Focused manual Xcode Cloud plan (7 November 2026)
+
+- Added the shared, non-default `Fylogia-Focused-Cloud` plan: all native unit tests plus three essential UI navigation checks for landscape horizontal spread scrolling without curl, article navigation/rotation, and Settings/navigation. The normal shared scheme test action remains the default; both preserved curl experiments remain excluded from the active plan.
+- The plan parses through `xcodebuild -showTestPlans`, and its app/widget/test-runner products compile through serial `build-for-testing` on the Developments SSD. No simulator was booted and no XCTest or Cloud job was run.
+- Intended account-side workflow is manual-only and branch-scoped to `native-ios-foundation`; no workflow, signing, team, or Cloud account configuration was changed. Apple Developer enrollment/team confirmation remains an owner prerequisite before configuration or a Cloud run.
+
 ### First-launch reading guidance correction (7 November 2026)
 
 - Replaced the stale first-tip instruction to curl pages with the active behavior: narrow windows scroll vertically, while wide layouts swipe horizontally through facing stories or use Previous/Next spread controls. The discovery tip now points readers to Explore for categories and My Sources for publications. Existing bookmark/offline and Settings tips remain available.

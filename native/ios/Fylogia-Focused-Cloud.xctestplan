@@ -1,0 +1,35 @@
+{
+  "configurations" : [
+    {
+      "id" : "9D40C3C7-81BF-48CA-91FD-4B6049AC44A6",
+      "name" : "Default",
+      "options" : { }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Fylogia.xcodeproj",
+        "identifier" : "591EFD0FCE80AD8F7A765FE2",
+        "name" : "FylogiaTests"
+      }
+    },
+    {
+      "selectedTests" : [
+        "HybridUITests/testLandscapeFeedUsesHorizontalScrollingWithoutCurl",
+        "HybridUITests/testArticleModesAndNavigationSurviveRotation",
+        "HybridUITests/testGoldenNavigationSettingsAndScreenshots"
+      ],
+      "target" : {
+        "containerPath" : "container:Fylogia.xcodeproj",
+        "identifier" : "8E82A1B3F4CE713E9A205275",
+        "name" : "FylogiaUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
