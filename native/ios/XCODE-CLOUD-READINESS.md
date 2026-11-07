@@ -1,6 +1,6 @@
 # Fylogia Xcode Cloud and TestFlight readiness
 
-Updated 7 November 2026. This is a repository-side readiness record. The Zain Abdulahad Apple Developer team (`WS32P56Z42`), explicit app/widget IDs, and App Store Connect app record are verified. Automatic signing was verified by a local App Store Connect export for both app and widget. Xcode Cloud source access is connected and a manual-only workflow has been saved. The first run found missing bundled resources at app startup. Build 2 failed in the asset-check phase before tests began. The supported hook location and build-phase fallback have now been corrected; one manual Cloud Build + Test verification is pending.
+Updated 7 November 2026. This is a repository-side readiness record. The Zain Abdulahad Apple Developer team (`WS32P56Z42`), explicit app/widget IDs, and App Store Connect app record are verified. Automatic signing was verified by a local App Store Connect export for both app and widget. Xcode Cloud source access is connected and a manual-only workflow has been saved. The first run found missing bundled resources at app startup. Build 2 failed in the asset-check phase before tests began. The supported hook location and build-phase fallback were corrected and passed a clean-checkout local build, but the single follow-up Cloud Build + Test run (Build 3) again failed at a script phase before tests began. The available Xcode Cloud summary does not expose that script's stderr, so the underlying Build 3 cause remains unconfirmed.
 
 ## Verified repository configuration
 
@@ -30,7 +30,7 @@ The saved workflow uses the existing shared scheme and focused test plan:
 
 This plan excludes both inactive curl experiments. Manual-only triggering prevents routine Web `main` pushes and scheduled news-data refreshes from consuming Cloud runs. The Cloud workflow is configured in Xcode/App Store Connect, not in GitHub Actions; the existing GitHub workflow is separate and triggers its CI only for Web `main` pushes/PRs or manual dispatch, with its scheduled job limited to refreshing Web news data.
 
-The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and referenced as non-default by the shared scheme. Its JSON parses, `xcodebuild -showTestPlans` lists it, and prior local serial `build-for-testing` validated its test products. The Xcode Cloud clean-checkout run built successfully with the app, widget and generated WebKit assets.
+The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and referenced as non-default by the shared scheme. Its JSON parses, `xcodebuild -showTestPlans` lists it, and prior local serial `build-for-testing` validated its test products. Local clean-checkout build evidence confirms the app, widget and generated WebKit assets build and bundle correctly. Xcode Cloud packaging is not verified: Builds 2 and 3 stopped in script phases before test execution.
 
 ## First Xcode Cloud run
 
@@ -55,12 +55,21 @@ The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and 
 - This is not evidence of an IndexedDB, WebKit feed readiness, or XCTest accessibility failure: no Cloud test runner was launched in Build 2. The prior Build 1 results remain as documented above.
 - One manual Cloud Build + Test run is authorized after this correction is pushed. Its result will be recorded below. Do not start more runs as part of this task.
 
+## Final Cloud verification (7 November 2026)
+
+- Source commits were pushed before the run: asset packaging correction `7d59dcf` and documentation checkpoint `59e5a16`. Xcode Cloud started **Build 3** manually on `native-ios-foundation`, Xcode 27.2 (27B52), macOS Golden Gate 27.2 (26B123). The run queued for 23 seconds and the report showed **1 minute 26 seconds** elapsed.
+- **FAIL before tests.** The Xcode report shows the Build action failed with 7 issues (1 error, 6 warnings). The focused test action also failed with 1 error and 6 warnings. Its report says `Tests Ran for 0 seconds`; no unit or UI test executed.
+- Exact error exposed in the Xcode Cloud issue summary: `Command PhaseScriptExecution failed with a nonzero exit code` (target `Fylogia`). The report's final activity-log row reports `2 errors, 14 warnings` across the actions. The build log also reports `Post-Xcodebuild script not found at ci_scripts/ci_post_xcodebuild.sh` as a **Success** item; that optional script is not configured and this line is not identified as the cause.
+- The summary does not show which script phase failed, the command's stderr, whether `ci_post_clone.sh` ran, the generator output, or whether `Fylogia.app/WebAssets/index.html` was produced in Cloud. Therefore the internal Build 3 failure cause and Cloud bundle contents are **UNVERIFIED**. Do not infer that the generator or Cloud checkout path is the failing component from the generic phase error alone.
+- Xcode Cloud did not report test counts beyond zero seconds or a compute/resource breakdown. The run duration and queue above are the only observed timing measures. Local clean-checkout build and WebKit startup results remain valid local evidence, but they do not substitute for Cloud packaging verification.
+- This was the one authorized follow-up Cloud run. No further Cloud attempt was started. No simulator was launched locally; no website, production, AIHomeOS, signing, App Store Connect, or TestFlight settings were changed.
+
 ## Remaining setup and first-run gates
 
-1. Run the single authorized manual Cloud Build + Test verification on the corrected development commit, then record whether the app bundle contains WebAssets and focused tests execute. Stop after that run.
+1. The single authorized follow-up Cloud run is complete and failed before tests. The detailed phase stderr is not exposed in the report summary; further Cloud runs are outside this task.
 2. Check Xcode Cloud account usage separately; Build 2's report showed wall-clock duration only, not compute credits or resource totals. No additional compute was purchased.
 3. For TestFlight, confirm final version/build metadata, privacy disclosures, content and image rights, app metadata, and internal tester group before a separately authorized upload. No upload or tester invitation is authorized or performed in this task.
 
 ## Readiness decision
 
-**Repository and distribution signing: READY for a later owner-authorized upload.** Clean-checkout asset generation and generic app/widget build are locally verified; explicit IDs, App Store Connect record, shared scheme, focused plan, exported IPA signing, and manual-only Cloud workflow are configured. **Xcode Cloud: CONFIGURED; Build 1 and Build 2 did not pass acceptance.** One final authorized verification is pending after the hook-path correction. Detailed resource consumption is not exposed in the reviewed report. **TestFlight: NOT UPLOADED.** No services were purchased or app distribution activated.
+**Repository and distribution signing: READY for a later owner-authorized upload.** Clean-checkout asset generation and generic app/widget build are locally verified; explicit IDs, App Store Connect record, shared scheme, focused plan, exported IPA signing, and manual-only Cloud workflow are configured. **Xcode Cloud: CONFIGURED, NOT ACCEPTED.** Build 1 exposed missing bundled assets; Build 2 and Build 3 failed in script phases before tests. Build 3's available summary reports only `Command PhaseScriptExecution failed with a nonzero exit code`; the failing script and stderr are not exposed there. **TestFlight: NOT UPLOADED.** No services were purchased or app distribution activated.
