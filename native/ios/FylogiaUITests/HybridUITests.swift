@@ -28,6 +28,25 @@ final class HybridUITests: XCTestCase {
     add(hierarchy)
   }
 
+  @MainActor private func landscapeFirstSpreadIsReady(
+    _ app: XCUIApplication, timeout: TimeInterval
+  ) -> Bool {
+    let firstFeedPage = app.otherElements.matching(
+      NSPredicate(format: "label CONTAINS %@", "Horizontally scrolling news feed. Story 1 of 8")
+    ).firstMatch
+    let firstStory = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS %@", "A new perspective on our changing world")
+    ).firstMatch
+    let secondStory = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS %@", "Inside the ideas shaping tomorrow")
+    ).firstMatch
+    let visibleStory = NSPredicate(format: "exists == true AND hittable == true")
+    let expectations = [firstFeedPage, firstStory, secondStory].map {
+      XCTNSPredicateExpectation(predicate: visibleStory, object: $0)
+    }
+    return XCTWaiter.wait(for: expectations, timeout: timeout) == .completed
+  }
+
   @MainActor private func launch(
     arguments: [String] = ["--parity-testing"]
   ) throws -> XCUIApplication {
@@ -43,13 +62,15 @@ final class HybridUITests: XCTestCase {
     let landscape =
       XCUIDevice.shared.orientation == .landscapeLeft
       || XCUIDevice.shared.orientation == .landscapeRight
-    let contentReady =
-      landscape
-      ? app.staticTexts["Story 1–2 of 8"]
-      : app.buttons.matching(
+    let contentReady: Bool
+    if landscape {
+      contentReady = landscapeFirstSpreadIsReady(app, timeout: 60)
+    } else {
+      contentReady = app.buttons.matching(
         NSPredicate(format: "label CONTAINS %@", "A new perspective on our changing world")
-      ).firstMatch
-    guard contentReady.waitForExistence(timeout: 60) else {
+      ).firstMatch.waitForExistence(timeout: 60)
+    }
+    guard contentReady else {
       attachReadinessDiagnostics(app, stage: "feed-content-unavailable")
       throw ReadinessError.feedUnavailable
     }
@@ -205,8 +226,7 @@ final class HybridUITests: XCTestCase {
   @MainActor func testLandscapeFeedUsesHorizontalScrollingWithoutCurl() throws {
     XCUIDevice.shared.orientation = .landscapeLeft
     let app = try launch()
-    let progress = app.staticTexts["Story 1–2 of 8"]
-    XCTAssertTrue(progress.waitForExistence(timeout: 12))
+    XCTAssertTrue(landscapeFirstSpreadIsReady(app, timeout: 12))
     capture("landscape-horizontal-spread-before", app: app)
     XCTAssertFalse(app.otherElements["Native bound magazine"].exists)
     XCTAssertTrue(app.buttons["Edition controls"].exists)
@@ -275,8 +295,7 @@ final class HybridUITests: XCTestCase {
       return
     }
 
-    let initialSpread = app.staticTexts["Story 1–2 of 8"]
-    XCTAssertTrue(initialSpread.waitForExistence(timeout: 10))
+    XCTAssertTrue(landscapeFirstSpreadIsReady(app, timeout: 10))
     XCTAssertFalse(app.otherElements["Native bound magazine"].exists)
     let nextSpreadLead = app.buttons.matching(
       NSPredicate(format: "label CONTAINS %@", "The art of slowing down to read")
