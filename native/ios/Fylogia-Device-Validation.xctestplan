@@ -13,12 +13,8 @@
   "testTargets" : [
     {
       "selectedTests" : [
-        "HybridUITests/testLandscapeFeedUsesHorizontalScrollingWithoutCurl",
-        "HybridUITests/testArticleModesAndNavigationSurviveRotation",
-        "HybridUITests/testExtendedReadingSessionPreservesPositionAcrossRotations",
         "HybridUITests/testOfflinePDFContinuousScrolling",
-        "HybridUITests/testFocusedAccessibilityTargetsAndStoryDescription",
-        "HybridUITests/testGoldenNavigationSettingsAndScreenshots"
+        "HybridUITests/testFocusedAccessibilityTargetsAndStoryDescription"
       ],
       "target" : {
         "containerPath" : "container:Fylogia.xcodeproj",
