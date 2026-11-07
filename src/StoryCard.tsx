@@ -113,7 +113,7 @@ export function StoryCard({
             }
           />
         ) : (
-          <div className="type-art" aria-hidden="true">
+          <div className="type-art story-placeholder" aria-hidden="true">
             <span>{article.categories[0]}</span>
             <strong>{article.source}</strong>
             <ArrowUpRight size={32} />

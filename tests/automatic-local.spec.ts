@@ -122,13 +122,26 @@ test("regional choices persist through travel and changing region does not chang
   await nav(page, "Local News");
   await expect(active(page).locator("h2")).toHaveText("Oman domestic news");
   await nav(page, "Regional News");
+  const surface = page.locator(".news-book > .news-feed-surface");
+  await expect
+    .poll(() =>
+      surface.evaluate((element) => {
+        const width = document.documentElement.clientWidth;
+        const height = document.documentElement.clientHeight;
+        const expected =
+          element.clientWidth >= 680 && width >= height * 0.9 ? "2" : "1";
+        return `${element.getAttribute("data-spread")}:${expected}`;
+      }),
+    )
+    .toMatch(/^(1:1|2:2)$/);
   const regional = [...(await active(page).locator("h2").allTextContents())];
   const next = page.getByRole("button", { name: "Next stories", exact: true });
   if (await next.isEnabled()) {
     await next.click();
-    await expect(
-      page.locator(".news-book > .news-feed-surface"),
-    ).not.toHaveAttribute("data-page-turn", /.+/);
+    await expect
+      .poll(() => active(page).locator("h2").allTextContents())
+      .not.toEqual(regional);
+    await expect(surface).not.toHaveAttribute("data-page-turn", /.+/);
     regional.push(...(await active(page).locator("h2").allTextContents()));
   }
   expect(regional).toEqual(["Cyprus domestic news", "Germany government news"]);

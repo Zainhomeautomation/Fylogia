@@ -101,6 +101,32 @@ async function beginGeometrySampling(page: Page) {
   });
 }
 
+async function waitForPaintFrames(page: Page, count = 7) {
+  // Hold each drag pose until WebKit has actually delivered animation frames.
+  // A fixed 120 ms delay can expire while the WebKit test runner is throttling
+  // requestAnimationFrame, leaving the geometry assertions intact but too few
+  // samples for the aggregate held-drag frame check.
+  await page.evaluate(
+    (frames) =>
+      new Promise<void>((resolve, reject) => {
+        let remaining = frames;
+        const timeout = window.setTimeout(
+          () => reject(new Error("WebKit did not deliver held-drag frames")),
+          3000,
+        );
+        const next = () => {
+          remaining -= 1;
+          if (remaining === 0) {
+            window.clearTimeout(timeout);
+            resolve();
+          } else requestAnimationFrame(next);
+        };
+        requestAnimationFrame(next);
+      }),
+    count,
+  );
+}
+
 async function captureFrame(page: Page, info: any, name: string) {
   const path = process.env.FYLOGIA_SCREENSHOTS
     ? `${process.env.FYLOGIA_SCREENSHOTS}/${name}`
@@ -165,9 +191,8 @@ test("slow full-width mouse over-drag keeps the moving sheet bound to the center
     await page.mouse.move(start.x - leafWidth * fraction, start.y, {
       steps: 8,
     });
-    // Hold at each drag position so WebKit can paint and sample the live curl
-    // instead of coalescing the whole gesture into a handful of RAF callbacks.
-    await page.waitForTimeout(120);
+    // Hold each pose for real paint frames, not an arbitrary wall-clock delay.
+    await waitForPaintFrames(page);
     await expect(spread.locator(".paper-fold")).toBeVisible();
     await assertBoundGeometry(spread);
     if ([0.5, 0.9, 1.4, 1.95, 2.3].includes(fraction))
@@ -197,7 +222,7 @@ test("slow full-width mouse over-drag keeps the moving sheet bound to the center
         steps: 8,
       },
     );
-    await page.waitForTimeout(120);
+    await waitForPaintFrames(page);
     await assertBoundGeometry(spread);
     if ([0.95, 1.8, 2.25].includes(fraction))
       await captureFrame(
