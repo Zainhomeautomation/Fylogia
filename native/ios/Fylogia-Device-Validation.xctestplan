@@ -13,8 +13,6 @@
   "testTargets" : [
     {
       "selectedTests" : [
-        "HybridUITests/testArticleModesAndNavigationSurviveRotation",
-        "HybridUITests/testOfflinePDFContinuousScrolling",
         "HybridUITests/testFocusedAccessibilityTargetsAndStoryDescription"
       ],
       "target" : {
