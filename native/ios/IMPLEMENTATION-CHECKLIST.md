@@ -2,6 +2,12 @@
 
 Updated 7 November 2026, Asia/Muscat. This supersedes the historical phase statuses in the root progress ledger. Development remains on `native-ios-foundation`; the golden website and production are protected.
 
+### Xcode Cloud clean-checkout readiness (7 November 2026)
+
+- The shared `Fylogia` scheme builds the app and widget dependency and includes both unit and UI tests. A fresh clone confirmed that ignored `WebAssets` were missing: the native project compiled but lacked `WebAssets/index.html` in the app bundle. Added root `ci_scripts/ci_post_clone.sh` to install locked Node 24 dependencies from the immutable Web golden tag and generate only the Native bundle assets before Xcode runs.
+- **PASS clean-checkout validation:** post-clone asset generation, app/widget simulator build, and `build-for-testing` for both test targets succeeded from the fresh clone. The resulting `.app` contains `WebAssets/index.html`; no simulator was booted and no test was executed. Detailed Xcode Cloud version/account/workflow findings and owner steps are in `native/ios/XCODE-CLOUD-READINESS.md`.
+- **Owner gate:** Xcode Cloud’s exact Xcode 27.2 availability, Cloud simulator destination list, Apple team, and any App Store Connect record must be confirmed in the authenticated Xcode/ASC setup. No Cloud workflow was created or started and no signing configuration or subscription was changed.
+
 ### First-launch reading guidance correction (7 November 2026)
 
 - Replaced the stale first-tip instruction to curl pages with the active behavior: narrow windows scroll vertically, while wide layouts swipe horizontally through facing stories or use Previous/Next spread controls. The discovery tip now points readers to Explore for categories and My Sources for publications. Existing bookmark/offline and Settings tips remain available.
