@@ -1,14 +1,14 @@
 # Fylogia Xcode Cloud and TestFlight readiness
 
-Updated 7 November 2026. This is a repository-side readiness record only. No Apple account was connected, no workflow or Cloud build was started, and no signing settings were changed.
+Updated 7 November 2026. This is a repository-side readiness record. Since the Cloud audit, the owner connected the Zain Abdulahad Apple Developer team and authorized automatic signing for the Fylogia app/widget; no Xcode Cloud workflow or Cloud build has been started.
 
 ## Verified repository configuration
 
 - Active checkout is `native-ios-foundation`. The shared `Fylogia` scheme builds the `Fylogia` app and embeds its `FylogiaWidgetExtension`; its Test action includes `FylogiaTests` and `FylogiaUITests`. `xcodebuild -list` recognizes all four targets. Xcode 27.2 (27B52) recognizes the shared scheme and the `Fylogia-Focused-Cloud` plan.
-- Bundle IDs: app `com.fylogia.native`; widget `com.fylogia.native.widget`; unit test `com.fylogia.native.FylogiaTests`; UI test `com.fylogia.native.FylogiaUITests`. App/widget target iOS 17.0, automatic signing, no `DEVELOPMENT_TEAM` value and no entitlements file. The project has no Swift Package, CocoaPods, or Carthage dependencies.
+- Bundle IDs: app `com.fylogia.native`; widget `com.fylogia.native.widget`; unit test `com.fylogia.native.FylogiaTests`; UI test `com.fylogia.native.FylogiaUITests`. App/widget target iOS 17.0, automatic signing, Team ID `WS32P56Z42`, and no entitlements file. The team is assigned only to app/widget Debug and Release configurations; tests have no team override. The project has no Swift Package, CocoaPods, or Carthage dependencies.
 - Native WebAssets are generated and ignored, so they are absent from a plain Git checkout. Root `ci_scripts/ci_post_clone.sh` is the Xcode Cloud bootstrap: it requires the immutable `fylogia-web-golden-v1` Git tag, archives that source into the Native checkout, runs locked `npm ci` with Node 24, and calls `native/ios/scripts/build-web.mjs`. It writes only the Native WebAssets; it does not modify the separate Web checkout or production.
 - **PASS current clean-checkout build (4bea937):** a detached clean Git worktree ran the post-clone script and generated `native/ios/Fylogia/WebAssets/index.html`; the `Fylogia` app and embedded widget then built for generic iOS Simulator with Xcode 27.2, code signing disabled, one build job, and DerivedData on Developments SSD. No simulator boot, XCTest or signing operation occurred. Build warnings include an existing Swift 6 actor-isolation warning in `HybridController.swift`; the build succeeded. Earlier clean-clone `build-for-testing` evidence is recorded in the implementation checklist; this current check was deliberately build-only.
-- The account's Apple Team ID, App Store Connect app record, Xcode Cloud entitlement/available environment versions and supported simulator destinations are **not discoverable from this local project**. No team is configured in the project. Do not infer them from another app or signing identity.
+- The team and Admin role are verified in Xcode Accounts. The signed device-target build succeeds for both app/widget and the embedded profile inspection shows a wildcard team profile with one registered device. The iPhone Duo was not connected, so its device ID was not matched to that profile. The App Store Connect app record and account-specific Xcode Cloud availability remain unverified. Do not infer them from another app or signing identity.
 
 ## One economical workflow to configure later
 
@@ -38,4 +38,4 @@ The test plan is committed at `native/ios/Fylogia-Focused-Cloud.xctestplan` and 
 
 ## Readiness decision
 
-**Repository/configuration: READY for owner-side workflow setup after account gates.** Clean-checkout bootstrap, generated WebAssets, app/widget build, shared scheme, test targets and focused plan are verified. **Cloud and TestFlight: NOT CONFIGURED / owner action required.** Exact team, App Store Connect record, current Cloud Xcode/destination availability, signing/provisioning and TestFlight metadata remain unverified. No services were purchased or activated.
+**Repository/configuration: READY for owner-side workflow setup after account gates.** Clean-checkout bootstrap, generated WebAssets, app/widget builds, target signing, shared scheme, test targets and focused plan are verified. **Cloud and TestFlight: NOT CONFIGURED / owner action required.** App Store Connect record, current Cloud Xcode/destination availability, physical-device profile match and TestFlight metadata remain unverified. No services were purchased or activated.
