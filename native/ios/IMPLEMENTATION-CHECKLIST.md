@@ -2,6 +2,13 @@
 
 Updated 7 November 2026, Asia/Muscat. This supersedes the historical phase statuses in the root progress ledger. Development remains on `native-ios-foundation`; the golden website and production are protected.
 
+### Native landscape spread navigation (7 November 2026)
+
+- **PASS WebKit:** Added labeled Previous/Next spread controls to wide landscape reading. Buttons navigate one facing spread, disable at the first/last spread, retain the active story anchor, and use instant movement when Reduce Motion is enabled. They remain inside the existing cream-paper reader, with 44 px minimum targets and visible keyboard focus; swipe scrolling remains available. Portrait, articles, PDFs, bookmarks, offline behavior, and the inactive UIKit/WebKit curl engines were not changed.
+- **PASS focused regressions:** `scripts/test-adaptive-feed.mjs` covers the controls' accessible names, target sizes, boundary state, forward/back movement, anchor restoration, and the existing ten viewport cases including four Duo-sized simulations. `scripts/test-web-layout.mjs`, `scripts/test-reading-mode.mjs`, and `scripts/test-native-accessibility.mjs` passed.
+- **PASS native build:** `xcodebuild -project native/ios/Fylogia.xcodeproj -scheme Fylogia -destination "generic/platform=iOS Simulator" -derivedDataPath /Volumes/Developments/Xcode/DerivedData/Fylogia -jobs 1 CODE_SIGNING_ALLOWED=NO build` succeeded after rebuilding the native WebAssets bundle.
+- **BLOCKED simulator XCTest:** The Mac remained locked during this task. No simulator was launched and no native UI XCTest was run; device-level appearance and navigation remain pending an unlocked Mac and visible Home Screen readiness.
+
 ### Accessibility and iPhone Duo preparation (7 November 2026)
 
 - Review of the saved 11-item iPhone 17 Apple audit found ten small-hit-region flags attached to static editorial text (feed guidance, dates/metadata, Settings headings/labels, and article status copy), not ten independent actions. Those labels remain readable and compact; they were not padded into false buttons. The remaining image finding pointed to story artwork rendered with an empty `alt` inside the already-named story button.

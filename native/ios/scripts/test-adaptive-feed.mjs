@@ -58,6 +58,65 @@ try {
     throw Error(
       "Wide landscape must retain two facing stories per horizontal spread",
     );
+  const previousButton = page.getByRole("button", { name: "Previous spread" });
+  const nextButton = page.getByRole("button", { name: "Next spread" });
+  const controls = page.getByRole("navigation", { name: "Spread navigation" });
+  await controls.waitFor();
+  const controlSizes = await Promise.all(
+    [previousButton, nextButton].map((button) =>
+      button.evaluate((e) => {
+        const rect = e.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }),
+    ),
+  );
+  if (controlSizes.some(({ width, height }) => width < 44 || height < 44))
+    throw Error(`Spread controls are below the 44 px target: ${JSON.stringify(controlSizes)}`);
+  const firstStory = await strip.locator("[data-story-id]").first().getAttribute("data-story-id");
+  await strip.evaluate((e) => {
+    e.scrollTo({ left: 0, behavior: "instant" });
+    e.dispatchEvent(new Event("scroll", { bubbles: true }));
+  });
+  await page.waitForFunction(() =>
+    document.querySelector('[aria-label="Previous spread"]')?.disabled,
+  );
+  if (await nextButton.isDisabled()) throw Error("Next spread is unexpectedly disabled at the first spread");
+  const firstLabel = await page.locator(".native-spread-controls .feed-pagination").textContent();
+  await nextButton.click();
+  await page.waitForFunction((old) => {
+    const label = document.querySelector(".native-spread-controls .feed-pagination")?.textContent;
+    const strip = document.querySelector(".native-spread-strip");
+    return label !== old && Boolean(strip && strip.scrollLeft > 0);
+  }, firstLabel);
+  await page.waitForFunction(() =>
+    document.querySelector('[aria-label="Previous spread"]')?.disabled === false,
+  );
+  if (await previousButton.isDisabled()) throw Error("Previous spread stayed disabled after advancing");
+  await previousButton.click();
+  await page.waitForFunction((old) =>
+    document.querySelector(".native-spread-controls .feed-pagination")?.textContent === old,
+  firstLabel);
+  await page.waitForFunction(() =>
+    document.querySelector('[aria-label="Previous spread"]')?.disabled,
+  );
+  if ((await strip.getAttribute("data-native-anchor")) !== firstStory)
+    throw Error("Previous/next controls did not restore the first spread's reading anchor");
+  await strip.evaluate((e) => {
+    e.scrollTo({ left: e.scrollWidth, behavior: "instant" });
+    e.dispatchEvent(new Event("scroll", { bubbles: true }));
+  });
+  await page.waitForFunction(() =>
+    document.querySelector('[aria-label="Next spread"]')?.disabled,
+  );
+  if (await previousButton.isDisabled()) throw Error("Previous spread is disabled at the final spread");
+  await strip.evaluate((e) => {
+    e.scrollTo({ left: 0, behavior: "instant" });
+    e.dispatchEvent(new Event("scroll", { bubbles: true }));
+  });
+  await page.waitForFunction(() =>
+    document.querySelector('[aria-label="Previous spread"]')?.disabled,
+  );
+  console.log("PASS accessible spread controls: 44 px targets, disabled boundary, forward/back navigation and anchor restoration");
   const priorLabel = await page
     .locator(".native-horizontal-feed .feed-pagination")
     .textContent();

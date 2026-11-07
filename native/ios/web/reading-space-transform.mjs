@@ -140,7 +140,23 @@ export function adaptiveFeed(code, id) {
           </div>;
         })}
       </div>
-      <div className="feed-pagination"><span aria-live="polite" aria-atomic="true">Story {Math.floor(index / 2) * 2 + 1}–{Math.min(articles.length, Math.floor(index / 2) * 2 + 2)} of {articles.length}</span></div>
+      <nav className="native-spread-controls" aria-label="Spread navigation">
+        <button type="button" aria-label="Previous spread" disabled={start === 0}
+          onClick={() => {
+            const target = Math.max(0, start - 2);
+            const node = surface.current;
+            if (node) node.scrollTo({left: (target / 2) * node.clientWidth, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
+            if (articles[target]?.id) setAnchor(articles[target].id);
+          }}>Previous</button>
+        <span className="feed-pagination" aria-live="polite" aria-atomic="true">Story {start + 1}–{Math.min(articles.length, start + 2)} of {articles.length}</span>
+        <button type="button" aria-label="Next spread" disabled={start + 2 >= articles.length}
+          onClick={() => {
+            const target = Math.min(Math.floor((articles.length - 1) / 2) * 2, start + 2);
+            const node = surface.current;
+            if (node) node.scrollTo({left: (target / 2) * node.clientWidth, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
+            if (articles[target]?.id) setAnchor(articles[target].id);
+          }}>Next</button>
+      </nav>
     </section>
   );
   if (flow) return (

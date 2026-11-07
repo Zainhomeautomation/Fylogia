@@ -308,6 +308,38 @@ html[data-native-paper="cream"] .native-scroll-feed {
   flex: none;
   margin: 4px 0 8px;
 }
+.native-spread-controls {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(88px, auto) 1fr minmax(88px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px max(6px, env(safe-area-inset-bottom));
+  background: var(--paper);
+  color: var(--ink);
+}
+.native-spread-controls > button {
+  min-width: 88px;
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--paper) 94%, var(--ink));
+  color: var(--ink);
+  font: inherit;
+}
+.native-spread-controls > button:focus-visible {
+  outline: 3px solid var(--accent, #8d4d2e);
+  outline-offset: 2px;
+}
+.native-spread-controls > button:disabled {
+  opacity: 0.48;
+}
+.native-spread-controls > .feed-pagination {
+  margin: 0;
+  padding: 4px;
+  text-align: center;
+}
 .native-spread-strip {
   display: flex;
   flex: 1 1 auto;
