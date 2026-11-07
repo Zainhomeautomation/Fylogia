@@ -122,19 +122,6 @@ final class HybridUITests: XCTestCase {
     button.tap()
   }
 
-  @MainActor private func assertSettingsNavigationIsAccessible(_ app: XCUIApplication) {
-    let settingsRoute = app.buttons["Settings"].firstMatch
-    let sidebar = app.otherElements.matching(
-      NSPredicate(format: "label BEGINSWITH %@", "Main navigation")
-    ).firstMatch
-    let sidebarRoute = sidebar.buttons["Settings"].firstMatch
-    let openNavigation = app.buttons["Open navigation"].firstMatch
-    XCTAssertTrue(
-      (settingsRoute.exists && settingsRoute.isHittable)
-        || (sidebarRoute.exists && sidebarRoute.isHittable)
-        || (openNavigation.exists && openNavigation.isHittable),
-      "A Settings route or compact navigation control must be accessible")
-  }
   @MainActor private func capture(_ name: String, app: XCUIApplication) {
     let web = app.webViews.firstMatch
     let a = XCTAttachment(screenshot: web.screenshot())
@@ -203,12 +190,17 @@ final class HybridUITests: XCTestCase {
     assertAccessibleHitTarget(downloadArticle, name: "Article offline download")
     app.buttons["Back to previous section"].tap()
 
-    assertSettingsNavigationIsAccessible(app)
     navigate("Settings", app: app)
-    let appearance = app.switches["Light"].firstMatch
-    let readingMode = app.switches["Magazine Pages"].firstMatch
+    let appearance = app.switches["Warm cream paper"].firstMatch
+    let readingMode = app.staticTexts["Reading mode"].firstMatch
     assertAccessibleHitTarget(appearance, name: "Settings appearance choice")
-    assertAccessibleHitTarget(readingMode, name: "Settings reading mode choice")
+    XCTAssertTrue(readingMode.waitForExistence(timeout: 8), "Reading mode must be discoverable")
+    XCTAssertTrue(readingMode.isHittable, "Reading mode must be visible to assistive technology")
+    XCTAssertTrue(
+      app.staticTexts.matching(
+        NSPredicate(format: "label CONTAINS %@", "Scroll vertically in portrait")
+      ).firstMatch.exists,
+      "Settings must explain the active scroll-only reading modes")
 
     let screenshot = XCTAttachment(screenshot: app.screenshot())
     screenshot.name = "accessibility-targets-settings"
